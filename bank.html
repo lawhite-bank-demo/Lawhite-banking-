@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dechase Finance Bank</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:#eef1f5;
+}
+
+/* login */
+.login-screen{
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: linear-gradient(135deg,#0d1b2a,#1b263b);
+}
+
+.card{
+    background:white;
+    padding:30px;
+    border-radius:15px;
+    width:90%;
+    max-width:350px;
+    text-align:center;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    border-radius:8px;
+    border:1px solid #ccc;
+}
+
+button{
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#0d1b2a;
+    color:white;
+    width:100%;
+    font-size:16px;
+}
+
+.header{
+    background:linear-gradient(135deg,#0d1b2a,#1b263b);
+    color:white;
+    padding:20px;
+    border-bottom-left-radius:25px;
+    border-bottom-right-radius:25px;
+}
+
+.container{
+    padding:20px;
+}
+
+.balance-card{
+    background:linear-gradient(135deg,#1b263b,#415a77);
+    color:white;
+    padding:20px;
+    border-radius:18px;
+    margin-top:-30px;
+}
+
+.balance{
+    font-size:30px;
+    font-weight:bold;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+
+.btn{
+    flex:1;
+    text-align:center;
+    padding:12px;
+    background:#0d1b2a;
+    color:white;
+    border-radius:10px;
+}
+
+.tx{
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+    display:flex;
+    justify-content:space-between;
+}
+
+.credit{color:green;}
+.debit{color:red;}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login" class="login-screen">
+  <div class="card">
+      <h2>Secure Login</h2>
+      <input id="user" placeholder="Username">
+      <input id="pass" type="password" placeholder="Password">
+      <button onclick="login()">Login</button>
+      <p id="error" style="color:red;"></p>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+  <div class="header">
+      Hello, User 👋
+      <button onclick="logout()" style="float:right;background:red;">Logout</button>
+  </div>
+
+  <div class="container">
+
+      <div class="balance-card">
+          Available Balance
+          <div class="balance">€125,000.00</div>
+
+          <div class="actions">
+              <div class="btn" onclick="showTransactions()">History</div>
+          </div>
+      </div>
+
+      <div id="recent">
+          <h3>Recent Transactions</h3>
+
+          <div class="tx">
+              <div>Salary</div>
+              <div class="credit">+€3,000</div>
+          </div>
+
+          <div class="tx">
+              <div>Shopping</div>
+              <div class="debit">-€120</div>
+          </div>
+
+          <div class="tx">
+              <div>Electricity</div>
+              <div class="debit">-€60</div>
+          </div>
+      </div>
+
+  </div>
+</div>
+
+<script>
+function login(){
+    const u=document.getElementById("user").value;
+    const p=document.getElementById("pass").value;
+
+    if(u==="user" && p==="1234"){
+        document.getElementById("login").style.display="none";
+        document.getElementById("dashboard").style.display="block";
+        localStorage.setItem("loggedIn","true");
+    }else{
+        document.getElementById("error").innerText="Invalid login";
+    }
+}
+
+function logout(){
+    localStorage.removeItem("loggedIn");
+    location.reload();
+}
+
+window.onload=function(){
+    if(localStorage.getItem("loggedIn")==="true"){
+        document.getElementById("login").style.display="none";
+        document.getElementById("dashboard").style.display="block";
+    }
+}
+</script>
+
+</body>
+</html>
