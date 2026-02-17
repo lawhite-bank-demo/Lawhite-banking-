@@ -1,121 +1,95 @@
-<!DOCTYPE html>
+DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dechase Finance</title>
+<title>DeChase Finance Login</title>
 
 <style>
 body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background:#f4f6f8;
+  font-family: Arial;
+  background: linear-gradient(to right,#0a2a43,#0d3c61);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
-/* Header */
-.header{
-    background:#0a3d62;
-    color:white;
-    padding:18px;
-    text-align:center;
-    font-size:22px;
-    font-weight:bold;
+.box{
+  background:white;
+  padding:30px;
+  border-radius:12px;
+  width:320px;
+  text-align:center;
+  box-shadow:0 6px 18px rgba(0,0,0,0.2);
 }
 
-/* Hero */
-.hero{
-    text-align:center;
-    padding:60px 20px;
+input{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
 }
 
-.hero h1{
-    font-size:30px;
-    margin-bottom:10px;
+button{
+  width:100%;
+  margin-top:15px;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:#0a2a43;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
 }
 
-.hero p{
-    color:#555;
-    font-size:18px;
-    margin-bottom:30px;
-}
-
-/* Login Button */
-.btn{
-    background:#0a3d62;
-    color:white;
-    padding:14px 28px;
-    text-decoration:none;
-    border-radius:6px;
-    font-size:18px;
-    display:inline-block;
-}
-
-.btn:hover{
-    background:#07406a;
-}
-
-/* Features */
-.features{
-    background:white;
-    padding:40px 20px;
-    margin-top:40px;
-}
-
-.feature{
-    max-width:400px;
-    margin:15px auto;
-    text-align:center;
-}
-
-.feature h3{
-    margin-bottom:8px;
-}
-
-.footer{
-    text-align:center;
-    padding:20px;
-    color:gray;
-    font-size:14px;
-}
+#error{color:red;margin-top:10px;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-Dechase Finance Bank
+<div class="box">
+<h2>DeChase Finance</h2>
+<p>Secure Banking Login</p>
+
+<input id="username" placeholder="Username">
+<input id="pin" type="password" placeholder="PIN">
+
+<button onclick="login()">Login</button>
+
+<div id="error"></div>
 </div>
 
-<div class="hero">
-    <h1>Secure Online Banking</h1>
-    <p>Manage your money anytime, anywhere.</p>
+<script>
+function login(){
 
-    <!-- LOGIN BUTTON -->
-    <a href="login.html" class="btn">Login to Online Banking</a>
-</div>
+ const username = document.getElementById("username").value.trim();
+ const pin = document.getElementById("pin").value.trim();
 
-<div class="features">
+ // 👑 ADMIN LOGIN
+ if(username === "admin" && pin === "9999"){
+   localStorage.setItem("role","admin");
+   window.location.href="admin.html";
+   return;
+ }
 
-    <div class="feature">
-        <h3>🔒 Secure Access</h3>
-        <p>Industry-standard protection for your funds.</p>
-    </div>
+ // 👤 USER LOGIN (saved users)
+ let users = JSON.parse(localStorage.getItem("users")) || [];
 
-    <div class="feature">
-        <h3>💸 Fast Transfers</h3>
-        <p>Send money instantly between users.</p>
-    </div>
+ const found = users.find(u => u.username === username && u.pin === pin);
 
-    <div class="feature">
-        <h3>📊 Smart Dashboard</h3>
-        <p>Track balance, withdrawals & transactions.</p>
-    </div>
-
-</div>
-
-<div class="footer">
-© 2026 Dechase Finance Bank
-</div>
+ if(found){
+   localStorage.setItem("role","user");
+   localStorage.setItem("currentUser", username);
+   window.location.href="Dashboard.html";
+ }
+ else{
+   document.getElementById("error").innerText="Invalid login details";
+ }
+}
+</script>
 
 </body>
 </html>
