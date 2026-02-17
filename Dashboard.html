@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard - Dechase Finance</title>
+<title>User Dashboard - Dechase Finance</title>
 
 <style>
 body{
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     background:#f4f6f8;
     margin:0;
-    padding:20px;
     text-align:center;
 }
 
@@ -19,24 +17,19 @@ body{
     color:white;
     padding:25px;
     border-radius:12px;
-    max-width:400px;
+    max-width:420px;
     margin:20px auto;
-}
-
-.balance{
-    font-size:32px;
-    margin-top:10px;
 }
 
 .section{
     background:white;
     padding:20px;
     border-radius:10px;
-    max-width:400px;
-    margin:20px auto;
+    max-width:420px;
+    margin:15px auto;
 }
 
-input, select{
+input, button{
     width:90%;
     padding:12px;
     margin-top:10px;
@@ -45,168 +38,155 @@ input, select{
 }
 
 button{
-    margin-top:12px;
-    padding:12px;
-    width:95%;
-    border:none;
-    border-radius:6px;
-    background:green;
+    background:#0a3d62;
     color:white;
-    font-size:16px;
+    border:none;
+    font-weight:bold;
+}
+
+button:hover{
+    background:#07406a;
 }
 
 .history{
     text-align:left;
     font-size:14px;
-    margin-top:15px;
-}
-
-.admin{
-    background:#fff3cd;
-    border:1px solid #ffeeba;
-}
-
-.logout{
-    margin-top:20px;
-    display:inline-block;
-    color:#0a3d62;
-    text-decoration:none;
+    max-height:160px;
+    overflow:auto;
 }
 </style>
 </head>
-
 <body>
 
 <h2 id="welcome"></h2>
 
-<div class="card" id="userCard">
-    Available Balance
-    <div class="balance" id="balance"></div>
+<div class="section">
+<b>Account Name:</b> <span id="accName"></span><br>
+<b>Account Number:</b> <span id="accNumber"></span>
 </div>
 
-<div class="section" id="transferBox">
-    <h3>Transfer Money</h3>
-
-    <select id="receiver">
-        <option value="">Send to...</option>
-        <option value="john">John</option>
-        <option value="mary">Mary</option>
-        <option value="admin">Admin</option>
-    </select>
-
-    <input id="amount" placeholder="Enter amount">
-    <button onclick="sendMoney()">Send</button>
-    <div id="msg"></div>
+<div class="card">
+<h3>Available Balance</h3>
+<h1 id="balance">₦0</h1>
 </div>
 
 <div class="section">
-    <h3>Deposit Money</h3>
-    <input id="depositAmount" placeholder="Enter amount">
-    <button onclick="depositMoney()">Deposit</button>
-    <div id="depositMsg"></div>
+<h3>Transfer Money</h3>
+<input id="receiver" placeholder="Receiver account number">
+<input id="amount" placeholder="Amount">
+<button onclick="transferMoney()">Send</button>
+<div id="transferMsg"></div>
 </div>
 
 <div class="section">
-    <h3>Withdraw Money</h3>
-    <input id="withdrawAmount" placeholder="Enter amount">
-    <button onclick="withdrawMoney()">Withdraw</button>
-    <div id="withdrawMsg"></div>
+<h3>Deposit</h3>
+<input id="depositAmount" placeholder="Amount">
+<button onclick="depositMoney()">Deposit</button>
+<div id="depositMsg"></div>
 </div>
 
 <div class="section">
-    <h3>Transaction History</h3>
-    <div class="history" id="history"></div>
+<h3>Withdraw</h3>
+<input id="withdrawAmount" placeholder="Amount">
+<button onclick="withdrawMoney()">Withdraw</button>
+<div id="withdrawMsg"></div>
 </div>
 
-<!-- ADMIN PANEL -->
-<div class="section admin" id="adminPanel" style="display:none">
-    <h3>Admin Control Panel</h3>
-    <div id="allUsers"></div>
-    <h4>All Transactions</h4>
-    <div class="history" id="allHistory"></div>
+<div class="section">
+<h3>Transaction History</h3>
+<div class="history" id="history"></div>
 </div>
 
-<a class="logout" href="login.html">Logout</a>
+<div class="section" id="adminBox" style="display:none;">
+<h3>Admin Activity Log</h3>
+<div class="history" id="adminHistory"></div>
+</div>
 
 <script>
-let user = localStorage.getItem("currentUser");
+let user = localStorage.getItem("loggedUser");
 
 if(!user){
-    window.location="login.html";
+    location.href="login.html";
 }
+
+const accounts = {
+    john:{name:"John Doe", number:"3025567812"},
+    mary:{name:"Mary James", number:"4489216703"},
+    admin:{name:"Bank Admin", number:"0000000001"}
+};
 
 document.getElementById("welcome").innerText =
-    "Welcome, " + user.toUpperCase();
+"Welcome " + accounts[user].name;
 
-const users = ["john","mary","admin"];
+document.getElementById("accName").innerText =
+accounts[user].name;
 
-function getBalance(u=user){
-    return parseFloat(localStorage.getItem(u+"_balance")) || 0;
+document.getElementById("accNumber").innerText =
+accounts[user].number;
+
+function getBalance(){
+    return parseFloat(localStorage.getItem("balance_"+user)) || 50000;
 }
 
-function setBalance(val){
-    localStorage.setItem(user+"_balance", val);
+function setBalance(amount){
+    localStorage.setItem("balance_"+user, amount);
 }
 
 function showBalance(){
     document.getElementById("balance").innerText =
-        "₦" + getBalance().toLocaleString();
+    "₦" + getBalance().toLocaleString();
 }
 
-function saveHistory(text, target=user){
-    let history = localStorage.getItem(target+"_history") || "";
-    history = text + "<br>" + history;
-    localStorage.setItem(target+"_history", history);
+function saveHistory(text){
+    let h = localStorage.getItem("history_"+user) || "";
+    h = text + "<br>" + h;
+    localStorage.setItem("history_"+user, h);
 }
 
 function showHistory(){
     document.getElementById("history").innerHTML =
-        localStorage.getItem(user+"_history") || "No transactions yet";
+    localStorage.getItem("history_"+user) || "No transactions yet";
 }
 
-function sendMoney(){
-    let receiver = document.getElementById("receiver").value;
+function transferMoney(){
+    let toAcc = document.getElementById("receiver").value;
     let amount = parseFloat(document.getElementById("amount").value);
 
-    if(receiver==="" || isNaN(amount)) return;
+    let receiverUser = Object.keys(accounts).find(
+        key => accounts[key].number === toAcc
+    );
 
-    if(receiver===user){
-        document.getElementById("msg").innerText="Cannot send to yourself";
+    if(!receiverUser){
+        transferMsg.innerText="Account not found";
         return;
     }
 
-    let balance = getBalance();
-
-    if(amount > balance){
-        document.getElementById("msg").innerText="Insufficient funds";
+    if(amount > getBalance()){
+        transferMsg.innerText="Insufficient funds";
         return;
     }
 
-    balance -= amount;
-    setBalance(balance);
+    setBalance(getBalance() - amount);
 
-    let recBal = getBalance(receiver) + amount;
-    localStorage.setItem(receiver+"_balance", recBal);
+    let rBal = parseFloat(localStorage.getItem("balance_"+receiverUser)) || 0;
+    localStorage.setItem("balance_"+receiverUser, rBal + amount);
 
     let date = new Date().toLocaleString();
 
-    saveHistory("Sent ₦"+amount+" to "+receiver+" ("+date+")");
-    saveHistory("Received ₦"+amount+" from "+user+" ("+date+")", receiver);
+    saveHistory("Sent ₦"+amount+" to "+accounts[receiverUser].name+" ("+date+")");
 
     let global = localStorage.getItem("global_history") || "";
-    global = user+" → "+receiver+" : ₦"+amount+" ("+date+")<br>" + global;
+    global = user+" sent ₦"+amount+" to "+accounts[receiverUser].name+" ("+date+")<br>" + global;
     localStorage.setItem("global_history", global);
 
-    showBalance();
-    showHistory();
+    transferMsg.innerText="Transfer successful";
+    showBalance(); showHistory();
 }
 
 function depositMoney(){
     let amount = parseFloat(document.getElementById("depositAmount").value);
-    if(isNaN(amount) || amount<=0) return;
 
-    let balance = getBalance() + amount;
-    setBalance(balance);
+    setBalance(getBalance()+amount);
 
     let date = new Date().toLocaleString();
 
@@ -216,23 +196,19 @@ function depositMoney(){
     global = user+" deposited ₦"+amount+" ("+date+")<br>" + global;
     localStorage.setItem("global_history", global);
 
-    showBalance();
-    showHistory();
+    depositMsg.innerText="Deposit successful";
+    showBalance(); showHistory();
 }
 
 function withdrawMoney(){
     let amount = parseFloat(document.getElementById("withdrawAmount").value);
-    if(isNaN(amount) || amount<=0) return;
 
-    let balance = getBalance();
-
-    if(amount > balance){
-        document.getElementById("withdrawMsg").innerText="Insufficient funds";
+    if(amount > getBalance()){
+        withdrawMsg.innerText="Insufficient funds";
         return;
     }
 
-    balance -= amount;
-    setBalance(balance);
+    setBalance(getBalance()-amount);
 
     let date = new Date().toLocaleString();
 
@@ -242,34 +218,18 @@ function withdrawMoney(){
     global = user+" withdrew ₦"+amount+" ("+date+")<br>" + global;
     localStorage.setItem("global_history", global);
 
-    document.getElementById("withdrawMsg").innerText="Withdrawal successful";
-
-    showBalance();
-    showHistory();
+    withdrawMsg.innerText="Withdrawal successful";
+    showBalance(); showHistory();
 }
 
-function loadAdminPanel(){
-    if(user !== "admin") return;
-
-    document.getElementById("adminPanel").style.display="block";
-    document.getElementById("transferBox").style.display="none";
-    document.getElementById("userCard").style.display="none";
-
-    let usersInfo = "";
-    users.forEach(u=>{
-        usersInfo += u.toUpperCase() + ": ₦" +
-        getBalance(u).toLocaleString() + "<br>";
-    });
-
-    document.getElementById("allUsers").innerHTML = usersInfo;
-
-    document.getElementById("allHistory").innerHTML =
-        localStorage.getItem("global_history") || "No transactions yet";
+if(user === "admin"){
+    document.getElementById("adminBox").style.display="block";
+    document.getElementById("adminHistory").innerHTML =
+    localStorage.getItem("global_history") || "No activity yet";
 }
 
 showBalance();
 showHistory();
-loadAdminPanel();
 </script>
 
 </body>
