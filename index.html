@@ -1,14 +1,14 @@
-DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance Login</title>
+<title>DeChase Finance</title>
 
 <style>
 body{
-  font-family: Arial;
-  background: linear-gradient(to right,#0a2a43,#0d3c61);
+  background:#0b0f14;
+  font-family:Arial;
+  color:white;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -16,12 +16,16 @@ body{
 }
 
 .box{
-  background:white;
-  padding:30px;
-  border-radius:12px;
-  width:320px;
+  background:#151b23;
+  padding:25px;
+  border-radius:14px;
+  width:300px;
   text-align:center;
-  box-shadow:0 6px 18px rgba(0,0,0,0.2);
+}
+
+.logo{
+  width:80px;
+  margin-bottom:10px;
 }
 
 input{
@@ -29,65 +33,58 @@ input{
   padding:12px;
   margin-top:10px;
   border-radius:8px;
-  border:1px solid #ccc;
+  border:none;
 }
 
 button{
   width:100%;
-  margin-top:15px;
   padding:12px;
-  border:none;
+  margin-top:12px;
   border-radius:8px;
-  background:#0a2a43;
-  color:white;
-  font-size:16px;
-  cursor:pointer;
+  border:none;
+  background:#2dd4bf;
+  font-weight:bold;
 }
-
-#error{color:red;margin-top:10px;}
 </style>
 </head>
 
 <body>
 
 <div class="box">
-<h2>DeChase Finance</h2>
-<p>Secure Banking Login</p>
+  <img src="logo.png" class="logo">
+  <h2>DeChase Finance</h2>
 
-<input id="username" placeholder="Username">
-<input id="pin" type="password" placeholder="PIN">
+  <input id="username" placeholder="Username">
+  <input id="pin" type="password" placeholder="PIN">
 
-<button onclick="login()">Login</button>
-
-<div id="error"></div>
+  <button onclick="login()">Login</button>
 </div>
 
 <script>
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+// default admin
+const adminUser = "admin";
+const adminPin = "9999";
+
 function login(){
+  const username = username.value.trim();
+  const pin = pin.value.trim();
 
- const username = document.getElementById("username").value.trim();
- const pin = document.getElementById("pin").value.trim();
+  if(username === adminUser && pin === adminPin){
+    localStorage.setItem("currentUser","admin");
+    window.location.href="admin.html";
+    return;
+  }
 
- // 👑 ADMIN LOGIN
- if(username === "admin" && pin === "9999"){
-   localStorage.setItem("role","admin");
-   window.location.href="admin.html";
-   return;
- }
+  const user = users.find(u => u.username === username && u.pin === pin);
 
- // 👤 USER LOGIN (saved users)
- let users = JSON.parse(localStorage.getItem("users")) || [];
-
- const found = users.find(u => u.username === username && u.pin === pin);
-
- if(found){
-   localStorage.setItem("role","user");
-   localStorage.setItem("currentUser", username);
-   window.location.href="Dashboard.html";
- }
- else{
-   document.getElementById("error").innerText="Invalid login details";
- }
+  if(user){
+    localStorage.setItem("currentUser", username);
+    window.location.href="Dashboard.html";
+  } else {
+    alert("Invalid login");
+  }
 }
 </script>
 
