@@ -8,7 +8,7 @@
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
+  font-family:Arial;
   background:#0b0f14;
   color:white;
 }
@@ -25,7 +25,11 @@ body{
 
 .welcome{
   color:#9aa4b2;
-  margin-top:4px;
+}
+
+.account{
+  color:#2dd4bf;
+  margin-top:5px;
 }
 
 .card{
@@ -39,7 +43,6 @@ body{
 .balance{
   font-size:34px;
   margin-top:10px;
-  font-weight:bold;
 }
 
 button{
@@ -73,8 +76,6 @@ input{
   border-radius:8px;
   text-align:left;
 }
-
-small{color:#9aa4b2;}
 </style>
 </head>
 
@@ -83,6 +84,7 @@ small{color:#9aa4b2;}
 <div class="header">
   <div class="bank-name">DeChase Finance</div>
   <div class="welcome" id="welcome"></div>
+  <div class="account" id="acct"></div>
 </div>
 
 <div class="card">
@@ -105,38 +107,38 @@ small{color:#9aa4b2;}
 </div>
 
 <script>
-// get logged in user
 const currentUser = localStorage.getItem("currentUser");
 
-// redirect if not logged in
 if(!currentUser){
   window.location.href="index.html";
 }
 
-// capitalize first letter
-const name =
-currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
-
-// display welcome message
-document.getElementById("welcome").innerText =
-"Welcome, " + name;
-
-// load users & find current user
 let users = JSON.parse(localStorage.getItem("users")) || [];
 const user = users.find(u => u.username === currentUser);
 
-// format currency
+// welcome name
+const name =
+currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+
+document.getElementById("welcome").innerText =
+"Welcome, " + name;
+
+// show account number
+document.getElementById("acct").innerText =
+"Account No: " + user.accountNumber;
+
+// format money
 function formatMoney(n){
   return "€" + Number(n).toLocaleString();
 }
 
-// update balance display
+// update balance
 function updateBalance(){
   document.getElementById("balance").innerText =
   formatMoney(user.balance);
 }
 
-// toggle transfer box
+// toggle transfer
 function toggleSend(){
   const box=document.getElementById("sendBox");
   box.style.display = box.style.display==="block" ? "none":"block";
@@ -157,25 +159,18 @@ function sendMoney(){
     date=new Date().toLocaleString();
   }
 
-  // deduct balance
   user.balance -= amount;
   localStorage.setItem("users", JSON.stringify(users));
 
-  // save history
   let history = JSON.parse(localStorage.getItem(currentUser+"_tx")) || [];
-
   history.push({name, amount, date});
   localStorage.setItem(currentUser+"_tx", JSON.stringify(history));
 
   updateBalance();
   alert("Transfer successful");
-
-  recipient.value="";
-  amount.value="";
-  date.value="";
 }
 
-// show transaction history
+// show history
 function showHistory(){
   const historyBox=document.getElementById("history");
   historyBox.innerHTML="";
@@ -191,7 +186,6 @@ function showHistory(){
   });
 }
 
-// logout
 function logout(){
   window.location.href="index.html";
 }
