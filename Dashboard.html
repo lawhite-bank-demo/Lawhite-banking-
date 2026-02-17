@@ -1,79 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>User Dashboard | Dechase Finance Bank</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard - Dechase Finance</title>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b0f14;
-      color: #ffffff;
-      margin: 0;
-      padding: 20px;
-    }
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background:#f4f6f8;
+    margin:0;
+    padding:20px;
+    text-align:center;
+}
 
-    .card {
-      max-width: 420px;
-      margin: auto;
-      background: #151b23;
-      padding: 24px;
-      border-radius: 14px;
-      box-shadow: 0 10px 25px rgba(0,0,0,.4);
-    }
+.card{
+    background:#0a3d62;
+    color:white;
+    padding:25px;
+    border-radius:12px;
+    max-width:400px;
+    margin:20px auto;
+}
 
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-    }
+.balance{
+    font-size:32px;
+    margin-top:10px;
+}
 
-    .balance {
-      font-size: 28px;
-      text-align: center;
-      margin: 20px 0;
-      color: #2dd4bf;
-    }
+.section{
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    max-width:400px;
+    margin:20px auto;
+}
 
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      margin-top: 12px;
-      background: #2dd4bf;
-      color: #000;
-      text-align: center;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: bold;
-    }
+input, select{
+    width:90%;
+    padding:12px;
+    margin-top:10px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
 
-    .status {
-      text-align: center;
-      margin-top: 18px;
-      font-size: 14px;
-      color: #94a3b8;
-    }
-  </style>
+button{
+    margin-top:12px;
+    padding:12px;
+    width:95%;
+    border:none;
+    border-radius:6px;
+    background:green;
+    color:white;
+    font-size:16px;
+}
+
+.history{
+    text-align:left;
+    font-size:14px;
+    margin-top:15px;
+}
+
+.admin{
+    background:#fff3cd;
+    border:1px solid #ffeeba;
+}
+
+.logout{
+    margin-top:20px;
+    display:inline-block;
+    color:#0a3d62;
+    text-decoration:none;
+}
+</style>
 </head>
 
 <body>
 
-  <div class="card">
-    <h1>Lawhite</h1>
-    <p style="text-align:center;">User Dashboard</p>
+<h2 id="welcome"></h2>
 
-    <div class="balance">
-      ₦125,000.00
-    </div>
+<div class="card" id="userCard">
+    Available Balance
+    <div class="balance" id="balance"></div>
+</div>
 
-    <a href="#" class="btn">Send Money</a>
-    <a href="#" class="btn">Transactions</a>
+<div class="section" id="transferBox">
+    <h3>Transfer Money</h3>
 
-    <div class="status">
-      ● All Systems Operational
-    </div>
-  </div>
+    <select id="receiver">
+        <option value="">Send to...</option>
+        <option value="john">John</option>
+        <option value="mary">Mary</option>
+        <option value="admin">Admin</option>
+    </select>
+
+    <input id="amount" placeholder="Enter amount">
+    <button onclick="sendMoney()">Send</button>
+    <div id="msg"></div>
+</div>
+
+<div class="section">
+    <h3>Transaction History</h3>
+    <div class="history" id="history"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="section admin" id="adminPanel" style="display:none">
+    <h3>Admin Control Panel</h3>
+    <div id="allUsers"></div>
+    <h4>All Transactions</h4>
+    <div class="history" id="allHistory"></div>
+</div>
+
+<a class="logout" href="login.html">Logout</a>
+
+<script>
+let user = localStorage.getItem("currentUser");
+
+if(!user){
+    window.location="login.html";
+}
+
+document.getElementById("welcome").innerText =
+    "Welcome, " + user.toUpperCase();
+
+const users = ["john","mary","admin"];
+
+function getBalance(u=user){
+    return parseFloat(localStorage.getItem(u+"_balance")) || 0;
+}
+
+function setBalance(val){
+    localStorage.setItem(user+"_balance", val);
+}
+
+function showBalance(){
+    document.getElementById("balance").innerText =
+        "₦" + getBalance().toLocaleString();
+}
+
+function saveHistory(text, target=user){
+    let history = localStorage.getItem(target+"_history") || "";
+    history = text + "<br>" + history;
+    localStorage.setItem(target+"_history", history);
+}
+
+function showHistory(){
+    document.getElementById("history").innerHTML =
+        localStorage.getItem(user+"_history") || "No transactions yet";
+}
+
+function sendMoney(){
+    let receiver = document.getElementById("receiver").value;
+    let amount = parseFloat(document.getElementById("amount").value);
+
+    if(receiver==="" || isNaN(amount)) return;
+
+    if(receiver===user){
+        document.getElementById("msg").innerText="Cannot send to yourself";
+        return;
+    }
+
+    let balance = getBalance();
+
+    if(amount > balance){
+        document.getElementById("msg").innerText="Insufficient funds";
+        return;
+    }
+
+    balance -= amount;
+    setBalance(balance);
+
+    let recBal = getBalance(receiver) + amount;
+    localStorage.setItem(receiver+"_balance", recBal);
+
+    let date = new Date().toLocaleString();
+
+    saveHistory("Sent ₦"+amount+" to "+receiver+" ("+date+")");
+    saveHistory("Received ₦"+amount+" from "+user+" ("+date+")", receiver);
+
+    // save global admin log
+    let global = localStorage.getItem("global_history") || "";
+    global = user+" → "+receiver+" : ₦"+amount+" ("+date+")<br>" + global;
+    localStorage.setItem("global_history", global);
+
+    document.getElementById("msg").innerText="Transfer successful";
+    document.getElementById("amount").value="";
+    showBalance();
+    showHistory();
+}
+
+function loadAdminPanel(){
+    if(user !== "admin") return;
+
+    document.getElementById("adminPanel").style.display="block";
+    document.getElementById("transferBox").style.display="none";
+    document.getElementById("userCard").style.display="none";
+
+    let usersInfo = "";
+    users.forEach(u=>{
+        usersInfo += u.toUpperCase() + ": ₦" +
+        getBalance(u).toLocaleString() + "<br>";
+    });
+
+    document.getElementById("allUsers").innerHTML = usersInfo;
+
+    document.getElementById("allHistory").innerHTML =
+        localStorage.getItem("global_history") || "No transactions yet";
+}
+
+showBalance();
+showHistory();
+loadAdminPanel();
+</script>
 
 </body>
 </html>
