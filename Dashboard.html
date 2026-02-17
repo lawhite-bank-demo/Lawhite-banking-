@@ -1,197 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance Dashboard</title>
+<title>User Dashboard</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#0b0f14;
-  color:white;
-}
-
-.header{
-  text-align:center;
-  padding:20px 10px 5px;
-}
-
-.bank-name{
-  font-size:22px;
-  font-weight:bold;
-}
-
-.welcome{
-  color:#9aa4b2;
-}
-
-.account{
-  color:#2dd4bf;
-  margin-top:5px;
-}
-
-.card{
-  background:#151b23;
-  margin:15px;
-  padding:20px;
-  border-radius:14px;
-  text-align:center;
-}
-
-.balance{
-  font-size:34px;
-  margin-top:10px;
-}
-
-button{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border-radius:10px;
-  border:none;
-  background:#2dd4bf;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.transfer{
-  display:none;
-  margin-top:15px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
-}
-
-.tx{
-  background:#0f1720;
-  margin-top:8px;
-  padding:10px;
-  border-radius:8px;
-  text-align:left;
-}
+body{margin:0;font-family:Arial;background:#0b0f14;color:white;}
+.header{text-align:center;padding:20px;}
+.logo{width:60px;margin-bottom:6px;}
+.info{color:#9aa4b2;}
+.card{background:#151b23;margin:15px;padding:20px;border-radius:14px;text-align:center;}
+.balance{font-size:32px;margin-top:10px;}
+button{width:100%;padding:14px;margin-top:12px;border-radius:8px;border:none;background:#2dd4bf;font-weight:bold;}
+.transfer{display:none;margin-top:10px;}
+input{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:none;}
+.tx{background:#0f1720;padding:10px;margin-top:6px;border-radius:8px;text-align:left;}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  <div class="bank-name">DeChase Finance</div>
-  <div class="welcome" id="welcome"></div>
-  <div class="account" id="acct"></div>
+<img src="logo.png" class="logo">
+<div id="welcome"></div>
+<div class="info" id="acct"></div>
+<div class="info" id="iban"></div>
+<div class="info" id="swift"></div>
 </div>
 
 <div class="card">
-  <div>Available Balance</div>
-  <div class="balance" id="balance"></div>
+<div>Balance</div>
+<div class="balance" id="balance"></div>
 
-  <button onclick="toggleSend()">Send Money</button>
-  <button onclick="showHistory()">Transactions</button>
+<button onclick="toggle()">Send Money</button>
+<button onclick="historyShow()">Transactions</button>
 
-  <div class="transfer" id="sendBox">
-    <input id="recipient" placeholder="Recipient name">
-    <input id="amount" type="number" placeholder="Amount (€)">
-    <input id="date" type="date">
-    <button onclick="sendMoney()">Confirm Transfer</button>
-  </div>
+<div class="transfer" id="box">
+<input id="recipient" placeholder="Recipient">
+<input id="amt" type="number" placeholder="Amount (€)">
+<input id="date" type="date">
+<button onclick="send()">Transfer</button>
+</div>
 
-  <div id="history"></div>
+<div id="history"></div>
 
-  <button onclick="logout()">Logout</button>
+<button onclick="logout()">Logout</button>
 </div>
 
 <script>
 const currentUser = localStorage.getItem("currentUser");
-
-if(!currentUser){
-  window.location.href="index.html";
-}
+if(!currentUser) window.location.href="index.html";
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
-const user = users.find(u => u.username === currentUser);
+const user = users.find(u=>u.username===currentUser);
 
-// welcome name
-const name =
-currentUser.charAt(0).toUpperCase() + currentUser.slice(1);
+welcome.innerText="Welcome, "+currentUser.charAt(0).toUpperCase()+currentUser.slice(1);
+acct.innerText="Account: "+user.accountNumber;
+iban.innerText="IBAN: "+user.iban;
+swift.innerText="SWIFT: "+user.swift;
 
-document.getElementById("welcome").innerText =
-"Welcome, " + name;
+function money(n){ return "€"+Number(n).toLocaleString(); }
+function update(){ balance.innerText=money(user.balance); }
 
-// show account number
-document.getElementById("acct").innerText =
-"Account No: " + user.accountNumber;
+function toggle(){ box.style.display = box.style.display==="block"?"none":"block"; }
 
-// format money
-function formatMoney(n){
-  return "€" + Number(n).toLocaleString();
-}
+function send(){
+  const name=recipient.value;
+  const amount=Number(amt.value);
+  let d=date.value;
 
-// update balance
-function updateBalance(){
-  document.getElementById("balance").innerText =
-  formatMoney(user.balance);
-}
+  if(amount>user.balance) return alert("Insufficient funds");
+  if(!d) d=new Date().toLocaleString();
 
-// toggle transfer
-function toggleSend(){
-  const box=document.getElementById("sendBox");
-  box.style.display = box.style.display==="block" ? "none":"block";
-}
-
-// send money
-function sendMoney(){
-  const name=document.getElementById("recipient").value.trim();
-  const amount=Number(document.getElementById("amount").value);
-  let date=document.getElementById("date").value;
-
-  if(!name || !amount) return alert("Enter details");
-
-  if(amount > user.balance)
-    return alert("Insufficient balance");
-
-  if(!date){
-    date=new Date().toLocaleString();
-  }
-
-  user.balance -= amount;
+  user.balance-=amount;
   localStorage.setItem("users", JSON.stringify(users));
 
-  let history = JSON.parse(localStorage.getItem(currentUser+"_tx")) || [];
-  history.push({name, amount, date});
-  localStorage.setItem(currentUser+"_tx", JSON.stringify(history));
+  let tx=JSON.parse(localStorage.getItem(currentUser+"_tx"))||[];
+  tx.push({name,amount,d});
+  localStorage.setItem(currentUser+"_tx", JSON.stringify(tx));
 
-  updateBalance();
+  update();
   alert("Transfer successful");
 }
 
-// show history
-function showHistory(){
-  const historyBox=document.getElementById("history");
-  historyBox.innerHTML="";
-
-  const history = JSON.parse(localStorage.getItem(currentUser+"_tx")) || [];
-
-  history.slice().reverse().forEach(tx=>{
-    historyBox.innerHTML += `
-      <div class="tx">
-      €${tx.amount} → ${tx.name}<br>
-      <small>${tx.date}</small>
-      </div>`;
+function historyShow(){
+  history.innerHTML="";
+  const tx=JSON.parse(localStorage.getItem(currentUser+"_tx"))||[];
+  tx.slice().reverse().forEach(t=>{
+    history.innerHTML+=`
+    <div class="tx">
+    €${t.amount} → ${t.name}<br>
+    <small>${t.d}</small>
+    </div>`;
   });
 }
 
-function logout(){
-  window.location.href="index.html";
-}
+function logout(){ window.location.href="index.html"; }
 
-updateBalance();
+update();
 </script>
-
 </body>
 </html>
