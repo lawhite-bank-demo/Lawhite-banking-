@@ -107,6 +107,13 @@ button{
 </div>
 
 <div class="section">
+    <h3>Withdraw Money</h3>
+    <input id="withdrawAmount" placeholder="Enter amount">
+    <button onclick="withdrawMoney()">Withdraw</button>
+    <div id="withdrawMsg"></div>
+</div>
+
+<div class="section">
     <h3>Transaction History</h3>
     <div class="history" id="history"></div>
 </div>
@@ -161,10 +168,7 @@ function sendMoney(){
     let receiver = document.getElementById("receiver").value;
     let amount = parseFloat(document.getElementById("amount").value);
 
-    if(receiver==="" || isNaN(amount)){
-        document.getElementById("msg").innerText="Enter valid details";
-        return;
-    }
+    if(receiver==="" || isNaN(amount)) return;
 
     if(receiver===user){
         document.getElementById("msg").innerText="Cannot send to yourself";
@@ -193,19 +197,13 @@ function sendMoney(){
     global = user+" → "+receiver+" : ₦"+amount+" ("+date+")<br>" + global;
     localStorage.setItem("global_history", global);
 
-    document.getElementById("msg").innerText="Transfer successful";
-    document.getElementById("amount").value="";
     showBalance();
     showHistory();
 }
 
 function depositMoney(){
     let amount = parseFloat(document.getElementById("depositAmount").value);
-
-    if(isNaN(amount) || amount <= 0){
-        document.getElementById("depositMsg").innerText="Enter valid amount";
-        return;
-    }
+    if(isNaN(amount) || amount<=0) return;
 
     let balance = getBalance() + amount;
     setBalance(balance);
@@ -218,8 +216,33 @@ function depositMoney(){
     global = user+" deposited ₦"+amount+" ("+date+")<br>" + global;
     localStorage.setItem("global_history", global);
 
-    document.getElementById("depositMsg").innerText="Deposit successful";
-    document.getElementById("depositAmount").value="";
+    showBalance();
+    showHistory();
+}
+
+function withdrawMoney(){
+    let amount = parseFloat(document.getElementById("withdrawAmount").value);
+    if(isNaN(amount) || amount<=0) return;
+
+    let balance = getBalance();
+
+    if(amount > balance){
+        document.getElementById("withdrawMsg").innerText="Insufficient funds";
+        return;
+    }
+
+    balance -= amount;
+    setBalance(balance);
+
+    let date = new Date().toLocaleString();
+
+    saveHistory("Withdrew ₦"+amount+" ("+date+")");
+
+    let global = localStorage.getItem("global_history") || "";
+    global = user+" withdrew ₦"+amount+" ("+date+")<br>" + global;
+    localStorage.setItem("global_history", global);
+
+    document.getElementById("withdrawMsg").innerText="Withdrawal successful";
 
     showBalance();
     showHistory();
