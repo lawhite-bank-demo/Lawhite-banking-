@@ -2,91 +2,38 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Finance</title>
-
 <style>
-body{
-  background:#0b0f14;
-  font-family:Arial;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.box{
-  background:#151b23;
-  padding:25px;
-  border-radius:14px;
-  width:300px;
-  text-align:center;
-}
-
-.logo{
-  width:80px;
-  margin-bottom:10px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:12px;
-  border-radius:8px;
-  border:none;
-  background:#2dd4bf;
-  font-weight:bold;
-}
+body{font-family:Arial;background:#0b1220;color:white;display:flex;justify-content:center;align-items:center;height:100vh;}
+.card{background:#111827;padding:20px;border-radius:10px;width:300px;text-align:center;}
+input{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:none;}
+button{width:100%;padding:10px;margin-top:10px;background:#22c55e;border:none;color:white;border-radius:8px;}
 </style>
 </head>
-
 <body>
 
-<div class="box">
-  <img src="logo.png" class="logo">
-  <h2>DeChase Finance</h2>
-
-  <input id="username" placeholder="Username">
-  <input id="pin" type="password" placeholder="PIN">
-
-  <button onclick="login()">Login</button>
+<div class="card">
+<h2>DeChase Finance</h2>
+<input id="user" placeholder="Username">
+<button onclick="login()">Login</button>
+<p style="font-size:12px;color:#9ca3af;">Users must be created by admin</p>
 </div>
 
 <script>
-let users = JSON.parse(localStorage.getItem("users")) || [];
-
-// default admin
-const adminUser = "admin";
-const adminPin = "9999";
+let users = JSON.parse(localStorage.getItem("users")) || {};
 
 function login(){
-  const username = username.value.trim();
-  const pin = pin.value.trim();
+  const username=document.getElementById("user").value;
 
-  if(username === adminUser && pin === adminPin){
-    localStorage.setItem("currentUser","admin");
-    window.location.href="admin.html";
+  if(!users[username]){
+    alert("User not found. Ask admin to create account.");
     return;
   }
 
-  const user = users.find(u => u.username === username && u.pin === pin);
-
-  if(user){
-    localStorage.setItem("currentUser", username);
-    window.location.href="Dashboard.html";
-  } else {
-    alert("Invalid login");
-  }
+  localStorage.setItem("currentUser", username);
+  window.location.href="dashboard.html";
 }
 </script>
-
 </body>
 </html>
