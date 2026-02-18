@@ -1,103 +1,141 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>User Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Dashboard | DeChase Finance</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#0b0f14;color:white;}
-.header{text-align:center;padding:20px;}
-.logo{width:60px;margin-bottom:6px;}
-.info{color:#9aa4b2;}
-.card{background:#151b23;margin:15px;padding:20px;border-radius:14px;text-align:center;}
-.balance{font-size:32px;margin-top:10px;}
-button{width:100%;padding:14px;margin-top:12px;border-radius:8px;border:none;background:#2dd4bf;font-weight:bold;}
-.transfer{display:none;margin-top:10px;}
-input{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:none;}
-.tx{background:#0f1720;padding:10px;margin-top:6px;border-radius:8px;text-align:left;}
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#0f172a;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+
+.card{
+  background:#111827;
+  padding:25px;
+  border-radius:12px;
+  width:320px;
+  text-align:center;
+  box-shadow:0 0 25px rgba(0,0,0,0.4);
+}
+
+.balance{
+  font-size:32px;
+  color:#14b8a6;
+  margin:15px 0;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  background:#14b8a6;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#0d9488;
+}
+
+.history{
+  text-align:left;
+  margin-top:20px;
+  max-height:150px;
+  overflow:auto;
+}
+
+.transaction{
+  border-bottom:1px solid #1f2937;
+  padding:8px 0;
+  font-size:14px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<img src="logo.png" class="logo">
-<div id="welcome"></div>
-<div class="info" id="acct"></div>
-<div class="info" id="iban"></div>
-<div class="info" id="swift"></div>
-</div>
-
 <div class="card">
-<div>Balance</div>
-<div class="balance" id="balance"></div>
 
-<button onclick="toggle()">Send Money</button>
-<button onclick="historyShow()">Transactions</button>
+  <h2 id="username">Lawhite</h2>
+  <p>User Dashboard</p>
 
-<div class="transfer" id="box">
-<input id="recipient" placeholder="Recipient">
-<input id="amt" type="number" placeholder="Amount (€)">
-<input id="date" type="date">
-<button onclick="send()">Transfer</button>
-</div>
+  <div class="balance" id="balance"></div>
 
-<div id="history"></div>
+  <button onclick="sendMoney()">Send Money</button>
+  <button onclick="showHistory()">Transactions</button>
 
-<button onclick="logout()">Logout</button>
+  <div class="history" id="history"></div>
+
+  <p style="margin-top:15px; color:#9ca3af;">● All Systems Operational</p>
+
 </div>
 
 <script>
-const currentUser = localStorage.getItem("currentUser");
-if(!currentUser) window.location.href="index.html";
+let currency = "€";
+let balance = 125000;
 
-let users = JSON.parse(localStorage.getItem("users")) || [];
-const user = users.find(u=>u.username===currentUser);
+// transaction history array
+let transactions = [
+  {amount: -150, date: "2024-01-10", note: "Groceries"},
+  {amount: -200, date: "2024-01-15", note: "Electricity Bill"},
+  {amount: 500, date: "2024-02-01", note: "Salary"},
+  {amount: -50, date: "2024-02-12", note: "Transport"}
+];
 
-welcome.innerText="Welcome, "+currentUser.charAt(0).toUpperCase()+currentUser.slice(1);
-acct.innerText="Account: "+user.accountNumber;
-iban.innerText="IBAN: "+user.iban;
-swift.innerText="SWIFT: "+user.swift;
-
-function money(n){ return "€"+Number(n).toLocaleString(); }
-function update(){ balance.innerText=money(user.balance); }
-
-function toggle(){ box.style.display = box.style.display==="block"?"none":"block"; }
-
-function send(){
-  const name=recipient.value;
-  const amount=Number(amt.value);
-  let d=date.value;
-
-  if(amount>user.balance) return alert("Insufficient funds");
-  if(!d) d=new Date().toLocaleString();
-
-  user.balance-=amount;
-  localStorage.setItem("users", JSON.stringify(users));
-
-  let tx=JSON.parse(localStorage.getItem(currentUser+"_tx"))||[];
-  tx.push({name,amount,d});
-  localStorage.setItem(currentUser+"_tx", JSON.stringify(tx));
-
-  update();
-  alert("Transfer successful");
+function updateBalance(){
+  document.getElementById("balance").innerText =
+    currency + balance.toLocaleString();
 }
 
-function historyShow(){
-  history.innerHTML="";
-  const tx=JSON.parse(localStorage.getItem(currentUser+"_tx"))||[];
-  tx.slice().reverse().forEach(t=>{
-    history.innerHTML+=`
-    <div class="tx">
-    €${t.amount} → ${t.name}<br>
-    <small>${t.d}</small>
-    </div>`;
+function sendMoney(){
+  let amount = prompt("Enter amount to send:");
+  if(amount && amount > 0 && amount <= balance){
+    balance -= amount;
+
+    // add new transaction with today's date
+    let today = new Date().toISOString().split('T')[0];
+    transactions.unshift({
+      amount: -amount,
+      date: today,
+      note: "Transfer"
+    });
+
+    updateBalance();
+    alert("Transfer Successful");
+  } else {
+    alert("Invalid amount");
+  }
+}
+
+function showHistory(){
+  const historyDiv = document.getElementById("history");
+  historyDiv.innerHTML = "<h4>Transaction History</h4>";
+
+  transactions.forEach(tx => {
+    historyDiv.innerHTML += `
+      <div class="transaction">
+        ${tx.date} — ${tx.note}
+        <strong style="float:right; color:${tx.amount<0?'#f87171':'#34d399'}">
+          ${currency}${Math.abs(tx.amount)}
+        </strong>
+      </div>
+    `;
   });
 }
 
-function logout(){ window.location.href="index.html"; }
-
-update();
+updateBalance();
 </script>
+
 </body>
 </html>
