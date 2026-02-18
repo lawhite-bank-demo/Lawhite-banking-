@@ -3,138 +3,238 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>User Dashboard | DeChase Finance</title>
+<title>DeChase Finance</title>
 
 <style>
 body{
   margin:0;
   font-family: Arial, sans-serif;
-  background:#0f172a;
+  background:#0b1220;
   color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+}
+
+.header{
+  padding:15px;
+  font-size:18px;
+  background:#0f172a;
 }
 
 .card{
-  background:#111827;
+  background:linear-gradient(135deg,#0ea5e9,#22c55e);
+  margin:20px;
   padding:25px;
-  border-radius:12px;
-  width:320px;
-  text-align:center;
-  box-shadow:0 0 25px rgba(0,0,0,0.4);
+  border-radius:18px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
 }
 
 .balance{
-  font-size:32px;
-  color:#14b8a6;
-  margin:15px 0;
+  font-size:34px;
+  margin-top:10px;
 }
 
-button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  background:#14b8a6;
-  color:white;
-  font-size:16px;
+.actions{
+  display:flex;
+  justify-content:space-around;
+  margin:20px;
+}
+
+.action{
+  background:#111827;
+  padding:15px;
+  border-radius:12px;
+  text-align:center;
+  width:28%;
   cursor:pointer;
 }
 
-button:hover{
-  background:#0d9488;
-}
-
-.history{
-  text-align:left;
-  margin-top:20px;
-  max-height:150px;
-  overflow:auto;
+.section{
+  margin:20px;
 }
 
 .transaction{
-  border-bottom:1px solid #1f2937;
-  padding:8px 0;
-  font-size:14px;
+  background:#111827;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+}
+
+button{
+  background:#22c55e;
+  border:none;
+  padding:12px;
+  width:100%;
+  color:white;
+  border-radius:10px;
+  font-size:16px;
+}
+
+#modal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal-content{
+  background:#0f172a;
+  padding:20px;
+  border-radius:15px;
+  width:85%;
 }
 </style>
 </head>
 
 <body>
 
+<div class="header">
+  Welcome, Lawhite 👋
+
+  <select onchange="changeLanguage(this.value)" style="float:right; padding:6px; border-radius:6px;">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="es">Español</option>
+    <option value="de">Deutsch</option>
+  </select>
+</div>
+
 <div class="card">
+  <div id="balanceLabel">Available Balance</div>
+  <div class="balance" id="balance">€125,000</div>
+</div>
 
-  <h2 id="username">Lawhite</h2>
-  <p>User Dashboard</p>
+<div class="actions">
+  <div class="action" onclick="openModal()">💸<br>Send</div>
+  <div class="action">📥<br>Receive</div>
+  <div class="action">📊<br>Stats</div>
+</div>
 
-  <div class="balance" id="balance"></div>
+<div class="section">
+  <h3 id="recentLabel">Recent Transactions</h3>
+  <div id="transactions"></div>
+</div>
 
-  <button onclick="sendMoney()">Send Money</button>
-  <button onclick="showHistory()">Transactions</button>
-
-  <div class="history" id="history"></div>
-
-  <p style="margin-top:15px; color:#9ca3af;">● All Systems Operational</p>
-
+<!-- SEND MONEY MODAL -->
+<div id="modal">
+  <div class="modal-content">
+    <h3 id="sendLabel">Send Money</h3>
+    <input type="text" id="recipient" placeholder="Recipient name" style="width:100%; padding:10px; margin-bottom:10px;">
+    <input type="number" id="amount" placeholder="Amount" style="width:100%; padding:10px; margin-bottom:10px;">
+    <button onclick="sendMoney()">Send</button>
+    <br><br>
+    <button onclick="closeModal()" style="background:#ef4444;">Cancel</button>
+  </div>
 </div>
 
 <script>
-let currency = "€";
 let balance = 125000;
 
-// transaction history array
-let transactions = [
-  {amount: -150, date: "2024-01-10", note: "Groceries"},
-  {amount: -200, date: "2024-01-15", note: "Electricity Bill"},
-  {amount: 500, date: "2024-02-01", note: "Salary"},
-  {amount: -50, date: "2024-02-12", note: "Transport"}
+const transactions = [
+  {name:"Amazon", amount:-120, date:"Mar 3"},
+  {name:"Salary", amount:+3200, date:"Mar 1"},
+  {name:"Netflix", amount:-15, date:"Feb 28"}
 ];
 
-function updateBalance(){
-  document.getElementById("balance").innerText =
-    currency + balance.toLocaleString();
-}
-
-function sendMoney(){
-  let amount = prompt("Enter amount to send:");
-  if(amount && amount > 0 && amount <= balance){
-    balance -= amount;
-
-    // add new transaction with today's date
-    let today = new Date().toISOString().split('T')[0];
-    transactions.unshift({
-      amount: -amount,
-      date: today,
-      note: "Transfer"
-    });
-
-    updateBalance();
-    alert("Transfer Successful");
-  } else {
-    alert("Invalid amount");
-  }
-}
-
-function showHistory(){
-  const historyDiv = document.getElementById("history");
-  historyDiv.innerHTML = "<h4>Transaction History</h4>";
-
-  transactions.forEach(tx => {
-    historyDiv.innerHTML += `
-      <div class="transaction">
-        ${tx.date} — ${tx.note}
-        <strong style="float:right; color:${tx.amount<0?'#f87171':'#34d399'}">
-          ${currency}${Math.abs(tx.amount)}
-        </strong>
-      </div>
-    `;
+function renderTransactions(){
+  const list = document.getElementById("transactions");
+  list.innerHTML="";
+  transactions.forEach(t=>{
+    const div=document.createElement("div");
+    div.className="transaction";
+    div.innerHTML=`<span>${t.name}<br><small>${t.date}</small></span>
+                   <span style="color:${t.amount<0?'#f87171':'#34d399'}">
+                   ${t.amount<0?'-':'+'}€${Math.abs(t.amount)}</span>`;
+    list.appendChild(div);
   });
 }
 
-updateBalance();
+renderTransactions();
+
+function openModal(){ document.getElementById("modal").style.display="flex"; }
+function closeModal(){ document.getElementById("modal").style.display="none"; }
+
+function sendMoney(){
+  const name=document.getElementById("recipient").value;
+  const amt=parseFloat(document.getElementById("amount").value);
+
+  if(!name || !amt){
+    alert("Enter details");
+    return;
+  }
+
+  if(amt>balance){
+    alert("Insufficient funds");
+    return;
+  }
+
+  balance -= amt;
+  document.getElementById("balance").innerText = "€" + balance.toLocaleString();
+
+  transactions.unshift({name:name, amount:-amt, date:new Date().toLocaleDateString()});
+  renderTransactions();
+  closeModal();
+}
+
+/* 🌍 TRANSLATION */
+const translations = {
+  en:{
+    balance:"Available Balance",
+    recent:"Recent Transactions",
+    send:"Send",
+    receive:"Receive",
+    stats:"Stats",
+    sendMoney:"Send Money",
+    recipient:"Recipient name",
+    amount:"Amount"
+  },
+  fr:{
+    balance:"Solde disponible",
+    recent:"Transactions récentes",
+    send:"Envoyer",
+    receive:"Recevoir",
+    stats:"Statistiques",
+    sendMoney:"Envoyer de l'argent",
+    recipient:"Nom du destinataire",
+    amount:"Montant"
+  },
+  es:{
+    balance:"Saldo disponible",
+    recent:"Transacciones recientes",
+    send:"Enviar",
+    receive:"Recibir",
+    stats:"Estadísticas",
+    sendMoney:"Enviar dinero",
+    recipient:"Nombre del destinatario",
+    amount:"Cantidad"
+  },
+  de:{
+    balance:"Verfügbares Guthaben",
+    recent:"Letzte Transaktionen",
+    send:"Senden",
+    receive:"Empfangen",
+    stats:"Statistik",
+    sendMoney:"Geld senden",
+    recipient:"Empfängername",
+    amount:"Betrag"
+  }
+};
+
+function changeLanguage(lang){
+  document.getElementById("balanceLabel").innerText = translations[lang].balance;
+  document.getElementById("recentLabel").innerText = translations[lang].recent;
+  document.querySelectorAll(".action")[0].innerHTML="💸<br>"+translations[lang].send;
+  document.querySelectorAll(".action")[1].innerHTML="📥<br>"+translations[lang].receive;
+  document.querySelectorAll(".action")[2].innerHTML="📊<br>"+translations[lang].stats;
+  document.getElementById("sendLabel").innerText = translations[lang].sendMoney;
+  document.getElementById("recipient").placeholder = translations[lang].recipient;
+  document.getElementById("amount").placeholder = translations[lang].amount;
+}
 </script>
 
 </body>
