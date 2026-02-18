@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset PIN - DeChase Finance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial;
+      background: linear-gradient(to right, #0f2a44, #0c3d5c);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .card {
+      background: white;
+      color: black;
+      padding: 25px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #0f2a44;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Reset PIN</h2>
+  <input type="text" id="username" placeholder="Enter Username">
+  <input type="password" id="newPin" placeholder="New PIN">
+  <button onclick="resetPin()">Reset PIN</button>
+  <p id="message"></p>
+</div>
+
+<script>
+function resetPin() {
+  let username = document.getElementById("username").value.trim();
+  let newPin = document.getElementById("newPin").value.trim();
+  let message = document.getElementById("message");
+
+  if (!username || !newPin) {
+    message.innerHTML = "Please fill all fields";
+    message.style.color = "red";
+    return;
+  }
+
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+
+  let found = users.find(user => user.username === username);
+
+  if (!found) {
+    message.innerHTML = "User not found";
+    message.style.color = "red";
+    return;
+  }
+
+  found.pin = newPin;
+
+  localStorage.setItem("users", JSON.stringify(users));
+
+  message.innerHTML = "PIN reset successful! You can login now.";
+  message.style.color = "green";
+}
+</script>
+
+</body>
+</html>
