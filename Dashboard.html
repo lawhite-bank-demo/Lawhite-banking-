@@ -15,8 +15,8 @@ body{
 
 .header{
   padding:15px;
-  font-size:18px;
   background:#0f172a;
+  font-size:18px;
 }
 
 .card{
@@ -60,16 +60,6 @@ body{
   justify-content:space-between;
 }
 
-button{
-  background:#22c55e;
-  border:none;
-  padding:12px;
-  width:100%;
-  color:white;
-  border-radius:10px;
-  font-size:16px;
-}
-
 #modal{
   position:fixed;
   top:0;
@@ -88,25 +78,28 @@ button{
   border-radius:15px;
   width:85%;
 }
+
+button{
+  background:#22c55e;
+  border:none;
+  padding:12px;
+  width:100%;
+  color:white;
+  border-radius:10px;
+  font-size:16px;
+}
 </style>
 </head>
 
 <body>
 
 <div class="header">
-  Welcome, Lawhite 👋
-
-  <select onchange="changeLanguage(this.value)" style="float:right; padding:6px; border-radius:6px;">
-    <option value="en">English</option>
-    <option value="fr">Français</option>
-    <option value="es">Español</option>
-    <option value="de">Deutsch</option>
-  </select>
+  Welcome, <span id="userName"></span> 👋
 </div>
 
 <div class="card">
-  <div id="balanceLabel">Available Balance</div>
-  <div class="balance" id="balance">€125,000</div>
+  <div>Available Balance</div>
+  <div class="balance" id="balance"></div>
 </div>
 
 <div class="actions">
@@ -116,14 +109,14 @@ button{
 </div>
 
 <div class="section">
-  <h3 id="recentLabel">Recent Transactions</h3>
+  <h3>Recent Transactions</h3>
   <div id="transactions"></div>
 </div>
 
 <!-- SEND MONEY MODAL -->
 <div id="modal">
   <div class="modal-content">
-    <h3 id="sendLabel">Send Money</h3>
+    <h3>Send Money</h3>
     <input type="text" id="recipient" placeholder="Recipient name" style="width:100%; padding:10px; margin-bottom:10px;">
     <input type="number" id="amount" placeholder="Amount" style="width:100%; padding:10px; margin-bottom:10px;">
     <button onclick="sendMoney()">Send</button>
@@ -133,31 +126,58 @@ button{
 </div>
 
 <script>
-let balance = 125000;
+const currency = "€";
 
-const transactions = [
-  {name:"Amazon", amount:-120, date:"Mar 3"},
-  {name:"Salary", amount:+3200, date:"Mar 1"},
-  {name:"Netflix", amount:-15, date:"Feb 28"}
-];
+// get logged in user
+let currentUser = localStorage.getItem("currentUser");
 
+if(!currentUser){
+  currentUser = "Guest";
+}
+
+// show username
+document.getElementById("userName").innerText = currentUser;
+
+// load users database
+let users = JSON.parse(localStorage.getItem("users")) || {};
+
+// create user if not existing
+if(!users[currentUser]){
+  users[currentUser] = {
+    balance: 5000,
+    transactions: []
+  };
+}
+
+// display balance
+function updateBalance(){
+  document.getElementById("balance").innerText =
+    currency + users[currentUser].balance.toLocaleString();
+}
+
+// render transactions
 function renderTransactions(){
-  const list = document.getElementById("transactions");
-  list.innerHTML="";
-  transactions.forEach(t=>{
-    const div=document.createElement("div");
-    div.className="transaction";
-    div.innerHTML=`<span>${t.name}<br><small>${t.date}</small></span>
-                   <span style="color:${t.amount<0?'#f87171':'#34d399'}">
-                   ${t.amount<0?'-':'+'}€${Math.abs(t.amount)}</span>`;
-    list.appendChild(div);
+  const container = document.getElementById("transactions");
+  container.innerHTML = "";
+
+  users[currentUser].transactions.forEach(tx=>{
+    container.innerHTML += `
+      <div class="transaction">
+        <span>${tx.name}<br><small>${tx.date}</small></span>
+        <span style="color:${tx.amount<0?'#f87171':'#34d399'}">
+        ${tx.amount<0?'-':'+'}${currency}${Math.abs(tx.amount)}</span>
+      </div>
+    `;
   });
 }
 
-renderTransactions();
+function openModal(){
+  document.getElementById("modal").style.display="flex";
+}
 
-function openModal(){ document.getElementById("modal").style.display="flex"; }
-function closeModal(){ document.getElementById("modal").style.display="none"; }
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
 
 function sendMoney(){
   const name=document.getElementById("recipient").value;
@@ -168,73 +188,29 @@ function sendMoney(){
     return;
   }
 
-  if(amt>balance){
+  if(amt > users[currentUser].balance){
     alert("Insufficient funds");
     return;
   }
 
-  balance -= amt;
-  document.getElementById("balance").innerText = "€" + balance.toLocaleString();
+  users[currentUser].balance -= amt;
 
-  transactions.unshift({name:name, amount:-amt, date:new Date().toLocaleDateString()});
+  users[currentUser].transactions.unshift({
+    name:name,
+    amount:-amt,
+    date:new Date().toLocaleDateString()
+  });
+
+  localStorage.setItem("users", JSON.stringify(users));
+
+  updateBalance();
   renderTransactions();
   closeModal();
 }
 
-/* 🌍 TRANSLATION */
-const translations = {
-  en:{
-    balance:"Available Balance",
-    recent:"Recent Transactions",
-    send:"Send",
-    receive:"Receive",
-    stats:"Stats",
-    sendMoney:"Send Money",
-    recipient:"Recipient name",
-    amount:"Amount"
-  },
-  fr:{
-    balance:"Solde disponible",
-    recent:"Transactions récentes",
-    send:"Envoyer",
-    receive:"Recevoir",
-    stats:"Statistiques",
-    sendMoney:"Envoyer de l'argent",
-    recipient:"Nom du destinataire",
-    amount:"Montant"
-  },
-  es:{
-    balance:"Saldo disponible",
-    recent:"Transacciones recientes",
-    send:"Enviar",
-    receive:"Recibir",
-    stats:"Estadísticas",
-    sendMoney:"Enviar dinero",
-    recipient:"Nombre del destinatario",
-    amount:"Cantidad"
-  },
-  de:{
-    balance:"Verfügbares Guthaben",
-    recent:"Letzte Transaktionen",
-    send:"Senden",
-    receive:"Empfangen",
-    stats:"Statistik",
-    sendMoney:"Geld senden",
-    recipient:"Empfängername",
-    amount:"Betrag"
-  }
-};
-
-function changeLanguage(lang){
-  document.getElementById("balanceLabel").innerText = translations[lang].balance;
-  document.getElementById("recentLabel").innerText = translations[lang].recent;
-  document.querySelectorAll(".action")[0].innerHTML="💸<br>"+translations[lang].send;
-  document.querySelectorAll(".action")[1].innerHTML="📥<br>"+translations[lang].receive;
-  document.querySelectorAll(".action")[2].innerHTML="📊<br>"+translations[lang].stats;
-  document.getElementById("sendLabel").innerText = translations[lang].sendMoney;
-  document.getElementById("recipient").placeholder = translations[lang].recipient;
-  document.getElementById("amount").placeholder = translations[lang].amount;
-}
+// load data
+updateBalance();
+renderTransactions();
 </script>
 
 </body>
