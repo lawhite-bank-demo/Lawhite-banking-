@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel</title>
+
+<style>
+body{
+  background:#0b1220;
+  color:white;
+  font-family:Arial;
+  padding:20px;
+}
+
+h2{
+  margin-bottom:10px;
+}
+
+.card{
+  background:#111827;
+  padding:20px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+
+input, select{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
+}
+
+button{
+  padding:10px;
+  margin-top:10px;
+  background:#22c55e;
+  border:none;
+  color:white;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+button.delete{
+  background:#ef4444;
+}
+
+.user{
+  background:#1f2937;
+  padding:10px;
+  border-radius:8px;
+  margin-top:8px;
+}
+</style>
+</head>
+<body>
+
+<h2>Admin Control Panel</h2>
+
+<div class="card">
+  <h3>Create New User</h3>
+  <input id="newUser" placeholder="Enter username">
+  <button onclick="createUser()">Create User</button>
+</div>
+
+<div class="card">
+  <h3>Send Demo Money</h3>
+  <select id="userSelect"></select>
+  <input type="number" id="amount" placeholder="Amount">
+  <input type="date" id="date">
+  <button onclick="sendMoney()">Send Money</button>
+</div>
+
+<div class="card">
+  <h3>All Users</h3>
+  <div id="users"></div>
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || {};
+
+// Save data
+function saveUsers(){
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+// Generate unique account number
+function generateAccount(){
+  return Math.floor(1000000000 + Math.random() * 9000000000);
+}
+
+// Create user
+function createUser(){
+  const name = document.getElementById("newUser").value.trim();
+
+  if(!name){
+    alert("Enter username");
+    return;
+  }
+
+  if(users[name]){
+    alert("User already exists");
+    return;
+  }
+
+  users[name] = {
+    balance: 0,
+    account: generateAccount(),
+    transactions: []
+  };
+
+  saveUsers();
+  loadUsers();
+}
+
+// Load users
+function loadUsers(){
+  const list = document.getElementById("users");
+  const select = document.getElementById("userSelect");
+
+  list.innerHTML="";
+  select.innerHTML="";
+
+  Object.keys(users).forEach(user => {
+
+    list.innerHTML += `
+      <div class="user">
+        <strong>${user}</strong><br>
+        Account: ${users[user].account}<br>
+        Balance: €${users[user].balance}
+        <br>
+        <button class="delete" onclick="deleteUser('${user}')">Delete</button>
+      </div>
+    `;
+
+    select.innerHTML += `<option value="${user}">${user}</option>`;
+  });
+}
+
+// Delete user
+function deleteUser(name){
+  if(confirm("Delete this user?")){
+    delete users[name];
+    saveUsers();
+    loadUsers();
+  }
+}
+
+// Send demo money
+function sendMoney(){
+  const user = document.getElementById("userSelect").value;
+  const amount = parseFloat(document.getElementById("amount").value);
+  const date = document.getElementById("date").value || new Date().toLocaleDateString();
+
+  if(!user || !amount){
+    alert("Enter amount");
+    return;
+  }
+
+  users[user].balance += amount;
+
+  users[user].transactions.unshift({
+    name: "Admin Credit",
+    amount: amount,
+    date: date
+  });
+
+  saveUsers();
+  loadUsers();
+  alert("Money sent successfully");
+}
+
+// Load on start
+loadUsers();
+</script>
+
+</body>
+</html>
