@@ -3,183 +3,180 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dechase Finance Bank</title>
+<title>Lawhite Mobile Bank</title>
 
 <style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#eef1f5;
+body {
+  margin:0;
+  background:#0b1220;
+  font-family: Arial, sans-serif;
+  color:white;
 }
 
-/* login */
-.login-screen{
-    height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: linear-gradient(135deg,#0d1b2a,#1b263b);
+/* Header */
+.header {
+  padding:20px;
 }
 
-.card{
-    background:white;
-    padding:30px;
-    border-radius:15px;
-    width:90%;
-    max-width:350px;
-    text-align:center;
+.header h2 {
+  margin:0;
+  font-size:18px;
+  color:#aaa;
 }
 
-input{
-    width:100%;
-    padding:12px;
-    margin:10px 0;
-    border-radius:8px;
-    border:1px solid #ccc;
+.balance {
+  font-size:34px;
+  font-weight:bold;
+  margin-top:8px;
+  color:#22d3ee;
 }
 
-button{
-    padding:12px;
-    border:none;
-    border-radius:8px;
-    background:#0d1b2a;
-    color:white;
-    width:100%;
-    font-size:16px;
+/* Card */
+.card {
+  background:#111827;
+  margin:20px;
+  padding:20px;
+  border-radius:20px;
 }
 
-.header{
-    background:linear-gradient(135deg,#0d1b2a,#1b263b);
-    color:white;
-    padding:20px;
-    border-bottom-left-radius:25px;
-    border-bottom-right-radius:25px;
+/* Buttons */
+.btn {
+  display:block;
+  width:100%;
+  padding:16px;
+  margin-top:12px;
+  border:none;
+  border-radius:12px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
 }
 
-.container{
-    padding:20px;
+.primary {
+  background:#14b8a6;
+  color:black;
 }
 
-.balance-card{
-    background:linear-gradient(135deg,#1b263b,#415a77);
-    color:white;
-    padding:20px;
-    border-radius:18px;
-    margin-top:-30px;
+.secondary {
+  background:#1f2937;
+  color:white;
 }
 
-.balance{
-    font-size:30px;
-    font-weight:bold;
+/* Transactions */
+.transaction {
+  display:flex;
+  justify-content:space-between;
+  margin-top:15px;
+  padding-bottom:10px;
+  border-bottom:1px solid #222;
 }
 
-.actions{
-    display:flex;
-    gap:10px;
-    margin-top:15px;
+.amount-credit { color:#22c55e; }
+.amount-debit { color:#ef4444; }
+
+/* Bottom nav */
+.nav {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#111827;
+  display:flex;
+  justify-content:space-around;
+  padding:12px 0;
 }
 
-.btn{
-    flex:1;
-    text-align:center;
-    padding:12px;
-    background:#0d1b2a;
-    color:white;
-    border-radius:10px;
+.nav a {
+  color:#aaa;
+  text-decoration:none;
+  font-size:12px;
+  text-align:center;
 }
 
-.tx{
-    background:white;
-    padding:15px;
-    border-radius:10px;
-    margin-top:10px;
-    display:flex;
-    justify-content:space-between;
+.nav a.active {
+  color:#22d3ee;
 }
-
-.credit{color:green;}
-.debit{color:red;}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="login" class="login-screen">
-  <div class="card">
-      <h2>Secure Login</h2>
-      <input id="user" placeholder="Username">
-      <input id="pass" type="password" placeholder="Password">
-      <button onclick="login()">Login</button>
-      <p id="error" style="color:red;"></p>
-  </div>
+<div class="header">
+  <h2>Welcome back</h2>
+  <div id="username"></div>
+  <div class="balance" id="balance">€0.00</div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboard" style="display:none;">
-  <div class="header">
-      Hello, User 👋
-      <button onclick="logout()" style="float:right;background:red;">Logout</button>
-  </div>
+<div class="card">
+  <button class="btn primary" onclick="sendMoney()">Send Money</button>
+  <button class="btn secondary" onclick="viewTransactions()">Transactions</button>
+</div>
 
-  <div class="container">
+<div class="card">
+  <h3>Recent Activity</h3>
+  <div id="transactions"></div>
+</div>
 
-      <div class="balance-card">
-          Available Balance
-          <div class="balance">€125,000.00</div>
-
-          <div class="actions">
-              <div class="btn" onclick="showTransactions()">History</div>
-          </div>
-      </div>
-
-      <div id="recent">
-          <h3>Recent Transactions</h3>
-
-          <div class="tx">
-              <div>Salary</div>
-              <div class="credit">+€3,000</div>
-          </div>
-
-          <div class="tx">
-              <div>Shopping</div>
-              <div class="debit">-€120</div>
-          </div>
-
-          <div class="tx">
-              <div>Electricity</div>
-              <div class="debit">-€60</div>
-          </div>
-      </div>
-
-  </div>
+<div class="nav">
+  <a class="active">Home</a>
+  <a onclick="viewTransactions()">History</a>
+  <a onclick="sendMoney()">Send</a>
+  <a href="admin.html">Admin</a>
 </div>
 
 <script>
-function login(){
-    const u=document.getElementById("user").value;
-    const p=document.getElementById("pass").value;
+const currentUser = localStorage.getItem("currentUser");
 
-    if(u==="user" && p==="1234"){
-        document.getElementById("login").style.display="none";
-        document.getElementById("dashboard").style.display="block";
-        localStorage.setItem("loggedIn","true");
-    }else{
-        document.getElementById("error").innerText="Invalid login";
-    }
+if(!currentUser){
+  location.href = "index.html";
 }
 
-function logout(){
-    localStorage.removeItem("loggedIn");
-    location.reload();
+const users = JSON.parse(localStorage.getItem("users")) || {};
+const user = users[currentUser];
+
+document.getElementById("username").innerText = currentUser;
+document.getElementById("balance").innerText = "€" + user.balance.toLocaleString();
+
+function sendMoney(){
+  const recipient = prompt("Enter recipient username:");
+  const amount = parseFloat(prompt("Enter amount:"));
+
+  if(!users[recipient]){
+    alert("User not found");
+    return;
+  }
+
+  if(amount > user.balance){
+    alert("Insufficient balance");
+    return;
+  }
+
+  user.balance -= amount;
+  users[recipient].balance += amount;
+
+  const date = new Date().toLocaleString();
+
+  user.transactions.push(`Sent €${amount} to ${recipient} (${date})`);
+  users[recipient].transactions.push(`Received €${amount} from ${currentUser} (${date})`);
+
+  localStorage.setItem("users", JSON.stringify(users));
+
+  alert("Transfer successful");
+  location.reload();
 }
 
-window.onload=function(){
-    if(localStorage.getItem("loggedIn")==="true"){
-        document.getElementById("login").style.display="none";
-        document.getElementById("dashboard").style.display="block";
-    }
+function viewTransactions(){
+  const container = document.getElementById("transactions");
+  container.innerHTML = "";
+
+  user.transactions.slice().reverse().forEach(tx => {
+    const div = document.createElement("div");
+    div.className = "transaction";
+    div.innerHTML = tx;
+    container.appendChild(div);
+  });
 }
+
+viewTransactions();
 </script>
 
 </body>
