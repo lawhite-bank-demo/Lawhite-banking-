@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
+<title>Admin Panel</title>
 
 <style>
 body{
@@ -17,37 +17,32 @@ body{
     padding:20px;
 }
 
-.balance{
-    font-size:40px;
-    color:#27d3c3;
-    margin-top:10px;
-}
-
 .card{
     background:#0f1c38;
     padding:20px;
     border-radius:15px;
-    margin-top:20px;
+    margin-top:15px;
 }
 
-.btn{
-    display:block;
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:12px;
+.user{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.balance{
+    color:#27d3c3;
+    font-weight:bold;
+}
+
+button{
     margin-top:10px;
-    font-size:18px;
-}
-
-.send{
+    padding:8px 12px;
+    border:none;
+    border-radius:8px;
     background:#27d3c3;
     color:black;
-}
-
-.secondary{
-    background:#1e2a47;
-    color:white;
+    font-weight:bold;
 }
 
 .nav{
@@ -61,118 +56,4 @@ body{
 }
 
 .nav a{
-    color:#9aa3b2;
-    text-decoration:none;
-}
-
-.nav a.active{
-    color:#27d3c3;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-    <h2>Welcome back</h2>
-    <h3 id="username"></h3>
-
-    <div class="balance" id="balance">€0.00</div>
-
-    <div class="card">
-        <button class="btn send">Send Money</button>
-        <button class="btn secondary">Transactions</button>
-        <button class="btn secondary" onclick="switchUser()">Switch User</button>
-    </div>
-
-    <div class="card">
-        <h3>Recent Activity</h3>
-        <div id="activity"></div>
-    </div>
-</div>
-
-<div class="nav">
-    <a class="active">Home</a>
-    <a>History</a>
-    <a>Send</a>
-    <a>Admin</a>
-</div>
-
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-
-// 🔥 CLEAR OLD DATA (removes Demo User forever)
-localStorage.clear();
-
-// create fresh users
-localStorage.setItem("users", JSON.stringify({
-    "martinez": {
-        balance: 0,
-        transactions: []
-    },
-    "john": {
-        balance: 5200,
-        transactions: [
-            {date:"Feb 10", amount:500},
-            {date:"Feb 11", amount:120}
-        ]
-    },
-    "sarah": {
-        balance: 980,
-        transactions: [
-            {date:"Feb 09", amount:80}
-        ]
-    }
-}));
-
-// set starting user
-localStorage.setItem("currentUser", "martinez");
-
-loadDashboard();
-
-});
-
-function loadDashboard(){
-
-let users = JSON.parse(localStorage.getItem("users"));
-let currentUser = localStorage.getItem("currentUser");
-let user = users[currentUser];
-
-document.getElementById("username").innerText = currentUser;
-document.getElementById("balance").innerText =
-    "€" + user.balance.toFixed(2);
-
-let activityDiv = document.getElementById("activity");
-activityDiv.innerHTML = "";
-
-if(user.transactions.length === 0){
-    activityDiv.innerHTML = "<p>No transactions yet</p>";
-}else{
-    user.transactions.slice(-5).reverse().forEach(tx => {
-        let p = document.createElement("p");
-        p.innerText = tx.date + "  +€" + tx.amount;
-        activityDiv.appendChild(p);
-    });
-}
-
-}
-
-// switch between users
-function switchUser(){
-
-let users = JSON.parse(localStorage.getItem("users"));
-let names = Object.keys(users);
-
-let currentUser = localStorage.getItem("currentUser");
-let index = names.indexOf(currentUser);
-
-let nextUser = names[(index + 1) % names.length];
-
-localStorage.setItem("currentUser", nextUser);
-loadDashboard();
-
-}
-</script>
-
-</body>
-</html>
+    color:#9aa
