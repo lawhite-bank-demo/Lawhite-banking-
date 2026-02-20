@@ -3,214 +3,175 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance</title>
+<title>Dashboard</title>
 
 <style>
 body{
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#0b1220;
-  color:white;
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#081225;
+    color:white;
 }
 
-.header{
-  padding:15px;
-  background:#0f172a;
-  font-size:18px;
-}
-
-.card{
-  background:linear-gradient(135deg,#0ea5e9,#22c55e);
-  margin:20px;
-  padding:25px;
-  border-radius:18px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+.container{
+    padding:20px;
 }
 
 .balance{
-  font-size:34px;
-  margin-top:10px;
+    font-size:40px;
+    color:#27d3c3;
+    margin-top:10px;
 }
 
-.actions{
-  display:flex;
-  justify-content:space-around;
-  margin:20px;
+.card{
+    background:#0f1c38;
+    padding:20px;
+    border-radius:15px;
+    margin-top:20px;
 }
 
-.action{
-  background:#111827;
-  padding:15px;
-  border-radius:12px;
-  text-align:center;
-  width:28%;
-  cursor:pointer;
+.btn{
+    display:block;
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:12px;
+    margin-top:10px;
+    font-size:18px;
 }
 
-.section{
-  margin:20px;
+.send{
+    background:#27d3c3;
+    color:black;
 }
 
-.transaction{
-  background:#111827;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:10px;
-  display:flex;
-  justify-content:space-between;
+.secondary{
+    background:#1e2a47;
+    color:white;
 }
 
-#modal{
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.7);
-  display:none;
-  justify-content:center;
-  align-items:center;
+.nav{
+    position:fixed;
+    bottom:0;
+    width:100%;
+    background:#0a162d;
+    display:flex;
+    justify-content:space-around;
+    padding:15px 0;
 }
 
-.modal-content{
-  background:#0f172a;
-  padding:20px;
-  border-radius:15px;
-  width:85%;
+.nav a{
+    color:#9aa3b2;
+    text-decoration:none;
 }
 
-button{
-  background:#22c55e;
-  border:none;
-  padding:12px;
-  width:100%;
-  color:white;
-  border-radius:10px;
-  font-size:16px;
+.nav a.active{
+    color:#27d3c3;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">
-  Welcome, <span id="userName"></span> 👋
+<div class="container">
+    <h2>Welcome back</h2>
+    <h3 id="username"></h3>
+
+    <div class="balance" id="balance">€0.00</div>
+
+    <div class="card">
+        <button class="btn send">Send Money</button>
+        <button class="btn secondary">Transactions</button>
+        <button class="btn secondary" onclick="switchUser()">Switch User</button>
+    </div>
+
+    <div class="card">
+        <h3>Recent Activity</h3>
+        <div id="activity"></div>
+    </div>
 </div>
 
-<div class="card">
-  <div>Available Balance</div>
-  <div class="balance" id="balance"></div>
-</div>
-
-<div class="actions">
-  <div class="action" onclick="openModal()">💸<br>Send</div>
-  <div class="action">📥<br>Receive</div>
-  <div class="action">📊<br>Stats</div>
-</div>
-
-<div class="section">
-  <h3>Recent Transactions</h3>
-  <div id="transactions"></div>
-</div>
-
-<!-- SEND MONEY MODAL -->
-<div id="modal">
-  <div class="modal-content">
-    <h3>Send Money</h3>
-    <input type="text" id="recipient" placeholder="Recipient name" style="width:100%; padding:10px; margin-bottom:10px;">
-    <input type="number" id="amount" placeholder="Amount" style="width:100%; padding:10px; margin-bottom:10px;">
-    <button onclick="sendMoney()">Send</button>
-    <br><br>
-    <button onclick="closeModal()" style="background:#ef4444;">Cancel</button>
-  </div>
+<div class="nav">
+    <a class="active">Home</a>
+    <a>History</a>
+    <a>Send</a>
+    <a>Admin</a>
 </div>
 
 <script>
-const currency = "€";
+document.addEventListener("DOMContentLoaded", function(){
 
-// get logged in user
+// 🔥 CLEAR OLD DATA (removes Demo User forever)
+localStorage.clear();
+
+// create fresh users
+localStorage.setItem("users", JSON.stringify({
+    "martinez": {
+        balance: 0,
+        transactions: []
+    },
+    "john": {
+        balance: 5200,
+        transactions: [
+            {date:"Feb 10", amount:500},
+            {date:"Feb 11", amount:120}
+        ]
+    },
+    "sarah": {
+        balance: 980,
+        transactions: [
+            {date:"Feb 09", amount:80}
+        ]
+    }
+}));
+
+// set starting user
+localStorage.setItem("currentUser", "martinez");
+
+loadDashboard();
+
+});
+
+function loadDashboard(){
+
+let users = JSON.parse(localStorage.getItem("users"));
 let currentUser = localStorage.getItem("currentUser");
+let user = users[currentUser];
 
-if(!currentUser){
-  currentUser = "Guest";
+document.getElementById("username").innerText = currentUser;
+document.getElementById("balance").innerText =
+    "€" + user.balance.toFixed(2);
+
+let activityDiv = document.getElementById("activity");
+activityDiv.innerHTML = "";
+
+if(user.transactions.length === 0){
+    activityDiv.innerHTML = "<p>No transactions yet</p>";
+}else{
+    user.transactions.slice(-5).reverse().forEach(tx => {
+        let p = document.createElement("p");
+        p.innerText = tx.date + "  +€" + tx.amount;
+        activityDiv.appendChild(p);
+    });
 }
 
-// show username
-document.getElementById("userName").innerText = currentUser;
-
-// load users database
-let users = JSON.parse(localStorage.getItem("users")) || {};
-
-// create user if not existing
-if(!users[currentUser]){
-  users[currentUser] = {
-    balance: 5000,
-    transactions: []
-  };
 }
 
-// display balance
-function updateBalance(){
-  document.getElementById("balance").innerText =
-    currency + users[currentUser].balance.toLocaleString();
+// switch between users
+function switchUser(){
+
+let users = JSON.parse(localStorage.getItem("users"));
+let names = Object.keys(users);
+
+let currentUser = localStorage.getItem("currentUser");
+let index = names.indexOf(currentUser);
+
+let nextUser = names[(index + 1) % names.length];
+
+localStorage.setItem("currentUser", nextUser);
+loadDashboard();
+
 }
-
-// render transactions
-function renderTransactions(){
-  const container = document.getElementById("transactions");
-  container.innerHTML = "";
-
-  users[currentUser].transactions.forEach(tx=>{
-    container.innerHTML += `
-      <div class="transaction">
-        <span>${tx.name}<br><small>${tx.date}</small></span>
-        <span style="color:${tx.amount<0?'#f87171':'#34d399'}">
-        ${tx.amount<0?'-':'+'}${currency}${Math.abs(tx.amount)}</span>
-      </div>
-    `;
-  });
-}
-
-function openModal(){
-  document.getElementById("modal").style.display="flex";
-}
-
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-}
-
-function sendMoney(){
-  const name=document.getElementById("recipient").value;
-  const amt=parseFloat(document.getElementById("amount").value);
-
-  if(!name || !amt){
-    alert("Enter details");
-    return;
-  }
-
-  if(amt > users[currentUser].balance){
-    alert("Insufficient funds");
-    return;
-  }
-
-  users[currentUser].balance -= amt;
-
-  users[currentUser].transactions.unshift({
-    name:name,
-    amount:-amt,
-    date:new Date().toLocaleDateString()
-  });
-
-  localStorage.setItem("users", JSON.stringify(users));
-
-  updateBalance();
-  renderTransactions();
-  closeModal();
-}
-
-// load data
-updateBalance();
-renderTransactions();
 </script>
 
 </body>
