@@ -1,0 +1,15 @@
+{
+  "name": "DeChase Finance",
+  "short_name": "DeChase",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0d2f66",
+  "theme_color": "#0d2f66",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
