@@ -13,7 +13,6 @@ body{
   color:white;
   text-align:center;
 }
-
 .container{ padding:20px; }
 
 .card{
@@ -43,12 +42,18 @@ button{
   cursor:pointer;
 }
 
-.green{ background:#2ecc71; color:white; }
-.red{ background:#e74c3c; color:white; }
-.blue{ background:#3498db; color:white; }
+.green{background:#2ecc71;color:white;}
+.red{background:#e74c3c;color:white;}
+.blue{background:#3498db;color:white;}
 
-.msg{ margin-top:10px; font-weight:bold; }
-.hidden{ display:none; }
+.msg{margin-top:10px;font-weight:bold;}
+.hidden{display:none;}
+
+.tx{
+  text-align:left;
+  border-bottom:1px solid #ddd;
+  padding:8px 0;
+}
 </style>
 </head>
 
@@ -72,6 +77,12 @@ button{
   <div id="transferMsg" class="msg"></div>
 </div>
 
+<!-- TRANSACTION HISTORY -->
+<div class="card">
+  <h3>Transaction History</h3>
+  <div id="history"></div>
+</div>
+
 <!-- ADMIN PANEL -->
 <div id="adminPanel" class="hidden">
 
@@ -82,18 +93,6 @@ button{
   <input id="newBalance" placeholder="Starting Balance">
   <button class="green" onclick="createUser()">Create User</button>
   <div id="createMsg" class="msg"></div>
-</div>
-
-<div class="card">
-  <h3>All Users</h3>
-  <button class="blue" onclick="showUsers()">Show Users</button>
-  <div id="usersList"></div>
-</div>
-
-<div class="card">
-  <h3>Fix Broken Users</h3>
-  <button class="blue" onclick="fixUsers()">Fix Missing PINs</button>
-  <div id="fixMsg" class="msg"></div>
 </div>
 
 </div>
@@ -115,42 +114,74 @@ function updateBalance(){
 }
 updateBalance();
 
+// show admin tools
 if(currentUser.username === "admin"){
-  document.getElementById("adminPanel").classList.remove("hidden");
+  adminPanel.classList.remove("hidden");
 }
 
 // CREATE USER
 function createUser(){
-  let username = newUser.value.trim();
-  let pin = newPin.value.trim();
-  let balance = parseFloat(newBalance.value);
+  let username=newUser.value.trim();
+  let pin=newPin.value.trim();
+  let balance=parseFloat(newBalance.value);
 
-  if(!username || !pin || isNaN(balance)){
-    createMsg.innerText="Fill all fields";
-    return;
+  if(!username||!pin||isNaN(balance)){
+    createMsg.innerText="Fill all fields"; return;
   }
 
-  let users = JSON.parse(localStorage.getItem("users")) || [];
-
+  let users=JSON.parse(localStorage.getItem("users"))||[];
   if(users.find(u=>u.username===username)){
-    createMsg.innerText="User exists";
-    return;
+    createMsg.innerText="User exists"; return;
   }
 
   users.push({username,pin,balance});
-  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("users",JSON.stringify(users));
   createMsg.innerText="User created!";
 }
 
+// SAVE TRANSACTION
+function saveTransaction(type, amount, otherUser){
+  let history = JSON.parse(localStorage.getItem("transactions")) || [];
+
+  history.push({
+    user: currentUser.username,
+    type,
+    amount,
+    otherUser,
+    date: new Date().toLocaleString()
+  });
+
+  localStorage.setItem("transactions", JSON.stringify(history));
+}
+
+// LOAD HISTORY
+function loadHistory(){
+  let history = JSON.parse(localStorage.getItem("transactions")) || [];
+
+  let userTx = history.filter(tx =>
+    tx.user === currentUser.username
+  );
+
+  historyDiv.innerHTML = userTx.reverse().map(tx =>
+    `<div class="tx">
+      ${tx.type} $${tx.amount} ${tx.type==="Sent"?"to":"from"} ${tx.otherUser}
+      <br><small>${tx.date}</small>
+    </div>`
+  ).join("") || "No transactions yet";
+}
+
+let historyDiv = document.getElementById("history");
+loadHistory();
+
 // TRANSFER MONEY
 function transferMoney(){
-  let name = receiver.value.trim();
-  let amount = parseFloat(document.getElementById("amount").value);
+  let name=receiver.value.trim();
+  let amount=parseFloat(document.getElementById("amount").value);
 
-  let users = JSON.parse(localStorage.getItem("users"));
+  let users=JSON.parse(localStorage.getItem("users"));
 
-  let sender = users.find(u=>u.username===currentUser.username);
-  let receiverUser = users.find(u=>u.username===name);
+  let sender=users.find(u=>u.username===currentUser.username);
+  let receiverUser=users.find(u=>u.username===name);
 
   if(!receiverUser){ transferMsg.innerText="User not found"; return; }
   if(sender.balance < amount){ transferMsg.innerText="Insufficient funds"; return; }
@@ -158,32 +189,17 @@ function transferMoney(){
   sender.balance -= amount;
   receiverUser.balance += amount;
 
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("currentUser", JSON.stringify(sender));
+  localStorage.setItem("users",JSON.stringify(users));
+  localStorage.setItem("currentUser",JSON.stringify(sender));
+
+  saveTransaction("Sent", amount, name);
+  saveTransaction("Received", amount, currentUser.username);
 
   currentUser = sender;
   updateBalance();
+  loadHistory();
+
   transferMsg.innerText="Transfer successful!";
-}
-
-// SHOW USERS
-function showUsers(){
-  let users = JSON.parse(localStorage.getItem("users")) || [];
-  usersList.innerHTML = users.map(u =>
-    `<p>${u.username} — $${u.balance}</p>`
-  ).join("");
-}
-
-// FIX USERS WITHOUT PIN
-function fixUsers(){
-  let users = JSON.parse(localStorage.getItem("users")) || [];
-  users.forEach(u=>{
-    if(!u.pin || u.pin===""){
-      u.pin = "1111";
-    }
-  });
-  localStorage.setItem("users", JSON.stringify(users));
-  fixMsg.innerText="Broken users fixed (PIN = 1111)";
 }
 
 // LOGOUT
