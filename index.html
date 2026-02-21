@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>DeChase Finance Login</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeChase Finance Login</title>
 
   <style>
     body{
@@ -13,7 +14,6 @@
       justify-content:center;
       align-items:center;
       height:100vh;
-      color:#333;
     }
 
     .card{
@@ -28,6 +28,7 @@
 
     h2{
       margin-bottom:5px;
+      color:#0a1f44;
     }
 
     .subtitle{
@@ -70,9 +71,11 @@
       color:red;
       margin-top:10px;
       display:none;
+      font-weight:bold;
     }
   </style>
 </head>
+
 <body>
 
 <div class="card">
@@ -90,6 +93,13 @@
 </div>
 
 <script>
+// Create demo user if none exist (for testing)
+if(!localStorage.getItem("users")){
+  localStorage.setItem("users", JSON.stringify([
+    {username:"admin", pin:"1234", balance:5000}
+  ]));
+}
+
 function login(){
 
   let username = document.getElementById("username").value.trim();
@@ -102,11 +112,13 @@ function login(){
   );
 
   if(foundUser){
-
     localStorage.setItem("currentUser", JSON.stringify(foundUser));
-
     window.location.href = "dashboard.html";
-
   } else {
+    document.getElementById("error").style.display = "block";
+  }
+}
+</script>
 
-    document.getElementById("error").style.display
+</body>
+</html>
