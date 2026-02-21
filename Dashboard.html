@@ -3,57 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title>
+<title>Dashboard</title>
 
 <style>
 body{
-    margin:0;
-    font-family: Arial, sans-serif;
-    background:#081225;
-    color:white;
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#0d2f66;
+  color:white;
+  text-align:center;
 }
 
-.container{
-    padding:20px;
-}
+.container{ padding:20px; }
 
 .card{
-    background:#0f1c38;
-    padding:20px;
-    border-radius:15px;
-    margin-top:15px;
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:12px;
+  margin-top:20px;
 }
 
-.user{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-}
-
-.balance{
-    color:#27d3c3;
-    font-weight:bold;
+input{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  font-size:16px;
 }
 
 button{
-    margin-top:10px;
-    padding:8px 12px;
-    border:none;
-    border-radius:8px;
-    background:#27d3c3;
-    color:black;
-    font-weight:bold;
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
+  font-size:16px;
+  cursor:pointer;
 }
 
-.nav{
-    position:fixed;
-    bottom:0;
-    width:100%;
-    background:#0a162d;
-    display:flex;
-    justify-content:space-around;
-    padding:15px 0;
+.green{ background:#2ecc71; color:white; }
+.red{ background:#e74c3c; color:white; }
+.blue{ background:#3498db; color:white; }
+
+.msg{ margin-top:10px; font-weight:bold; }
+.hidden{ display:none; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2 id="welcome"></h2>
+
+<div class="card">
+  <h3>Your Balance</h3>
+  <h1 id="balance"></h1>
+</div>
+
+<!-- TRANSFER -->
+<div class="card">
+  <h3>Transfer Money</h3>
+  <input id="receiver" placeholder="Receiver Username">
+  <input id="amount" type="number" placeholder="Amount">
+  <button class="green" onclick="transferMoney()">Send</button>
+  <div id="transferMsg" class="msg"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="hidden">
+
+<div class="card">
+  <h3>Create New User</h3>
+  <input id="newUser" placeholder="Username">
+  <input id="newPin" placeholder="PIN">
+  <input id="newBalance" placeholder="Starting Balance">
+  <button class="green" onclick="createUser()">Create User</button>
+  <div id="createMsg" class="msg"></div>
+</div>
+
+<div class="card">
+  <h3>All Users</h3>
+  <button class="blue" onclick="showUsers()">Show Users</button>
+  <div id="usersList"></div>
+</div>
+
+<div class="card">
+  <h3>Fix Broken Users</h3>
+  <button class="blue" onclick="fixUsers()">Fix Missing PINs</button>
+  <div id="fixMsg" class="msg"></div>
+</div>
+
+</div>
+
+<button class="red" onclick="logout()">Logout</button>
+
+</div>
+
+<script>
+let currentUser = JSON.parse(localStorage.getItem("currentUser"));
+if(!currentUser){ window.location.href="index.html"; }
+
+document.getElementById("welcome").innerText =
+  "Welcome, " + currentUser.username;
+
+function updateBalance(){
+  document.getElementById("balance").innerText =
+    "$" + currentUser.balance.toFixed(2);
+}
+updateBalance();
+
+if(currentUser.username === "admin"){
+  document.getElementById("adminPanel").classList.remove("hidden");
 }
 
-.nav a{
-    color:#9aa
+// CREATE USER
+function createUser(){
+  let username = newUser.value.trim();
+  let pin = newPin.value.trim();
+  let balance = parseFloat(newBalance.value);
+
+  if(!username || !pin || isNaN(balance)){
+    createMsg.innerText="Fill all fields";
+    return;
+  }
+
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+
+  if(users.find(u=>u.username===username)){
+    createMsg.innerText="User exists";
+    return;
+  }
+
+  users.push({username,pin,balance});
+  localStorage.setItem("users", JSON.stringify(users));
+  createMsg.innerText="User created!";
+}
+
+// TRANSFER MONEY
+function transferMoney(){
+  let name = receiver.value.trim();
+  let amount = parseFloat(document.getElementById("amount").value);
+
+  let users = JSON.parse(localStorage.getItem("users"));
+
+  let sender = users.find(u=>u.username===currentUser.username);
+  let receiverUser = users.find(u=>u.username===name);
+
+  if(!receiverUser){ transferMsg.innerText="User not found"; return; }
+  if(sender.balance < amount){ transferMsg.innerText="Insufficient funds"; return; }
+
+  sender.balance -= amount;
+  receiverUser.balance += amount;
+
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", JSON.stringify(sender));
+
+  currentUser = sender;
+  updateBalance();
+  transferMsg.innerText="Transfer successful!";
+}
+
+// SHOW USERS
+function showUsers(){
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+  usersList.innerHTML = users.map(u =>
+    `<p>${u.username} — $${u.balance}</p>`
+  ).join("");
+}
+
+// FIX USERS WITHOUT PIN
+function fixUsers(){
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+  users.forEach(u=>{
+    if(!u.pin || u.pin===""){
+      u.pin = "1111";
+    }
+  });
+  localStorage.setItem("users", JSON.stringify(users));
+  fixMsg.innerText="Broken users fixed (PIN = 1111)";
+}
+
+// LOGOUT
+function logout(){
+  localStorage.removeItem("currentUser");
+  window.location.href="index.html";
+}
+</script>
+
+</body>
+</html>
