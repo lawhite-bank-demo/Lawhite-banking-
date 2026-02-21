@@ -46,14 +46,13 @@ button{
 .red{background:#e74c3c;color:white;}
 .blue{background:#3498db;color:white;}
 
-.msg{margin-top:10px;font-weight:bold;}
-.hidden{display:none;}
-
 .tx{
   text-align:left;
   border-bottom:1px solid #ddd;
   padding:8px 0;
 }
+
+.hidden{display:none;}
 </style>
 </head>
 
@@ -68,33 +67,28 @@ button{
   <h1 id="balance"></h1>
 </div>
 
+<!-- DEPOSIT & WITHDRAW -->
+<div class="card">
+  <h3>Deposit / Withdraw</h3>
+  <input id="moneyAmount" type="number" placeholder="Amount">
+  <button class="green" onclick="deposit()">Deposit</button>
+  <button class="red" onclick="withdraw()">Withdraw</button>
+  <div id="moneyMsg"></div>
+</div>
+
 <!-- TRANSFER -->
 <div class="card">
   <h3>Transfer Money</h3>
   <input id="receiver" placeholder="Receiver Username">
   <input id="amount" type="number" placeholder="Amount">
   <button class="green" onclick="transferMoney()">Send</button>
-  <div id="transferMsg" class="msg"></div>
+  <div id="transferMsg"></div>
 </div>
 
-<!-- TRANSACTION HISTORY -->
+<!-- HISTORY -->
 <div class="card">
   <h3>Transaction History</h3>
   <div id="history"></div>
-</div>
-
-<!-- ADMIN PANEL -->
-<div id="adminPanel" class="hidden">
-
-<div class="card">
-  <h3>Create New User</h3>
-  <input id="newUser" placeholder="Username">
-  <input id="newPin" placeholder="PIN">
-  <input id="newBalance" placeholder="Starting Balance">
-  <button class="green" onclick="createUser()">Create User</button>
-  <div id="createMsg" class="msg"></div>
-</div>
-
 </div>
 
 <button class="red" onclick="logout()">Logout</button>
@@ -114,57 +108,27 @@ function updateBalance(){
 }
 updateBalance();
 
-// show admin tools
-if(currentUser.username === "admin"){
-  adminPanel.classList.remove("hidden");
-}
-
-// CREATE USER
-function createUser(){
-  let username=newUser.value.trim();
-  let pin=newPin.value.trim();
-  let balance=parseFloat(newBalance.value);
-
-  if(!username||!pin||isNaN(balance)){
-    createMsg.innerText="Fill all fields"; return;
-  }
-
-  let users=JSON.parse(localStorage.getItem("users"))||[];
-  if(users.find(u=>u.username===username)){
-    createMsg.innerText="User exists"; return;
-  }
-
-  users.push({username,pin,balance});
-  localStorage.setItem("users",JSON.stringify(users));
-  createMsg.innerText="User created!";
-}
-
 // SAVE TRANSACTION
-function saveTransaction(type, amount, otherUser){
+function saveTransaction(type, amount, other=""){
   let history = JSON.parse(localStorage.getItem("transactions")) || [];
-
   history.push({
     user: currentUser.username,
     type,
     amount,
-    otherUser,
+    other,
     date: new Date().toLocaleString()
   });
-
   localStorage.setItem("transactions", JSON.stringify(history));
 }
 
 // LOAD HISTORY
 function loadHistory(){
   let history = JSON.parse(localStorage.getItem("transactions")) || [];
-
-  let userTx = history.filter(tx =>
-    tx.user === currentUser.username
-  );
+  let userTx = history.filter(tx => tx.user === currentUser.username);
 
   historyDiv.innerHTML = userTx.reverse().map(tx =>
     `<div class="tx">
-      ${tx.type} $${tx.amount} ${tx.type==="Sent"?"to":"from"} ${tx.otherUser}
+      ${tx.type} $${tx.amount} ${tx.other}
       <br><small>${tx.date}</small>
     </div>`
   ).join("") || "No transactions yet";
@@ -173,15 +137,48 @@ function loadHistory(){
 let historyDiv = document.getElementById("history");
 loadHistory();
 
-// TRANSFER MONEY
+// DEPOSIT
+function deposit(){
+  let amount = parseFloat(document.getElementById("moneyAmount").value);
+  if(isNaN(amount) || amount <= 0) return;
+
+  currentUser.balance += amount;
+
+  updateStorage();
+  saveTransaction("Deposited", amount);
+  loadHistory();
+
+  moneyMsg.innerText="Deposit successful";
+}
+
+// WITHDRAW
+function withdraw(){
+  let amount = parseFloat(document.getElementById("moneyAmount").value);
+  if(isNaN(amount) || amount <= 0) return;
+
+  if(currentUser.balance < amount){
+    moneyMsg.innerText="Insufficient funds";
+    return;
+  }
+
+  currentUser.balance -= amount;
+
+  updateStorage();
+  saveTransaction("Withdrew", amount);
+  loadHistory();
+
+  moneyMsg.innerText="Withdrawal successful";
+}
+
+// TRANSFER
 function transferMoney(){
-  let name=receiver.value.trim();
-  let amount=parseFloat(document.getElementById("amount").value);
+  let name = receiver.value.trim();
+  let amount = parseFloat(document.getElementById("amount").value);
 
-  let users=JSON.parse(localStorage.getItem("users"));
+  let users = JSON.parse(localStorage.getItem("users"));
 
-  let sender=users.find(u=>u.username===currentUser.username);
-  let receiverUser=users.find(u=>u.username===name);
+  let sender = users.find(u => u.username === currentUser.username);
+  let receiverUser = users.find(u => u.username === name);
 
   if(!receiverUser){ transferMsg.innerText="User not found"; return; }
   if(sender.balance < amount){ transferMsg.innerText="Insufficient funds"; return; }
@@ -189,20 +186,27 @@ function transferMoney(){
   sender.balance -= amount;
   receiverUser.balance += amount;
 
-  localStorage.setItem("users",JSON.stringify(users));
-  localStorage.setItem("currentUser",JSON.stringify(sender));
-
-  saveTransaction("Sent", amount, name);
-  saveTransaction("Received", amount, currentUser.username);
+  localStorage.setItem("users", JSON.stringify(users));
 
   currentUser = sender;
+  localStorage.setItem("currentUser", JSON.stringify(sender));
+
   updateBalance();
+  saveTransaction("Sent", amount, "to " + name);
   loadHistory();
 
-  transferMsg.innerText="Transfer successful!";
+  transferMsg.innerText="Transfer successful";
 }
 
-// LOGOUT
+function updateStorage(){
+  let users = JSON.parse(localStorage.getItem("users"));
+  let user = users.find(u => u.username === currentUser.username);
+  user.balance = currentUser.balance;
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  updateBalance();
+}
+
 function logout(){
   localStorage.removeItem("currentUser");
   window.location.href="index.html";
