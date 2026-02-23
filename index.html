@@ -3,60 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lawhite Mobile Bank</title>
+<title>Secure Login - DeChase Finance</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:linear-gradient(135deg,#0f172a,#1e293b);
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#0f2a44,#153e5c);
   height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 .card{
   background:white;
-  color:black;
   padding:30px;
-  border-radius:16px;
+  border-radius:18px;
   width:320px;
   text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
 }
 
 input{
   width:100%;
-  padding:12px;
+  padding:14px;
   margin-top:12px;
-  border-radius:8px;
-  border:1px solid #ddd;
+  border-radius:10px;
+  border:1px solid #ccc;
   font-size:16px;
 }
 
 button{
   width:100%;
   padding:14px;
-  margin-top:15px;
+  margin-top:18px;
   border:none;
   border-radius:10px;
-  background:#22c55e;
+  background:#0f2a44;
   color:white;
   font-size:16px;
-  cursor:pointer;
 }
 
 #error{
   color:red;
-  margin-top:10px;
+  margin-top:12px;
 }
 </style>
 </head>
+
 <body>
 
 <div class="card">
-  <h2>Lawhite Mobile Bank</h2>
+  <h2>DeChase Finance</h2>
+  <p>Secure Online Banking</p>
 
   <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
@@ -66,39 +66,40 @@ button{
 </div>
 
 <script>
-// LOAD USERS DATABASE
+
+// Ensure database exists
 let users = JSON.parse(localStorage.getItem("users")) || [];
 
-// create default users if empty
 if(users.length === 0){
   users = [
-    { username:"admin", pin:"4321", balance:15000 },
-    { username:"katherine", pin:"1234", balance:5200 },
-    { username:"sarah", pin:"1111", balance:40980 },
-    { username:"martinez", pin:"2222", balance:700000 }
+    { username:"admin", pin:"4321", balance:15000, transactions:[] }
   ];
-
   localStorage.setItem("users", JSON.stringify(users));
 }
 
-// LOGIN
+// LOGIN FUNCTION
 function login(){
 
-  const name = username.value.trim().toLowerCase();
-  const pinVal = pin.value.trim();
+  const username = document.getElementById("username").value.trim().toLowerCase();
+  const pin = document.getElementById("pin").value.trim();
+
+  const users = JSON.parse(localStorage.getItem("users")) || [];
 
   const user = users.find(u =>
-    u.username === name && u.pin === pinVal
+    u.username.toLowerCase() === username &&
+    u.pin === pin
   );
 
   if(!user){
-    error.innerText = "Invalid username or PIN";
+    document.getElementById("error").innerText =
+      "Invalid username or PIN";
     return;
   }
 
-  // ✅ SAVE FULL USER OBJECT
+  // save session
   localStorage.setItem("currentUser", JSON.stringify(user));
 
+  // redirect
   window.location.href = "dashboard.html";
 }
 </script>
