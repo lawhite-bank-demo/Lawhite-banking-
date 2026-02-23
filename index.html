@@ -3,51 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Login - DeChase Finance</title>
+
+<title>Lawhite Mobile Bank</title>
+
+<!-- PWA + INSTALL SUPPORT -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="icon.png">
 
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#0f2a44,#153e5c);
-  height:100vh;
+  font-family:system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg,#0b1220,#163a5f);
+  color:white;
   display:flex;
   align-items:center;
   justify-content:center;
+  height:100vh;
 }
 
 .card{
+  width:90%;
+  max-width:380px;
   background:white;
-  padding:30px;
+  color:#111;
   border-radius:18px;
-  width:320px;
+  padding:25px;
   text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+.logo{
+  width:90px;
+  margin-bottom:10px;
+}
+
+h1{
+  margin:5px 0;
+}
+
+.subtitle{
+  color:#666;
+  margin-bottom:20px;
 }
 
 input{
   width:100%;
   padding:14px;
-  margin-top:12px;
+  margin-top:10px;
   border-radius:10px;
-  border:1px solid #ccc;
+  border:1px solid #ddd;
   font-size:16px;
 }
 
 button{
   width:100%;
+  margin-top:15px;
   padding:14px;
-  margin-top:18px;
   border:none;
-  border-radius:10px;
-  background:#0f2a44;
+  border-radius:12px;
+  background:#163a5f;
   color:white;
   font-size:16px;
+  cursor:pointer;
 }
 
 #error{
   color:red;
-  margin-top:12px;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -55,38 +79,30 @@ button{
 <body>
 
 <div class="card">
-  <h2>DeChase Finance</h2>
-  <p>Secure Online Banking</p>
+  <img src="icon.png" class="logo">
+
+  <h1>Lawhite Bank</h1>
+  <div class="subtitle">Secure Online Banking</div>
 
   <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
 
   <button onclick="login()">Login</button>
+
   <div id="error"></div>
 </div>
 
 <script>
-
-// Ensure database exists
-let users = JSON.parse(localStorage.getItem("users")) || [];
-
-if(users.length === 0){
-  users = [
-    { username:"admin", pin:"4321", balance:15000, transactions:[] }
-  ];
-  localStorage.setItem("users", JSON.stringify(users));
-}
-
 // LOGIN FUNCTION
 function login(){
 
-  const username = document.getElementById("username").value.trim().toLowerCase();
+  const name = document.getElementById("username").value.trim().toLowerCase();
   const pin = document.getElementById("pin").value.trim();
 
   const users = JSON.parse(localStorage.getItem("users")) || [];
 
   const user = users.find(u =>
-    u.username.toLowerCase() === username &&
+    u.username.toLowerCase() === name &&
     u.pin === pin
   );
 
@@ -96,11 +112,13 @@ function login(){
     return;
   }
 
-  // save session
   localStorage.setItem("currentUser", JSON.stringify(user));
+  window.location.href = "bank.html";
+}
 
-  // redirect
-  window.location.href = "dashboard.html";
+// SERVICE WORKER REGISTER
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
 }
 </script>
 
