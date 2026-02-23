@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance Login</title>
+<title>Lawhite Mobile Bank</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:linear-gradient(to bottom,#0a1f44,#0d2f66);
+  font-family:Arial;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -18,88 +19,87 @@ body{
 
 .card{
   background:white;
+  color:black;
   padding:30px;
-  border-radius:15px;
-  width:90%;
-  max-width:350px;
+  border-radius:16px;
+  width:320px;
   text-align:center;
-  box-shadow:0 10px 25px rgba(0,0,0,0.3);
 }
 
 input{
   width:100%;
-  padding:15px;
-  margin-top:10px;
-  border-radius:10px;
-  border:1px solid #ccc;
+  padding:12px;
+  margin-top:12px;
+  border-radius:8px;
+  border:1px solid #ddd;
   font-size:16px;
 }
 
 button{
   width:100%;
-  padding:15px;
+  padding:14px;
   margin-top:15px;
   border:none;
   border-radius:10px;
-  background:#2ecc71;
+  background:#22c55e;
   color:white;
-  font-size:18px;
+  font-size:16px;
+  cursor:pointer;
 }
 
-.error{
+#error{
   color:red;
   margin-top:10px;
-  display:none;
 }
 </style>
 </head>
-
 <body>
 
 <div class="card">
-  <h2>DeChase Finance</h2>
-  <p>Secure Online Banking</p>
+  <h2>Lawhite Mobile Bank</h2>
 
   <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
 
-  <button id="loginBtn">Login</button>
-
-  <div id="error" class="error">Invalid username or PIN</div>
+  <button onclick="login()">Login</button>
+  <div id="error"></div>
 </div>
 
 <script>
+// LOAD USERS DATABASE
+let users = JSON.parse(localStorage.getItem("users")) || [];
 
-// ALWAYS create admin if none exist
-let users = JSON.parse(localStorage.getItem("users"));
-
-if(!users){
+// create default users if empty
+if(users.length === 0){
   users = [
-    {username:"admin", pin:"4321", balance:5000}
+    { username:"admin", pin:"4321", balance:15000 },
+    { username:"katherine", pin:"1234", balance:5200 },
+    { username:"sarah", pin:"1111", balance:40980 },
+    { username:"martinez", pin:"2222", balance:700000 }
   ];
+
   localStorage.setItem("users", JSON.stringify(users));
 }
 
-// attach click event (stronger than onclick)
-document.getElementById("loginBtn").addEventListener("click", login);
-
+// LOGIN
 function login(){
 
-  const username = document.getElementById("username").value.trim();
-  const pin = document.getElementById("pin").value.trim();
+  const name = username.value.trim().toLowerCase();
+  const pinVal = pin.value.trim();
 
-  const users = JSON.parse(localStorage.getItem("users")) || [];
-
-  const foundUser = users.find(u =>
-    u.username === username && u.pin === pin
+  const user = users.find(u =>
+    u.username === name && u.pin === pinVal
   );
 
-  if(foundUser){
-    localStorage.setItem("currentUser", JSON.stringify(foundUser));
-    window.location.href = "dashboard.html";
-  } else {
-    document.getElementById("error").style.display = "block";
+  if(!user){
+    error.innerText = "Invalid username or PIN";
+    return;
   }
+
+  // ✅ SAVE FULL USER OBJECT
+  localStorage.setItem("currentUser", JSON.stringify(user));
+
+  window.location.href = "dashboard.html";
 }
 </script>
 
