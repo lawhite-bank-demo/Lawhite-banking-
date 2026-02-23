@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bank Dashboard</title>
+<title>DeChase Finance</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
 <style>
 body{
   margin:0;
-  font-family:system-ui;
-  background:#071a2f;
+  font-family:'Inter',sans-serif;
+  background:#061a2f;
   color:white;
 }
 
@@ -19,75 +21,102 @@ body{
   padding:20px;
 }
 
+/* HEADER */
+h1{
+  font-size:22px;
+  margin-bottom:15px;
+}
+
 /* BALANCE CARD */
 .balance-card{
-  background:linear-gradient(135deg,#4facfe,#00f2fe);
-  border-radius:20px;
+  background:linear-gradient(135deg,#5fa8ff,#2ed3ff);
+  border-radius:24px;
   padding:25px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.3);
+  box-shadow:0 20px 40px rgba(0,0,0,0.35);
 }
 
-.balance{
-  font-size:38px;
-  margin-top:10px;
-}
-
-/* QUICK BUTTONS */
-.quick{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
-}
-
-.quick button{
-  flex:1;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  background:#0f2747;
-  color:white;
+.balance-title{
+  opacity:0.9;
   font-size:15px;
 }
 
-/* CARDS */
-.card{
-  background:#0f2747;
-  padding:18px;
+.balance{
+  font-size:40px;
+  margin-top:8px;
+  font-weight:600;
+}
+
+/* ACTION BUTTONS */
+.actions{
+  display:flex;
+  justify-content:space-between;
+  margin-top:20px;
+}
+
+.action{
+  width:31%;
+  background:#0d2746;
   border-radius:16px;
-  margin-top:15px;
+  padding:16px 0;
+  text-align:center;
+  box-shadow:0 8px 18px rgba(0,0,0,0.25);
+  transition:.2s;
+}
+
+.action:active{
+  transform:scale(.95);
+}
+
+.icon{
+  font-size:22px;
+}
+
+.action span{
+  display:block;
+  margin-top:6px;
+  font-size:13px;
+}
+
+/* SEND PANEL */
+.card{
+  background:#0d2746;
+  border-radius:20px;
+  padding:20px;
+  margin-top:18px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
 }
 
 input{
   width:100%;
   padding:14px;
   margin-top:10px;
-  border-radius:10px;
   border:none;
+  border-radius:12px;
   font-size:16px;
 }
 
 button.send{
   width:100%;
-  padding:14px;
-  margin-top:10px;
+  padding:15px;
+  margin-top:12px;
   border:none;
-  border-radius:12px;
+  border-radius:14px;
   background:#2ecc71;
   color:white;
   font-size:16px;
 }
 
 .tx{
-  border-bottom:1px solid rgba(255,255,255,0.1);
-  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  padding:10px 0;
 }
 
 .logout{
   width:100%;
+  margin-top:20px;
   padding:15px;
-  margin-top:18px;
   border:none;
-  border-radius:12px;
+  border-radius:14px;
   background:#e74c3c;
   color:white;
   font-size:16px;
@@ -98,27 +127,36 @@ button.send{
 
 <div class="container">
 
+<h1>DeChase Finance</h1>
+
 <!-- BALANCE -->
 <div class="balance-card">
-  <div id="welcome"></div>
+  <div class="balance-title">Available Balance</div>
   <div class="balance" id="balance"></div>
+</div>
 
-  <div class="quick">
-    <button onclick="toggleSend()">Send</button>
-    <button onclick="alert('Receive feature')">Receive</button>
-    <button onclick="scrollToHistory()">History</button>
+<!-- ACTION BUTTONS -->
+<div class="actions">
+  <div class="action" onclick="toggleSend()">
+    <div class="icon">💸</div>
+    <span>Send</span>
+  </div>
+  <div class="action">
+    <div class="icon">💰</div>
+    <span>Receive</span>
+  </div>
+  <div class="action" onclick="scrollHistory()">
+    <div class="icon">📜</div>
+    <span>History</span>
   </div>
 </div>
 
-<!-- SEND PANEL -->
+<!-- SEND MONEY -->
 <div class="card" id="sendPanel" style="display:none">
-  <h3>Transfer Money</h3>
-
-  <input id="receiver" list="userList" placeholder="Recipient username">
+  <input id="receiver" list="userList" placeholder="Recipient">
   <datalist id="userList"></datalist>
 
   <input id="amount" type="number" placeholder="Amount">
-
   <button class="send" onclick="transferMoney()">Send</button>
   <div id="transferMsg"></div>
 </div>
@@ -134,134 +172,105 @@ button.send{
 </div>
 
 <script>
-// LOAD SESSION
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
 if(!currentUser) location.href="login.html";
 
 let users = JSON.parse(localStorage.getItem("users")) || [];
 
-// SYNC USER
-const dbUser = users.find(u => u.username === currentUser.username);
+// sync user
+const dbUser = users.find(u=>u.username===currentUser.username);
 if(dbUser){
-  currentUser = dbUser;
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  currentUser=dbUser;
+  localStorage.setItem("currentUser",JSON.stringify(currentUser));
 }
 
-// FIX OLD TRANSACTIONS (remove undefined forever)
-users.forEach(user => {
-  if(user.transactions){
-    user.transactions.forEach(t => {
-      if(!t.name && t.type){
-        t.name = t.type;
-      }
+// fix old transactions
+users.forEach(u=>{
+  if(u.transactions){
+    u.transactions.forEach(t=>{
+      if(!t.name && t.type){ t.name=t.type; }
     });
   }
 });
-localStorage.setItem("users", JSON.stringify(users));
+localStorage.setItem("users",JSON.stringify(users));
 
-// DISPLAY INFO
-welcome.innerText = "Welcome back, " + currentUser.username;
-balance.innerText = "€" + Number(currentUser.balance).toLocaleString();
+// display balance
+balance.innerText="€"+Number(currentUser.balance).toLocaleString();
 
-// AUTOCOMPLETE USERS
-const list = document.getElementById("userList");
+// autocomplete
 users.forEach(u=>{
-  if(u.username !== currentUser.username){
-    const option = document.createElement("option");
-    option.value = u.username;
-    list.appendChild(option);
-  }
+ if(u.username!==currentUser.username){
+   let opt=document.createElement("option");
+   opt.value=u.username;
+   userList.appendChild(opt);
+ }
 });
 
-// TOGGLE SEND PANEL
+// toggle send
 function toggleSend(){
-  const panel = document.getElementById("sendPanel");
-  panel.style.display = panel.style.display === "none" ? "block" : "none";
+ sendPanel.style.display=
+ sendPanel.style.display==="none"?"block":"none";
 }
 
-// SCROLL TO HISTORY
-function scrollToHistory(){
-  document.getElementById("historyCard").scrollIntoView({behavior:"smooth"});
+function scrollHistory(){
+ historyCard.scrollIntoView({behavior:"smooth"});
 }
 
-// LOAD HISTORY
+// load history
 function loadHistory(){
-  const user = users.find(u => u.username === currentUser.username);
+ const user=users.find(u=>u.username===currentUser.username);
 
-  if(!user.transactions || user.transactions.length === 0){
-    history.innerHTML = "No transactions yet";
-    return;
-  }
+ if(!user.transactions || user.transactions.length===0){
+   history.innerHTML="No activity yet";
+   return;
+ }
 
-  history.innerHTML = user.transactions.slice(0,5).map(t => `
-    <div class="tx">
-      ${t.name || t.type} €${t.amount}<br>
-      <small>${t.date}</small>
-    </div>
-  `).join("");
+ history.innerHTML=user.transactions.slice(0,5).map(t=>`
+   <div class="tx">
+     ${t.name} €${t.amount}<br>
+     <small>${t.date}</small>
+   </div>
+ `).join("");
 }
-
 loadHistory();
 
-// TRANSFER MONEY
+// transfer
 function transferMoney(){
+ const name=receiver.value.trim().toLowerCase();
+ const amt=parseFloat(amount.value);
 
-  const receiverName = receiver.value.trim().toLowerCase();
-  const amountValue = parseFloat(amount.value);
+ if(!name || !amt || amt<=0){
+   transferMsg.innerText="Enter valid details";
+   return;
+ }
 
-  if(!receiverName || !amountValue || amountValue <= 0){
-    transferMsg.innerText = "Enter valid details";
-    return;
-  }
+ const sender=users.find(u=>u.username===currentUser.username);
+ const rec=users.find(u=>u.username.toLowerCase()===name);
 
-  if(receiverName === currentUser.username){
-    transferMsg.innerText = "Cannot send to yourself";
-    return;
-  }
+ if(!rec){ transferMsg.innerText="User not found"; return; }
+ if(sender.balance<amt){ transferMsg.innerText="Insufficient funds"; return; }
 
-  const sender = users.find(u => u.username === currentUser.username);
-  const rec = users.find(u => u.username.toLowerCase() === receiverName);
+ sender.balance-=amt;
+ rec.balance+=amt;
 
-  if(!rec){
-    transferMsg.innerText = "User not found";
-    return;
-  }
+ const now=new Date().toLocaleString();
 
-  if(sender.balance < amountValue){
-    transferMsg.innerText = "Insufficient funds";
-    return;
-  }
+ sender.transactions.unshift({name:"Sent to "+rec.username,amount:amt,date:now});
+ rec.transactions.unshift({name:"Received from "+sender.username,amount:amt,date:now});
 
-  sender.balance -= amountValue;
-  rec.balance += amountValue;
+ localStorage.setItem("users",JSON.stringify(users));
+ localStorage.setItem("currentUser",JSON.stringify(sender));
 
-  const now = new Date().toLocaleString();
+ transferMsg.innerText="Transfer successful";
 
-  sender.transactions.unshift({
-    name:"Sent to "+rec.username,
-    amount:amountValue,
-    date:now
-  });
-
-  rec.transactions.unshift({
-    name:"Received from "+sender.username,
-    amount:amountValue,
-    date:now
-  });
-
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("currentUser", JSON.stringify(sender));
-
-  transferMsg.innerText="Transfer successful";
-
-  setTimeout(()=>location.reload(),800);
+ setTimeout(()=>location.reload(),800);
 }
 
-// LOGOUT
 function logout(){
-  localStorage.removeItem("currentUser");
-  location.href="login.html";
+ localStorage.removeItem("currentUser");
+ location.href="login.html";
 }
 </script>
+
 </body>
 </html>
