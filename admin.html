@@ -193,6 +193,8 @@ function sendMoney(){
 
 // Load at start
 loadUsers();
+// auto backup
+localStorage.setItem("backup_users", localStorage.getItem("users"));
 </script>
 
 </body>
