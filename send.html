@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send Money</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#0b1f3a;
+  color:white;
+}
+
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:white;
+  color:black;
+  padding:20px;
+  border-radius:14px;
+  margin-top:20px;
+}
+
+input{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  margin-top:14px;
+  border:none;
+  border-radius:10px;
+  background:#1abc9c;
+  color:white;
+  font-size:18px;
+}
+
+.back{
+  background:#e74c3c;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Send Money</h2>
+
+<div class="card">
+  <input id="receiver" placeholder="Recipient username">
+  <input id="amount" type="number" placeholder="Amount">
+  <button onclick="transferMoney()">Send</button>
+  <div id="msg"></div>
+</div>
+
+<button class="back" onclick="history.back()">Back</button>
+
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || [];
+let currentUser = JSON.parse(localStorage.getItem("currentUser"));
+
+if(!currentUser) location.href="login.html";
+
+function transferMoney(){
+
+  const receiverName = document.getElementById("receiver").value.trim().toLowerCase();
+  const amountValue = parseFloat(document.getElementById("amount").value);
+
+  if(!receiverName || !amountValue || amountValue <= 0){
+    msg.innerText="Enter valid details";
+    return;
+  }
+
+  if(receiverName === currentUser.username){
+    msg.innerText="Cannot send to yourself";
+    return;
+  }
+
+  const sender = users.find(u => u.username === currentUser.username);
+  const receiver = users.find(u => u.username.toLowerCase() === receiverName);
+
+  if(!receiver){
+    msg.innerText="User not found";
+    return;
+  }
+
+  if(sender.balance < amountValue){
+    msg.innerText="Insufficient funds";
+    return;
+  }
+
+  sender.balance -= amountValue;
+  receiver.balance += amountValue;
+
+  const now = new Date().toLocaleString();
+
+  sender.transactions.unshift({
+    name: "Sent to " + receiver.username,
+    amount: amountValue,
+    date: now
+  });
+
+  receiver.transactions.unshift({
+    name: "Received from " + sender.username,
+    amount: amountValue,
+    date: now
+  });
+
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", JSON.stringify(sender));
+
+  msg.innerText="Transfer successful";
+
+  setTimeout(()=>{
+    window.location.href="dashboard.html";
+  },1000);
+}
+</script>
+
+</body>
+</html>
