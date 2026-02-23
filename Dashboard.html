@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard</title>
+<title>Bank Dashboard</title>
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#142c54;
+  font-family:system-ui;
+  background:#071a2f;
   color:white;
 }
 
@@ -19,67 +19,113 @@ body{
   padding:20px;
 }
 
-.card{
-  background:white;
-  color:black;
-  border-radius:14px;
-  padding:20px;
-  margin-top:15px;
+/* BALANCE CARD */
+.balance-card{
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
+  border-radius:20px;
+  padding:25px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.3);
 }
 
 .balance{
-  text-align:center;
+  font-size:38px;
+  margin-top:10px;
+}
+
+/* QUICK BUTTONS */
+.quick{
+  display:flex;
+  gap:10px;
+  margin-top:15px;
+}
+
+.quick button{
+  flex:1;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  background:#0f2747;
+  color:white;
+  font-size:15px;
+}
+
+/* CARDS */
+.card{
+  background:#0f2747;
+  padding:18px;
+  border-radius:16px;
+  margin-top:15px;
 }
 
 input{
   width:100%;
-  padding:12px;
+  padding:14px;
   margin-top:10px;
-  border-radius:8px;
-  border:1px solid #ccc;
+  border-radius:10px;
+  border:none;
+  font-size:16px;
 }
 
-button{
+button.send{
   width:100%;
   padding:14px;
-  margin-top:12px;
+  margin-top:10px;
   border:none;
-  border-radius:10px;
-  font-size:16px;
-  color:white;
+  border-radius:12px;
   background:#2ecc71;
-}
-
-.logout{
-  background:#e74c3c;
+  color:white;
+  font-size:16px;
 }
 
 .tx{
-  border-bottom:1px solid #ddd;
+  border-bottom:1px solid rgba(255,255,255,0.1);
   padding:8px 0;
+}
+
+.logout{
+  width:100%;
+  padding:15px;
+  margin-top:18px;
+  border:none;
+  border-radius:12px;
+  background:#e74c3c;
+  color:white;
+  font-size:16px;
 }
 </style>
 </head>
-
 <body>
 
 <div class="container">
 
-<div class="card balance">
-  <h3 id="welcome"></h3>
-  <h1 id="balance"></h1>
+<!-- BALANCE -->
+<div class="balance-card">
+  <div id="welcome"></div>
+  <div class="balance" id="balance"></div>
+
+  <div class="quick">
+    <button onclick="toggleSend()">Send</button>
+    <button onclick="alert('Receive feature')">Receive</button>
+    <button onclick="scrollToHistory()">History</button>
+  </div>
 </div>
 
-<div class="card">
+<!-- SEND PANEL -->
+<div class="card" id="sendPanel" style="display:none">
   <h3>Transfer Money</h3>
-  <input id="receiver" placeholder="Recipient username">
+
+  <input id="receiver" list="userList" placeholder="Recipient username">
+  <datalist id="userList"></datalist>
+
   <input id="amount" type="number" placeholder="Amount">
-  <button onclick="transferMoney()">Send</button>
+
+  <button class="send" onclick="transferMoney()">Send</button>
   <div id="transferMsg"></div>
 </div>
 
-<div class="card">
-  <h3>Transaction History</h3>
+<!-- HISTORY -->
+<div class="card" id="historyCard">
+  <h3>Recent Activity</h3>
   <div id="history"></div>
 </div>
 
@@ -88,25 +134,55 @@ button{
 </div>
 
 <script>
-
 // LOAD SESSION
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-if(!currentUser) window.location.href="login.html";
+if(!currentUser) location.href="login.html";
 
-// LOAD DATABASE
 let users = JSON.parse(localStorage.getItem("users")) || [];
 
-// SYNC USER DATA
+// SYNC USER
 const dbUser = users.find(u => u.username === currentUser.username);
 if(dbUser){
   currentUser = dbUser;
   localStorage.setItem("currentUser", JSON.stringify(currentUser));
 }
 
+// FIX OLD TRANSACTIONS (remove undefined forever)
+users.forEach(user => {
+  if(user.transactions){
+    user.transactions.forEach(t => {
+      if(!t.name && t.type){
+        t.name = t.type;
+      }
+    });
+  }
+});
+localStorage.setItem("users", JSON.stringify(users));
+
 // DISPLAY INFO
 welcome.innerText = "Welcome back, " + currentUser.username;
 balance.innerText = "€" + Number(currentUser.balance).toLocaleString();
 
+// AUTOCOMPLETE USERS
+const list = document.getElementById("userList");
+users.forEach(u=>{
+  if(u.username !== currentUser.username){
+    const option = document.createElement("option");
+    option.value = u.username;
+    list.appendChild(option);
+  }
+});
+
+// TOGGLE SEND PANEL
+function toggleSend(){
+  const panel = document.getElementById("sendPanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+}
+
+// SCROLL TO HISTORY
+function scrollToHistory(){
+  document.getElementById("historyCard").scrollIntoView({behavior:"smooth"});
+}
 
 // LOAD HISTORY
 function loadHistory(){
@@ -117,7 +193,7 @@ function loadHistory(){
     return;
   }
 
-  history.innerHTML = user.transactions.map(t => `
+  history.innerHTML = user.transactions.slice(0,5).map(t => `
     <div class="tx">
       ${t.name || t.type} €${t.amount}<br>
       <small>${t.date}</small>
@@ -127,12 +203,11 @@ function loadHistory(){
 
 loadHistory();
 
-
 // TRANSFER MONEY
 function transferMoney(){
 
-  const receiverName = document.getElementById("receiver").value.trim().toLowerCase();
-  const amountValue = parseFloat(document.getElementById("amount").value);
+  const receiverName = receiver.value.trim().toLowerCase();
+  const amountValue = parseFloat(amount.value);
 
   if(!receiverName || !amountValue || amountValue <= 0){
     transferMsg.innerText = "Enter valid details";
@@ -145,12 +220,9 @@ function transferMoney(){
   }
 
   const sender = users.find(u => u.username === currentUser.username);
+  const rec = users.find(u => u.username.toLowerCase() === receiverName);
 
-  const receiver = users.find(
-    u => u.username.toLowerCase() === receiverName
-  );
-
-  if(!receiver){
+  if(!rec){
     transferMsg.innerText = "User not found";
     return;
   }
@@ -161,37 +233,35 @@ function transferMoney(){
   }
 
   sender.balance -= amountValue;
-  receiver.balance += amountValue;
+  rec.balance += amountValue;
 
   const now = new Date().toLocaleString();
 
   sender.transactions.unshift({
-    name: "Sent to " + receiver.username,
-    amount: amountValue,
-    date: now
+    name:"Sent to "+rec.username,
+    amount:amountValue,
+    date:now
   });
 
-  receiver.transactions.unshift({
-    name: "Received from " + sender.username,
-    amount: amountValue,
-    date: now
+  rec.transactions.unshift({
+    name:"Received from "+sender.username,
+    amount:amountValue,
+    date:now
   });
 
   localStorage.setItem("users", JSON.stringify(users));
   localStorage.setItem("currentUser", JSON.stringify(sender));
 
-  transferMsg.innerText = "Transfer successful";
+  transferMsg.innerText="Transfer successful";
 
   setTimeout(()=>location.reload(),800);
 }
 
-
 // LOGOUT
 function logout(){
   localStorage.removeItem("currentUser");
-  window.location.href="login.html";
+  location.href="login.html";
 }
-
 </script>
 </body>
 </html>
