@@ -1,0 +1,112 @@
+DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Login - DeChase Finance</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#0f2a44,#153e5c);
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.card{
+  background:white;
+  padding:30px;
+  border-radius:18px;
+  width:320px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+input{
+  width:100%;
+  padding:14px;
+  margin-top:12px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-size:16px;
+}
+
+button{
+  width:100%;
+  padding:14px;
+  margin-top:18px;
+  border:none;
+  border-radius:10px;
+  background:#0f2a44;
+  color:white;
+  font-size:16px;
+}
+
+#error{
+  color:red;
+  margin-top:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>DeChase Finance</h2>
+  <p>Secure Online Banking</p>
+
+  <input id="username" placeholder="Username">
+  <input id="pin" type="password" placeholder="PIN">
+
+  <button onclick="login()">Login</button>
+  <div id="error"></div>
+</div>
+
+<script>
+
+// Ensure database exists
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+if(users.length === 0){
+  users = [
+    { username:"admin", pin:"4321", balance:15000, transactions:[] }
+  ];
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+// LOGIN FUNCTION
+function login(){
+
+  const username = document.getElementById("username").value.trim().toLowerCase();
+  const pin = document.getElementById("pin").value.trim();
+
+  const users = JSON.parse(localStorage.getItem("users")) || [];
+
+  const user = users.find(u =>
+    u.username.toLowerCase() === username &&
+    u.pin === pin
+  );
+
+  if(!user){
+    document.getElementById("error").innerText =
+      "Invalid username or PIN";
+    return;
+  }
+
+  // save session
+  localStorage.setItem("currentUser", JSON.stringify(user));
+
+  // redirect
+  window.location.href = "dashboard.html";
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+</body>
+</html>
