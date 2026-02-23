@@ -180,11 +180,26 @@ function sendMoney(){
 
   user.balance += amount;
 
-  user.transactions.unshift({
-    name: "Admin Credit",
-    amount: amount,
-    date: date
-  });
+  const formattedDate = new Date(date).toLocaleString();
+
+// save to user history
+user.transactions.unshift({
+  name: "Admin Credit",
+  amount: amount,
+  date: formattedDate
+});
+
+// save to global history
+let tx = JSON.parse(localStorage.getItem("transactions")) || [];
+
+tx.unshift({
+  user: username,
+  type: "Admin Credit",
+  amount: amount,
+  date: formattedDate
+});
+
+localStorage.setItem("transactions", JSON.stringify(tx));
 
   saveUsers();
   loadUsers();
