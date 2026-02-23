@@ -48,7 +48,6 @@ button{
   padding:12px;
   border-radius:10px;
   margin-top:10px;
-  line-height:1.5;
 }
 .small{ font-size:13px; color:#9ca3af; }
 </style>
@@ -65,15 +64,25 @@ button{
   <button onclick="createUser()">Create User</button>
 </div>
 
-<!-- SEND MONEY -->
+<!-- ADMIN TRANSFER -->
 <div class="card">
-  <h3>Send Money</h3>
+  <h3>Admin Transfer / Credit</h3>
+
   <select id="userSelect"></select>
+
   <input type="number" id="amount" placeholder="Amount">
+
+  <label style="font-size:13px;color:#9ca3af;margin-top:8px;display:block;">
+    Transaction Date (Admin Controlled)
+  </label>
+  <input type="date" id="adminDate">
+
+  <input id="note" placeholder="Reason (optional)">
+
   <button onclick="sendMoney()">Send Money</button>
 </div>
 
-<!-- USERS LIST -->
+<!-- USERS -->
 <div class="card">
   <h3>All Users</h3>
   <div id="users"></div>
@@ -84,7 +93,7 @@ button{
 // LOAD USERS
 let users = JSON.parse(localStorage.getItem("users")) || [];
 
-// CREATE DEFAULT ADMIN IF NONE EXISTS
+// ENSURE ADMIN EXISTS
 if(!users.find(u => u.username === "admin")){
   users.push({
     username:"admin",
@@ -96,12 +105,10 @@ if(!users.find(u => u.username === "admin")){
   saveUsers();
 }
 
-// SAVE USERS
 function saveUsers(){
   localStorage.setItem("users", JSON.stringify(users));
 }
 
-// GENERATE ACCOUNT NUMBER
 function generateAccount(){
   return Math.floor(1000000000 + Math.random() * 9000000000);
 }
@@ -109,8 +116,8 @@ function generateAccount(){
 // CREATE USER
 function createUser(){
 
-  const name = document.getElementById("newUser").value.trim().toLowerCase();
-  const pin = document.getElementById("newPin").value.trim();
+  const name = newUser.value.trim().toLowerCase();
+  const pin = newPin.value.trim();
 
   if(!name || !pin){
     alert("Enter username and PIN");
@@ -127,26 +134,24 @@ function createUser(){
     return;
   }
 
-  const newUser = {
-    username: name,
-    pin: pin,
-    account: generateAccount(),
-    balance: 0,
-    transactions: []
-  };
+  users.push({
+    username:name,
+    pin:pin,
+    account:generateAccount(),
+    balance:0,
+    transactions:[]
+  });
 
-  users.push(newUser);
   saveUsers();
   loadUsers();
 
-  document.getElementById("newUser").value="";
-  document.getElementById("newPin").value="";
-
-  alert("User created successfully");
+  newUser.value="";
+  newPin.value="";
 }
 
 // LOAD USERS
 function loadUsers(){
+
   const list = document.getElementById("users");
   const select = document.getElementById("userSelect");
 
@@ -161,8 +166,8 @@ function loadUsers(){
         <span class="small">Acct: ${user.account}</span><br>
         Balance: €${Number(user.balance).toLocaleString()}
         <br>
-        ${user.username !== "admin" ? 
-          `<button class="delete" onclick="deleteUser('${user.username}')">Delete</button>`
+        ${user.username !== "admin"
+          ? `<button class="delete" onclick="deleteUser('${user.username}')">Delete</button>`
           : "<span class='small'>Admin account protected</span>"}
       </div>
     `;
@@ -175,7 +180,6 @@ function loadUsers(){
 
 // DELETE USER
 function deleteUser(name){
-
   if(confirm("Delete this user permanently?")){
     users = users.filter(u => u.username !== name);
     saveUsers();
@@ -183,11 +187,12 @@ function deleteUser(name){
   }
 }
 
-// SEND MONEY
+// ADMIN CREDIT WITH BACKDATE
 function sendMoney(){
 
-  const username = document.getElementById("userSelect").value;
+  const username = userSelect.value;
   const amount = parseFloat(document.getElementById("amount").value);
+  const noteText = note.value || "Admin Credit";
 
   if(!username || !amount || amount <= 0){
     alert("Enter valid amount");
@@ -196,24 +201,41 @@ function sendMoney(){
 
   const user = users.find(u => u.username === username);
 
+  // format date
+  const selectedDate = adminDate.value;
+  const formattedDate = selectedDate
+    ? new Date(selectedDate).toLocaleString()
+    : new Date().toLocaleString();
+
   user.balance += amount;
 
+  // save to user history
   user.transactions.unshift({
-    name:"Admin Credit",
-    amount:amount,
-    date:new Date().toLocaleString()
+    name: noteText,
+    amount: amount,
+    date: formattedDate
   });
+
+  // save global history
+  let tx = JSON.parse(localStorage.getItem("transactions")) || [];
+
+  tx.unshift({
+    user: username,
+    type: noteText,
+    amount: amount,
+    date: formattedDate
+  });
+
+  localStorage.setItem("transactions", JSON.stringify(tx));
 
   saveUsers();
   loadUsers();
 
-  alert("Money sent successfully");
+  alert("Transaction recorded successfully");
 }
 
-// LOAD USERS ON START
 loadUsers();
 
 </script>
-
 </body>
 </html>
