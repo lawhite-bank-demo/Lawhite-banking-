@@ -18,7 +18,6 @@ body{
   padding:20px;
 }
 
-/* BALANCE CARD */
 .balance-card{
   background:linear-gradient(135deg,#1e5eff,#4facfe);
   color:white;
@@ -32,7 +31,6 @@ body{
   font-size:32px;
 }
 
-/* ACTION BUTTONS */
 .actions{
   display:flex;
   gap:10px;
@@ -51,7 +49,6 @@ body{
 .deposit{ background:#2ecc71; }
 .withdraw{ background:#e74c3c; }
 
-/* CARD SECTIONS */
 .card{
   background:white;
   margin-top:18px;
@@ -128,7 +125,7 @@ button.send{
 
 <div class="card">
   <h3>Transactions</h3>
-  <div id="history"></div>
+  <div id="historyList"></div>
 </div>
 
 <button class="logout" onclick="logout()">Logout</button>
@@ -136,100 +133,148 @@ button.send{
 </div>
 
 <script>
+// LOAD CURRENT USER
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-if(!currentUser) window.location.href="index.html";
+if(!currentUser){
+  window.location.href="index.html";
+}
 
-welcome.innerText="Hello, "+currentUser.username;
+// DISPLAY NAME & BALANCE
+document.getElementById("welcome").innerText =
+  "Welcome back, " + currentUser.username;
 
 function updateBalance(){
-  balance.innerText="$"+currentUser.balance.toFixed(2);
+  document.getElementById("balance").innerText =
+    "€" + Number(currentUser.balance).toLocaleString();
 }
 updateBalance();
 
-// SAVE TX
+// SAVE TRANSACTION
 function saveTransaction(type, amount, other=""){
-  let history=JSON.parse(localStorage.getItem("transactions"))||[];
-  history.push({
-    user:currentUser.username,
-    type,amount,other,
-    date:new Date().toLocaleString()
+  let tx = JSON.parse(localStorage.getItem("transactions")) || [];
+
+  tx.push({
+    user: currentUser.username,
+    type,
+    amount,
+    other,
+    date: new Date().toLocaleString()
   });
-  localStorage.setItem("transactions",JSON.stringify(history));
+
+  localStorage.setItem("transactions", JSON.stringify(tx));
 }
 
-// LOAD TX
+// LOAD TRANSACTION HISTORY
 function loadHistory(){
-  let history=JSON.parse(localStorage.getItem("transactions"))||[];
-  let userTx=history.filter(t=>t.user===currentUser.username);
+  let tx = JSON.parse(localStorage.getItem("transactions")) || [];
+  let userTx = tx.filter(t => t.user === currentUser.username);
 
-  history.innerHTML=userTx.reverse().map(t=>`
+  const historyBox = document.getElementById("historyList");
+
+  if(userTx.length === 0){
+    historyBox.innerHTML = "No transactions yet";
+    return;
+  }
+
+  historyBox.innerHTML = userTx.reverse().map(t => `
     <div class="tx">
-      ${t.type} $${t.amount} ${t.other}<br>
+      ${t.type} €${t.amount} ${t.other}<br>
       <small>${t.date}</small>
     </div>
-  `).join("") || "No transactions";
+  `).join("");
 }
-let history=document.getElementById("history");
 loadHistory();
 
-// UPDATE STORAGE
+// UPDATE USER STORAGE
 function updateStorage(){
-  let users=JSON.parse(localStorage.getItem("users"));
-  let user=users.find(u=>u.username===currentUser.username);
-  user.balance=currentUser.balance;
-  localStorage.setItem("users",JSON.stringify(users));
-  localStorage.setItem("currentUser",JSON.stringify(currentUser));
+  let users = JSON.parse(localStorage.getItem("users")) || [];
+
+  const index = users.findIndex(u => u.username === currentUser.username);
+
+  if(index !== -1){
+    users[index] = currentUser;
+  }
+
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+
   updateBalance();
 }
 
 // DEPOSIT
 function deposit(){
-  let amt=parseFloat(moneyAmount.value);
-  if(!amt||amt<=0) return;
-  currentUser.balance+=amt;
+  let amt = parseFloat(document.getElementById("moneyAmount").value);
+
+  if(!amt || amt <= 0){
+    moneyMsg.innerText="Enter valid amount";
+    return;
+  }
+
+  currentUser.balance += amt;
   updateStorage();
-  saveTransaction("Deposited",amt);
+  saveTransaction("Deposited", amt);
   loadHistory();
+
   moneyMsg.innerText="Deposit successful";
 }
 
 // WITHDRAW
 function withdraw(){
-  let amt=parseFloat(moneyAmount.value);
-  if(!amt||amt<=0) return;
-  if(currentUser.balance<amt){
+  let amt = parseFloat(document.getElementById("moneyAmount").value);
+
+  if(!amt || amt <= 0){
+    moneyMsg.innerText="Enter valid amount";
+    return;
+  }
+
+  if(currentUser.balance < amt){
     moneyMsg.innerText="Insufficient funds";
     return;
   }
-  currentUser.balance-=amt;
+
+  currentUser.balance -= amt;
   updateStorage();
-  saveTransaction("Withdrew",amt);
+  saveTransaction("Withdrew", amt);
   loadHistory();
+
   moneyMsg.innerText="Withdrawal successful";
 }
 
 // TRANSFER
 function transferMoney(){
-  let name=receiver.value.trim();
-  let amt=parseFloat(amount.value);
+  let name = document.getElementById("receiver").value.trim().toLowerCase();
+  let amt = parseFloat(document.getElementById("amount").value);
 
-  let users=JSON.parse(localStorage.getItem("users"));
-  let sender=users.find(u=>u.username===currentUser.username);
-  let rec=users.find(u=>u.username===name);
+  let users = JSON.parse(localStorage.getItem("users")) || [];
 
-  if(!rec){ transferMsg.innerText="User not found"; return;}
-  if(sender.balance<amt){ transferMsg.innerText="Insufficient funds"; return;}
+  let sender = users.find(u => u.username === currentUser.username);
+  let rec = users.find(u => u.username === name);
 
-  sender.balance-=amt;
-  rec.balance+=amt;
+  if(!rec){
+    transferMsg.innerText="User not found";
+    return;
+  }
 
-  localStorage.setItem("users",JSON.stringify(users));
+  if(!amt || amt <= 0){
+    transferMsg.innerText="Enter valid amount";
+    return;
+  }
 
-  currentUser=sender;
-  localStorage.setItem("currentUser",JSON.stringify(sender));
+  if(sender.balance < amt){
+    transferMsg.innerText="Insufficient funds";
+    return;
+  }
+
+  sender.balance -= amt;
+  rec.balance += amt;
+
+  localStorage.setItem("users", JSON.stringify(users));
+
+  currentUser = sender;
+  localStorage.setItem("currentUser", JSON.stringify(sender));
 
   updateBalance();
-  saveTransaction("Sent",amt,"to "+name);
+  saveTransaction("Sent", amt, "to " + name);
   loadHistory();
 
   transferMsg.innerText="Transfer successful";
