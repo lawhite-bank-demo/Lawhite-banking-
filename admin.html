@@ -13,32 +13,34 @@ body{
   padding:20px;
 }
 
-h2{
-  margin-bottom:10px;
-}
+h2{margin-bottom:15px;}
 
 .card{
   background:#111827;
   padding:20px;
   border-radius:12px;
-  margin-bottom:15px;
+  margin-bottom:18px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.4);
 }
 
 input, select{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin-top:8px;
   border:none;
   border-radius:8px;
+  font-size:16px;
 }
 
 button{
-  padding:10px;
+  width:100%;
+  padding:12px;
   margin-top:10px;
   background:#22c55e;
   border:none;
   color:white;
   border-radius:8px;
+  font-size:16px;
   cursor:pointer;
 }
 
@@ -48,9 +50,14 @@ button.delete{
 
 .user{
   background:#1f2937;
-  padding:10px;
-  border-radius:8px;
-  margin-top:8px;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+  line-height:1.5;
+}
+.small{
+  font-size:13px;
+  color:#9ca3af;
 }
 </style>
 </head>
@@ -78,40 +85,51 @@ button.delete{
 </div>
 
 <script>
-let users = JSON.parse(localStorage.getItem("users")) || {};
+// ✅ GLOBAL DATABASE KEY
+let users = JSON.parse(localStorage.getItem("bankUsers")) || [];
 
-// Save data
+// Save
 function saveUsers(){
-  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("bankUsers", JSON.stringify(users));
 }
 
-// Generate unique account number
+// Generate account number
 function generateAccount(){
   return Math.floor(1000000000 + Math.random() * 9000000000);
 }
 
+// Generate PIN
+function generatePIN(){
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
 // Create user
 function createUser(){
-  const name = document.getElementById("newUser").value.trim();
+  const name = document.getElementById("newUser").value.trim().toLowerCase();
 
   if(!name){
     alert("Enter username");
     return;
   }
 
-  if(users[name]){
+  if(users.find(u => u.username === name)){
     alert("User already exists");
     return;
   }
 
-  users[name] = {
-    balance: 0,
+  const newUser = {
+    username: name,
+    pin: generatePIN(),
     account: generateAccount(),
+    balance: 0,
     transactions: []
   };
 
+  users.push(newUser);
   saveUsers();
   loadUsers();
+
+  alert(`User created!\nUsername: ${name}\nPIN: ${newUser.pin}`);
 }
 
 // Load users
@@ -122,45 +140,47 @@ function loadUsers(){
   list.innerHTML="";
   select.innerHTML="";
 
-  Object.keys(users).forEach(user => {
+  users.forEach(user => {
 
     list.innerHTML += `
       <div class="user">
-        <strong>${user}</strong><br>
-        Account: ${users[user].account}<br>
-        Balance: €${users[user].balance}
+        <strong>${user.username}</strong><br>
+        <span class="small">Acct: ${user.account}</span><br>
+        Balance: €${Number(user.balance).toLocaleString()}
         <br>
-        <button class="delete" onclick="deleteUser('${user}')">Delete</button>
+        <button class="delete" onclick="deleteUser('${user.username}')">Delete</button>
       </div>
     `;
 
-    select.innerHTML += `<option value="${user}">${user}</option>`;
+    select.innerHTML += `<option value="${user.username}">${user.username}</option>`;
   });
 }
 
 // Delete user
 function deleteUser(name){
   if(confirm("Delete this user?")){
-    delete users[name];
+    users = users.filter(u => u.username !== name);
     saveUsers();
     loadUsers();
   }
 }
 
-// Send demo money
+// Send money
 function sendMoney(){
-  const user = document.getElementById("userSelect").value;
+  const username = document.getElementById("userSelect").value;
   const amount = parseFloat(document.getElementById("amount").value);
   const date = document.getElementById("date").value || new Date().toLocaleDateString();
 
-  if(!user || !amount){
-    alert("Enter amount");
+  if(!username || isNaN(amount) || amount <= 0){
+    alert("Enter valid amount");
     return;
   }
 
-  users[user].balance += amount;
+  const user = users.find(u => u.username === username);
 
-  users[user].transactions.unshift({
+  user.balance += amount;
+
+  user.transactions.unshift({
     name: "Admin Credit",
     amount: amount,
     date: date
@@ -171,7 +191,7 @@ function sendMoney(){
   alert("Money sent successfully");
 }
 
-// Load on start
+// Load at start
 loadUsers();
 </script>
 
