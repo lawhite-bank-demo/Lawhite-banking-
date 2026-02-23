@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bank Dashboard</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#081b33;
+  color:white;
+}
+
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:20px;
+}
+
+.card{
+  background:#0f2747;
+  padding:20px;
+  border-radius:14px;
+  margin-top:15px;
+}
+
+.balance{
+  font-size:40px;
+  color:#2ed3ff;
+}
+
+button{
+  width:100%;
+  padding:16px;
+  border:none;
+  border-radius:12px;
+  margin-top:12px;
+  font-size:18px;
+  color:white;
+  background:#18a999;
+}
+
+.logout{
+  background:#e74c3c;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2 id="welcome"></h2>
+<div class="balance" id="balance"></div>
+
+<div class="card">
+  <button onclick="location.href='send.html'">Send Money</button>
+  <button onclick="location.href='history.html'">Transactions</button>
+</div>
+
+<div class="card">
+  <h3>Recent Activity</h3>
+  <div id="recent"></div>
+</div>
+
+<button class="logout" onclick="logout()">Logout</button>
+
+</div>
+
+<script>
+let currentUser = JSON.parse(localStorage.getItem("currentUser"));
+if(!currentUser) location.href="login.html";
+
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+// SYNC USER
+const dbUser = users.find(u => u.username === currentUser.username);
+if(dbUser){
+  currentUser = dbUser;
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
+
+// DISPLAY NAME
+welcome.innerText = "Welcome back, " + currentUser.username;
+
+// DISPLAY BALANCE
+balance.innerText = "€" + Number(currentUser.balance).toLocaleString();
+
+// RECENT ACTIVITY
+if(currentUser.transactions && currentUser.transactions.length){
+  recent.innerHTML = currentUser.transactions.slice(0,3).map(t=>`
+    ${t.name} €${t.amount}<br>
+    <small>${t.date}</small><br><br>
+  `).join("");
+}else{
+  recent.innerText = "No recent activity";
+}
+
+function logout(){
+  localStorage.removeItem("currentUser");
+  location.href="login.html";
+}
+</script>
+
+</body>
+</html>
