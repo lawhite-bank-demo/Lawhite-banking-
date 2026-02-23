@@ -13,14 +13,11 @@ body{
   padding:20px;
 }
 
-h2{margin-bottom:15px;}
-
 .card{
   background:#111827;
   padding:20px;
   border-radius:12px;
   margin-bottom:18px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.4);
 }
 
 input, select{
@@ -36,17 +33,15 @@ button{
   width:100%;
   padding:12px;
   margin-top:10px;
-  background:#22c55e;
   border:none;
-  color:white;
   border-radius:8px;
   font-size:16px;
   cursor:pointer;
+  background:#22c55e;
+  color:white;
 }
 
-button.delete{
-  background:#ef4444;
-}
+.delete{ background:#ef4444; }
 
 .user{
   background:#1f2937;
@@ -55,60 +50,75 @@ button.delete{
   margin-top:10px;
   line-height:1.5;
 }
-.small{
-  font-size:13px;
-  color:#9ca3af;
-}
+.small{ font-size:13px; color:#9ca3af; }
 </style>
 </head>
 <body>
 
 <h2>Admin Control Panel</h2>
 
+<!-- CREATE USER -->
 <div class="card">
   <h3>Create New User</h3>
-  <input id="newUser" placeholder="Enter username">
+  <input id="newUser" placeholder="Username">
+  <input id="newPin" placeholder="Create PIN (4 digits)">
   <button onclick="createUser()">Create User</button>
 </div>
 
+<!-- SEND MONEY -->
 <div class="card">
-  <h3>Send Demo Money</h3>
+  <h3>Send Money</h3>
   <select id="userSelect"></select>
   <input type="number" id="amount" placeholder="Amount">
-  <input type="date" id="date">
   <button onclick="sendMoney()">Send Money</button>
 </div>
 
+<!-- USERS LIST -->
 <div class="card">
   <h3>All Users</h3>
   <div id="users"></div>
 </div>
-<script src="recovery.js"></script>
-<script>
-// ✅ GLOBAL DATABASE KEY
-let users = JSON.parse(localStorage.getItem("bankUsers")) || [];
 
-// Save
-function saveUsers(){
-  localStorage.setItem("bankUsers", JSON.stringify(users));
+<script>
+
+// LOAD USERS
+let users = JSON.parse(localStorage.getItem("users")) || [];
+
+// CREATE DEFAULT ADMIN IF NONE EXISTS
+if(!users.find(u => u.username === "admin")){
+  users.push({
+    username:"admin",
+    pin:"4321",
+    account: generateAccount(),
+    balance:15000,
+    transactions:[]
+  });
+  saveUsers();
 }
 
-// Generate account number
+// SAVE USERS
+function saveUsers(){
+  localStorage.setItem("users", JSON.stringify(users));
+}
+
+// GENERATE ACCOUNT NUMBER
 function generateAccount(){
   return Math.floor(1000000000 + Math.random() * 9000000000);
 }
 
-// Generate PIN
-function generatePIN(){
-  return Math.floor(1000 + Math.random() * 9000).toString();
-}
-
-// Create user
+// CREATE USER
 function createUser(){
-  const name = document.getElementById("newUser").value.trim().toLowerCase();
 
-  if(!name){
-    alert("Enter username");
+  const name = document.getElementById("newUser").value.trim().toLowerCase();
+  const pin = document.getElementById("newPin").value.trim();
+
+  if(!name || !pin){
+    alert("Enter username and PIN");
+    return;
+  }
+
+  if(!/^\d{4,}$/.test(pin)){
+    alert("PIN must be at least 4 numbers");
     return;
   }
 
@@ -119,7 +129,7 @@ function createUser(){
 
   const newUser = {
     username: name,
-    pin: generatePIN(),
+    pin: pin,
     account: generateAccount(),
     balance: 0,
     transactions: []
@@ -129,10 +139,13 @@ function createUser(){
   saveUsers();
   loadUsers();
 
-  alert(`User created!\nUsername: ${name}\nPIN: ${newUser.pin}`);
+  document.getElementById("newUser").value="";
+  document.getElementById("newPin").value="";
+
+  alert("User created successfully");
 }
 
-// Load users
+// LOAD USERS
 function loadUsers(){
   const list = document.getElementById("users");
   const select = document.getElementById("userSelect");
@@ -148,30 +161,35 @@ function loadUsers(){
         <span class="small">Acct: ${user.account}</span><br>
         Balance: €${Number(user.balance).toLocaleString()}
         <br>
-        <button class="delete" onclick="deleteUser('${user.username}')">Delete</button>
+        ${user.username !== "admin" ? 
+          `<button class="delete" onclick="deleteUser('${user.username}')">Delete</button>`
+          : "<span class='small'>Admin account protected</span>"}
       </div>
     `;
 
-    select.innerHTML += `<option value="${user.username}">${user.username}</option>`;
+    if(user.username !== "admin"){
+      select.innerHTML += `<option value="${user.username}">${user.username}</option>`;
+    }
   });
 }
 
-// Delete user
+// DELETE USER
 function deleteUser(name){
-  if(confirm("Delete this user?")){
+
+  if(confirm("Delete this user permanently?")){
     users = users.filter(u => u.username !== name);
     saveUsers();
     loadUsers();
   }
 }
 
-// Send money
+// SEND MONEY
 function sendMoney(){
+
   const username = document.getElementById("userSelect").value;
   const amount = parseFloat(document.getElementById("amount").value);
-  const date = document.getElementById("date").value || new Date().toLocaleDateString();
 
-  if(!username || isNaN(amount) || amount <= 0){
+  if(!username || !amount || amount <= 0){
     alert("Enter valid amount");
     return;
   }
@@ -180,36 +198,21 @@ function sendMoney(){
 
   user.balance += amount;
 
-  const formattedDate = new Date(date).toLocaleString();
-
-// save to user history
-user.transactions.unshift({
-  name: "Admin Credit",
-  amount: amount,
-  date: formattedDate
-});
-
-// save to global history
-let tx = JSON.parse(localStorage.getItem("transactions")) || [];
-
-tx.unshift({
-  user: username,
-  type: "Admin Credit",
-  amount: amount,
-  date: formattedDate
-});
-
-localStorage.setItem("transactions", JSON.stringify(tx));
+  user.transactions.unshift({
+    name:"Admin Credit",
+    amount:amount,
+    date:new Date().toLocaleString()
+  });
 
   saveUsers();
   loadUsers();
+
   alert("Money sent successfully");
 }
 
-// Load at start
+// LOAD USERS ON START
 loadUsers();
-// auto backup
-localStorage.setItem("backup_users", localStorage.getItem("users"));
+
 </script>
 
 </body>
