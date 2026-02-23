@@ -8,8 +8,9 @@
 <style>
 body{
   margin:0;
-  font-family:system-ui, -apple-system, sans-serif;
-  background:#f4f6fb;
+  font-family:Arial;
+  background:#0b1220;
+  color:white;
 }
 
 .container{
@@ -18,80 +19,43 @@ body{
   padding:20px;
 }
 
-.balance-card{
-  background:linear-gradient(135deg,#1e5eff,#4facfe);
-  color:white;
-  padding:25px;
-  border-radius:20px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.15);
+.balance{
+  background:#1f2937;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
 }
-
-.balance-card h1{
-  margin:10px 0 0;
-  font-size:32px;
-}
-
-.actions{
-  display:flex;
-  gap:10px;
-  margin-top:15px;
-}
-
-.actions button{
-  flex:1;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  font-size:16px;
-  color:white;
-}
-
-.deposit{ background:#2ecc71; }
-.withdraw{ background:#e74c3c; }
 
 .card{
-  background:white;
-  margin-top:18px;
-  padding:18px;
-  border-radius:16px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.05);
+  background:#111827;
+  margin-top:15px;
+  padding:15px;
+  border-radius:12px;
 }
 
 input{
   width:100%;
-  padding:14px;
-  margin-top:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-size:16px;
+  padding:12px;
+  margin-top:8px;
+  border-radius:8px;
+  border:none;
 }
 
-button.send{
+button{
   width:100%;
-  margin-top:12px;
-  padding:14px;
+  padding:12px;
+  margin-top:10px;
   border:none;
-  border-radius:12px;
-  background:#1e5eff;
+  border-radius:8px;
+  background:#22c55e;
   color:white;
   font-size:16px;
 }
 
 .tx{
-  border-bottom:1px solid #eee;
-  padding:10px 0;
+  border-bottom:1px solid #333;
+  padding:8px 0;
   font-size:14px;
-}
-
-.logout{
-  width:100%;
-  margin-top:20px;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  background:black;
-  color:white;
-  font-size:16px;
 }
 </style>
 </head>
@@ -100,190 +64,133 @@ button.send{
 
 <div class="container">
 
-<div class="balance-card">
-  <div id="welcome"></div>
+<div class="balance">
+  <h3 id="welcome"></h3>
   <h1 id="balance"></h1>
-
-  <div class="actions">
-    <button class="deposit" onclick="deposit()">Deposit</button>
-    <button class="withdraw" onclick="withdraw()">Withdraw</button>
-  </div>
-</div>
-
-<div class="card">
-  <input id="moneyAmount" type="number" placeholder="Enter amount">
-  <div id="moneyMsg"></div>
 </div>
 
 <div class="card">
   <h3>Send Money</h3>
-  <input id="receiver" placeholder="Receiver username">
+  <input id="receiver" placeholder="Recipient username">
   <input id="amount" type="number" placeholder="Amount">
-  <button class="send" onclick="transferMoney()">Send</button>
+  <button onclick="transferMoney()">Send</button>
   <div id="transferMsg"></div>
 </div>
 
 <div class="card">
   <h3>Transactions</h3>
-  <div id="historyList"></div>
+  <div id="history"></div>
 </div>
 
-<button class="logout" onclick="logout()">Logout</button>
+<button onclick="logout()">Logout</button>
 
 </div>
 
 <script>
-// LOAD CURRENT USER
+
+// LOAD USER SESSION
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-if(!currentUser){
-  window.location.href="index.html";
-}
+if(!currentUser) window.location.href="login.html";
 
-// DISPLAY NAME & BALANCE
-document.getElementById("welcome").innerText =
-  "Welcome back, " + currentUser.username;
+// LOAD USERS DATABASE
+let users = JSON.parse(localStorage.getItem("users")) || [];
 
-function updateBalance(){
-  document.getElementById("balance").innerText =
-    "€" + Number(currentUser.balance).toLocaleString();
-}
-updateBalance();
+// SYNC USER DATA
+const dbUser = users.find(u => u.username === currentUser.username);
+currentUser.balance = dbUser.balance;
 
-// SAVE TRANSACTION
-function saveTransaction(type, amount, other=""){
-  let tx = JSON.parse(localStorage.getItem("transactions")) || [];
+// DISPLAY INFO
+welcome.innerText = "Welcome back, " + currentUser.username;
+balance.innerText = "€" + currentUser.balance.toLocaleString();
 
-  tx.push({
-    user: currentUser.username,
-    type,
-    amount,
-    other,
-    date: new Date().toLocaleString()
-  });
 
-  localStorage.setItem("transactions", JSON.stringify(tx));
-}
-
-// LOAD TRANSACTION HISTORY
+// LOAD HISTORY
 function loadHistory(){
-  let tx = JSON.parse(localStorage.getItem("transactions")) || [];
-  let userTx = tx.filter(t => t.user === currentUser.username);
+  const historyDiv = document.getElementById("history");
+  const user = users.find(u => u.username === currentUser.username);
 
-  const historyBox = document.getElementById("historyList");
-
-  if(userTx.length === 0){
-    historyBox.innerHTML = "No transactions yet";
+  if(!user.transactions.length){
+    historyDiv.innerHTML="No transactions yet";
     return;
   }
 
-  historyBox.innerHTML = userTx.reverse().map(t => `
+  historyDiv.innerHTML = user.transactions.map(t => `
     <div class="tx">
-      ${t.type} €${t.amount} ${t.other}<br>
+      ${t.name} €${t.amount}<br>
       <small>${t.date}</small>
     </div>
   `).join("");
 }
+
 loadHistory();
 
-// UPDATE USER STORAGE
-function updateStorage(){
-  let users = JSON.parse(localStorage.getItem("users")) || [];
 
-  const index = users.findIndex(u => u.username === currentUser.username);
-
-  if(index !== -1){
-    users[index] = currentUser;
-  }
-
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-
-  updateBalance();
-}
-
-// DEPOSIT
-function deposit(){
-  let amt = parseFloat(document.getElementById("moneyAmount").value);
-
-  if(!amt || amt <= 0){
-    moneyMsg.innerText="Enter valid amount";
-    return;
-  }
-
-  currentUser.balance += amt;
-  updateStorage();
-  saveTransaction("Deposited", amt);
-  loadHistory();
-
-  moneyMsg.innerText="Deposit successful";
-}
-
-// WITHDRAW
-function withdraw(){
-  let amt = parseFloat(document.getElementById("moneyAmount").value);
-
-  if(!amt || amt <= 0){
-    moneyMsg.innerText="Enter valid amount";
-    return;
-  }
-
-  if(currentUser.balance < amt){
-    moneyMsg.innerText="Insufficient funds";
-    return;
-  }
-
-  currentUser.balance -= amt;
-  updateStorage();
-  saveTransaction("Withdrew", amt);
-  loadHistory();
-
-  moneyMsg.innerText="Withdrawal successful";
-}
-
-// TRANSFER
+// TRANSFER MONEY
 function transferMoney(){
-  let name = document.getElementById("receiver").value.trim().toLowerCase();
-  let amt = parseFloat(document.getElementById("amount").value);
 
-  let users = JSON.parse(localStorage.getItem("users")) || [];
+  const receiverName = receiver.value.trim().toLowerCase();
+  const amountValue = parseFloat(amount.value);
 
-  let sender = users.find(u => u.username === currentUser.username);
-  let rec = users.find(u => u.username === name);
-
-  if(!rec){
-    transferMsg.innerText="User not found";
+  if(!receiverName || !amountValue || amountValue <= 0){
+    transferMsg.innerText = "Enter valid details";
     return;
   }
 
-  if(!amt || amt <= 0){
-    transferMsg.innerText="Enter valid amount";
+  if(receiverName === currentUser.username){
+    transferMsg.innerText = "Cannot send to yourself";
     return;
   }
 
-  if(sender.balance < amt){
-    transferMsg.innerText="Insufficient funds";
+  const senderIndex = users.findIndex(u => u.username === currentUser.username);
+  const receiverIndex = users.findIndex(u => u.username === receiverName);
+
+  if(receiverIndex === -1){
+    transferMsg.innerText = "Recipient not found";
     return;
   }
 
-  sender.balance -= amt;
-  rec.balance += amt;
+  if(users[senderIndex].balance < amountValue){
+    transferMsg.innerText = "Insufficient funds";
+    return;
+  }
+
+  // update balances
+  users[senderIndex].balance -= amountValue;
+  users[receiverIndex].balance += amountValue;
+
+  const dateNow = new Date().toLocaleString();
+
+  // sender history
+  users[senderIndex].transactions.unshift({
+    name:"Sent to " + receiverName,
+    amount: amountValue,
+    date: dateNow
+  });
+
+  // receiver history
+  users[receiverIndex].transactions.unshift({
+    name:"Received from " + currentUser.username,
+    amount: amountValue,
+    date: dateNow
+  });
 
   localStorage.setItem("users", JSON.stringify(users));
 
-  currentUser = sender;
-  localStorage.setItem("currentUser", JSON.stringify(sender));
-
-  updateBalance();
-  saveTransaction("Sent", amt, "to " + name);
-  loadHistory();
+  // update session
+  localStorage.setItem("currentUser", JSON.stringify(users[senderIndex]));
 
   transferMsg.innerText="Transfer successful";
+
+  location.reload();
 }
 
+
+// LOGOUT
 function logout(){
   localStorage.removeItem("currentUser");
-  window.location.href="index.html";
+  window.location.href="login.html";
 }
+
 </script>
 
 </body>
