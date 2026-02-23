@@ -103,7 +103,7 @@ if(dbUser){
   localStorage.setItem("currentUser", JSON.stringify(currentUser));
 }
 
-// DISPLAY USER
+// DISPLAY INFO
 welcome.innerText = "Welcome back, " + currentUser.username;
 balance.innerText = "€" + Number(currentUser.balance).toLocaleString();
 
@@ -144,52 +144,45 @@ function transferMoney(){
     return;
   }
 
-  const senderIndex = users.findIndex(u => u.username === currentUser.username);
+  const sender = users.find(u => u.username === currentUser.username);
 
-  const receiverIndex = users.findIndex(
+  const receiver = users.find(
     u => u.username.toLowerCase() === receiverName
   );
 
-  if(receiverIndex === -1){
+  if(!receiver){
     transferMsg.innerText = "User not found";
     return;
   }
 
-  if(users[senderIndex].balance < amountValue){
+  if(sender.balance < amountValue){
     transferMsg.innerText = "Insufficient funds";
     return;
   }
 
-  // UPDATE BALANCES
-  users[senderIndex].balance -= amountValue;
-  users[receiverIndex].balance += amountValue;
+  sender.balance -= amountValue;
+  receiver.balance += amountValue;
 
-  const dateNow = new Date().toLocaleString();
+  const now = new Date().toLocaleString();
 
-  // SENDER HISTORY
-  users[senderIndex].transactions.unshift({
-    name: "Sent to " + receiverName,
+  sender.transactions.unshift({
+    name: "Sent to " + receiver.username,
     amount: amountValue,
-    date: dateNow
+    date: now
   });
 
-  // RECEIVER HISTORY
-  users[receiverIndex].transactions.unshift({
-    name: "Received from " + currentUser.username,
+  receiver.transactions.unshift({
+    name: "Received from " + sender.username,
     amount: amountValue,
-    date: dateNow
+    date: now
   });
 
-  // SAVE
   localStorage.setItem("users", JSON.stringify(users));
-
-  // UPDATE SESSION
-  localStorage.setItem("currentUser", JSON.stringify(users[senderIndex]));
+  localStorage.setItem("currentUser", JSON.stringify(sender));
 
   transferMsg.innerText = "Transfer successful";
 
-  // refresh display
-  setTimeout(() => location.reload(), 800);
+  setTimeout(()=>location.reload(),800);
 }
 
 
