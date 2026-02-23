@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wallet Dashboard</title>
+<title>Dashboard</title>
 
 <style>
 body{
   margin:0;
   font-family:Arial;
-  background:#0b1220;
+  background:#142c54;
   color:white;
 }
 
@@ -19,43 +19,44 @@ body{
   padding:20px;
 }
 
-.balance{
-  background:#1f2937;
+.card{
+  background:white;
+  color:black;
+  border-radius:14px;
   padding:20px;
-  border-radius:15px;
-  text-align:center;
+  margin-top:15px;
 }
 
-.card{
-  background:#111827;
-  margin-top:15px;
-  padding:15px;
-  border-radius:12px;
+.balance{
+  text-align:center;
 }
 
 input{
   width:100%;
   padding:12px;
-  margin-top:8px;
+  margin-top:10px;
   border-radius:8px;
-  border:none;
+  border:1px solid #ccc;
 }
 
 button{
   width:100%;
-  padding:12px;
-  margin-top:10px;
+  padding:14px;
+  margin-top:12px;
   border:none;
-  border-radius:8px;
-  background:#22c55e;
-  color:white;
+  border-radius:10px;
   font-size:16px;
+  color:white;
+  background:#2ecc71;
+}
+
+.logout{
+  background:#e74c3c;
 }
 
 .tx{
-  border-bottom:1px solid #333;
+  border-bottom:1px solid #ddd;
   padding:8px 0;
-  font-size:14px;
 }
 </style>
 </head>
@@ -64,13 +65,13 @@ button{
 
 <div class="container">
 
-<div class="balance">
+<div class="card balance">
   <h3 id="welcome"></h3>
   <h1 id="balance"></h1>
 </div>
 
 <div class="card">
-  <h3>Send Money</h3>
+  <h3>Transfer Money</h3>
   <input id="receiver" placeholder="Recipient username">
   <input id="amount" type="number" placeholder="Amount">
   <button onclick="transferMoney()">Send</button>
@@ -78,45 +79,47 @@ button{
 </div>
 
 <div class="card">
-  <h3>Transactions</h3>
+  <h3>Transaction History</h3>
   <div id="history"></div>
 </div>
 
-<button onclick="logout()">Logout</button>
+<button class="logout" onclick="logout()">Logout</button>
 
 </div>
 
 <script>
 
-// LOAD USER SESSION
+// LOAD SESSION
 let currentUser = JSON.parse(localStorage.getItem("currentUser"));
 if(!currentUser) window.location.href="login.html";
 
-// LOAD USERS DATABASE
+// LOAD DATABASE
 let users = JSON.parse(localStorage.getItem("users")) || [];
 
 // SYNC USER DATA
 const dbUser = users.find(u => u.username === currentUser.username);
-currentUser.balance = dbUser.balance;
+if(dbUser){
+  currentUser = dbUser;
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
 
-// DISPLAY INFO
+// DISPLAY USER
 welcome.innerText = "Welcome back, " + currentUser.username;
-balance.innerText = "€" + currentUser.balance.toLocaleString();
+balance.innerText = "€" + Number(currentUser.balance).toLocaleString();
 
 
 // LOAD HISTORY
 function loadHistory(){
-  const historyDiv = document.getElementById("history");
   const user = users.find(u => u.username === currentUser.username);
 
-  if(!user.transactions.length){
-    historyDiv.innerHTML="No transactions yet";
+  if(!user.transactions || user.transactions.length === 0){
+    history.innerHTML = "No transactions yet";
     return;
   }
 
-  historyDiv.innerHTML = user.transactions.map(t => `
+  history.innerHTML = user.transactions.map(t => `
     <div class="tx">
-      ${t.name} €${t.amount}<br>
+      ${t.name || t.type} €${t.amount}<br>
       <small>${t.date}</small>
     </div>
   `).join("");
@@ -128,8 +131,8 @@ loadHistory();
 // TRANSFER MONEY
 function transferMoney(){
 
-  const receiverName = receiver.value.trim().toLowerCase();
-  const amountValue = parseFloat(amount.value);
+  const receiverName = document.getElementById("receiver").value.trim().toLowerCase();
+  const amountValue = parseFloat(document.getElementById("amount").value);
 
   if(!receiverName || !amountValue || amountValue <= 0){
     transferMsg.innerText = "Enter valid details";
@@ -142,10 +145,13 @@ function transferMoney(){
   }
 
   const senderIndex = users.findIndex(u => u.username === currentUser.username);
-  const receiverIndex = users.findIndex(u => u.username === receiverName);
+
+  const receiverIndex = users.findIndex(
+    u => u.username.toLowerCase() === receiverName
+  );
 
   if(receiverIndex === -1){
-    transferMsg.innerText = "Recipient not found";
+    transferMsg.innerText = "User not found";
     return;
   }
 
@@ -154,34 +160,36 @@ function transferMoney(){
     return;
   }
 
-  // update balances
+  // UPDATE BALANCES
   users[senderIndex].balance -= amountValue;
   users[receiverIndex].balance += amountValue;
 
   const dateNow = new Date().toLocaleString();
 
-  // sender history
+  // SENDER HISTORY
   users[senderIndex].transactions.unshift({
-    name:"Sent to " + receiverName,
+    name: "Sent to " + receiverName,
     amount: amountValue,
     date: dateNow
   });
 
-  // receiver history
+  // RECEIVER HISTORY
   users[receiverIndex].transactions.unshift({
-    name:"Received from " + currentUser.username,
+    name: "Received from " + currentUser.username,
     amount: amountValue,
     date: dateNow
   });
 
+  // SAVE
   localStorage.setItem("users", JSON.stringify(users));
 
-  // update session
+  // UPDATE SESSION
   localStorage.setItem("currentUser", JSON.stringify(users[senderIndex]));
 
-  transferMsg.innerText="Transfer successful";
+  transferMsg.innerText = "Transfer successful";
 
-  location.reload();
+  // refresh display
+  setTimeout(() => location.reload(), 800);
 }
 
 
@@ -192,6 +200,5 @@ function logout(){
 }
 
 </script>
-
 </body>
 </html>
