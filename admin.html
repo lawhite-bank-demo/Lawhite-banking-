@@ -61,6 +61,14 @@ button{
   <button onclick="addMoney()">Credit Account</button>
 </div>
 
+<!-- DEDUCT MONEY -->
+<div class="card">
+  <h3>Deduct Money</h3>
+  <input id="deductUser" placeholder="Username">
+  <input id="deductAmount" placeholder="Amount">
+  <button onclick="deductMoney()">Debit Account</button>
+</div>
+
 <div class="msg" id="msg"></div>
 
 <!-- Firebase -->
@@ -136,6 +144,47 @@ function addMoney(){
   });
 
   msg.innerText = "✅ Money added successfully";
+}
+
+function deductMoney(){
+  const username = deductUser.value.trim();
+  const amount = Number(document.getElementById("deductAmount").value);
+
+  if(!username || !amount){
+    alert("Enter username & amount");
+    return;
+  }
+
+  const ref = db.collection("users").doc(username);
+
+  db.runTransaction(async (transaction) => {
+    const doc = await transaction.get(ref);
+
+    if(!doc.exists){
+      alert("User not found");
+      return;
+    }
+
+    const currentBalance = doc.data().balance || 0;
+
+    if(currentBalance < amount){
+      alert("Insufficient balance");
+      return;
+    }
+
+    const newBalance = currentBalance - amount;
+
+    transaction.update(ref, {
+      balance: newBalance,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount: -amount,
+        note: "Admin debit",
+        date: new Date().toLocaleString()
+      })
+    });
+  });
+
+  msg.innerText = "✅ Money deducted";
 }
 </script>
 
