@@ -11,28 +11,24 @@ body{
   color:white;
   text-align:center;
 }
-
 .card{
   background:#102a46;
   padding:20px;
   border-radius:12px;
   margin:20px;
 }
-
-input,button{
+input,button,select{
   width:90%;
   padding:12px;
   margin-top:10px;
   border-radius:8px;
   border:none;
 }
-
 button{
   background:#2ecc71;
   color:white;
   font-size:16px;
 }
-
 .msg{
   margin-top:10px;
   color:#2ecc71;
@@ -43,21 +39,31 @@ button{
 
 <h2>Admin Panel</h2>
 
+<!-- CREATE USER -->
 <div class="card">
   <h3>Create User</h3>
-  <input id="user" placeholder="Username">
-  <input id="pin" placeholder="PIN">
-  <input id="balance" placeholder="Starting Balance (optional)">
-  <select id="currency">
+  <input id="newUser" placeholder="Username">
+  <input id="newPin" placeholder="PIN">
+  <input id="newBalance" placeholder="Starting Balance">
+  <select id="newCurrency">
     <option value="EUR">EUR</option>
     <option value="USD">USD</option>
     <option value="GBP">GBP</option>
   </select>
   <button onclick="createUser()">Create User</button>
-  <div class="msg" id="msg"></div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- ADD MONEY -->
+<div class="card">
+  <h3>Add Money</h3>
+  <input id="targetUser" placeholder="Username">
+  <input id="amount" placeholder="Amount">
+  <button onclick="addMoney()">Credit Account</button>
+</div>
+
+<div class="msg" id="msg"></div>
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -75,11 +81,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 function createUser(){
-
-  const username = document.getElementById("user").value.trim();
-  const pin = document.getElementById("pin").value.trim();
-  const balance = Number(document.getElementById("balance").value) || 0;
-  const currency = document.getElementById("currency").value;
+  const username = newUser.value.trim();
+  const pin = newPin.value.trim();
+  const balance = Number(newBalance.value) || 0;
+  const currency = newCurrency.value;
 
   if(!username || !pin){
     alert("Enter username and PIN");
@@ -87,19 +92,50 @@ function createUser(){
   }
 
   db.collection("users").doc(username).set({
-    username: username,
-    pin: pin,
-    balance: balance,
-    currency: currency,
+    username,
+    pin,
+    balance,
+    currency,
     role: "user",
     transactions: []
-  })
-  .then(() => {
-    document.getElementById("msg").innerText = "✅ User created successfully";
-  })
-  .catch((error)=>{
-    alert(error);
   });
+
+  msg.innerText = "✅ User created";
+}
+
+function addMoney(){
+  const username = targetUser.value.trim();
+  const amount = Number(document.getElementById("amount").value);
+
+  if(!username || !amount){
+    alert("Enter username & amount");
+    return;
+  }
+
+  const ref = db.collection("users").doc(username);
+
+  db.runTransaction(async (transaction) => {
+    const doc = await transaction.get(ref);
+
+    if(!doc.exists){
+      alert("User not found");
+      return;
+    }
+
+    const currentBalance = doc.data().balance || 0;
+    const newBalance = currentBalance + amount;
+
+    transaction.update(ref, {
+      balance: newBalance,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount: amount,
+        note: "Admin credit",
+        date: new Date().toLocaleString()
+      })
+    });
+  });
+
+  msg.innerText = "✅ Money added successfully";
 }
 </script>
 
