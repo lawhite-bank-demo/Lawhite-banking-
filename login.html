@@ -44,18 +44,18 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- Firebase v8 (simple & stable) -->
+<!-- Firebase CDN -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "PASTE_YOURS_HERE",
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
   projectId: "dechase-bank",
-  storageBucket: "dechase-bank.appspot.com",
-  messagingSenderId: "PASTE_YOURS_HERE",
-  appId: "PASTE_YOURS_HERE"
+  storageBucket: "dechase-bank.firebasestorage.app",
+  messagingSenderId: "44428081485",
+  appId: "1:44428081485:web:85d993a939d380336e1f04"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -80,7 +80,6 @@ function login(){
 
     const user = doc.data();
 
-    // ensure both compared as strings
     if(String(user.pin) === String(pin)){
       localStorage.setItem("loggedInUser", username);
       window.location.href = "dashboard.html";
@@ -88,9 +87,8 @@ function login(){
       alert("Invalid PIN");
     }
 
-  }).catch(error => {
-    alert("Connection error. Check internet.");
-    console.log(error);
+  }).catch(() => {
+    alert("Internet connection error");
   });
 }
 </script>
