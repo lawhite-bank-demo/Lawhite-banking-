@@ -33,6 +33,12 @@ button{
   margin-top:10px;
   color:#2ecc71;
 }
+.result{
+  margin-top:10px;
+  background:#0b1e35;
+  padding:10px;
+  border-radius:8px;
+}
 </style>
 </head>
 <body>
@@ -76,6 +82,14 @@ button{
   <input id="toUser" placeholder="To Username">
   <input id="transferAmount" placeholder="Amount">
   <button onclick="transferMoney()">Transfer</button>
+</div>
+
+<!-- SEARCH TRANSACTION -->
+<div class="card">
+  <h3>Search Transaction</h3>
+  <input id="searchRef" placeholder="Enter Reference Number">
+  <button onclick="searchTransaction()">Search</button>
+  <div id="searchResult" class="result"></div>
 </div>
 
 <div class="msg" id="msg"></div>
@@ -248,6 +262,42 @@ function transferMoney(){
   });
 
   msg.innerText = "✅ Transfer successful";
+}
+
+async function searchTransaction(){
+
+  const ref = document.getElementById("searchRef").value.trim();
+
+  if(!ref){
+    alert("Enter reference number");
+    return;
+  }
+
+  searchResult.innerHTML = "Searching...";
+
+  const snapshot = await db.collection("users").get();
+
+  let found = false;
+
+  snapshot.forEach(doc => {
+    const data = doc.data();
+    const txs = data.transactions || [];
+
+    txs.forEach(tx => {
+      if(tx.ref === ref){
+        found = true;
+        searchResult.innerHTML =
+          `<b>User:</b> ${data.username}<br>
+           <b>Amount:</b> ${tx.amount}<br>
+           <b>Note:</b> ${tx.note}<br>
+           <b>Date:</b> ${tx.date}`;
+      }
+    });
+  });
+
+  if(!found){
+    searchResult.innerHTML = "No transaction found";
+  }
 }
 </script>
 
