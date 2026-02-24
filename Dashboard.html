@@ -5,12 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Finance</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
 <style>
 body{
   margin:0;
-  font-family:'Inter',sans-serif;
+  font-family:Arial, sans-serif;
   background:#061a2f;
   color:white;
 }
@@ -26,17 +24,11 @@ body{
   border-radius:14px;
   padding:20px;
   margin-top:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.25);
-}
-
-h1{
-  font-size:22px;
-  margin-bottom:10px;
 }
 
 .balance{
   font-size:32px;
-  font-weight:600;
+  font-weight:bold;
   margin-top:10px;
 }
 
@@ -51,14 +43,10 @@ button{
   color:white;
 }
 
-.transactions{
-  margin-top:15px;
-}
-
 .tx{
   display:flex;
   justify-content:space-between;
-  padding:10px 0;
+  padding:8px 0;
   border-bottom:1px solid rgba(255,255,255,0.1);
 }
 </style>
@@ -67,7 +55,7 @@ button{
 
 <div class="container">
 
-  <h1 id="welcome">Welcome</h1>
+  <h2 id="welcome"></h2>
 
   <div class="card">
     <div>Available Balance</div>
@@ -75,8 +63,12 @@ button{
   </div>
 
   <div class="card">
-    <h3>Recent Transactions</h3>
-    <div class="transactions" id="transactions"></div>
+    <button onclick="location.href='send.html'">Send Money</button>
+  </div>
+
+  <div class="card">
+    <h3>Transactions</h3>
+    <div id="transactions"></div>
   </div>
 
   <button onclick="logout()">Logout</button>
@@ -84,38 +76,46 @@ button{
 </div>
 
 <script>
-// protect dashboard if not logged in
 const user = JSON.parse(localStorage.getItem("loggedInUser"));
 
 if(!user){
   window.location.href = "index.html";
 }
 
-// show user info
+// ensure transactions array exists
+if(!user.transactions){
+  user.transactions = [];
+}
+
+// display info
 document.getElementById("welcome").innerText =
   "Hello, " + user.username;
 
 document.getElementById("balance").innerText =
   "€" + user.balance.toLocaleString();
 
-// demo transactions
-const demoTx = [
-  {name:"Amazon Purchase", amount:"-€120"},
-  {name:"Salary Deposit", amount:"+€2,400"},
-  {name:"Netflix", amount:"-€15"},
-  {name:"Electric Bill", amount:"-€64"}
-];
+// show transactions
+const container = document.getElementById("transactions");
 
-const txContainer = document.getElementById("transactions");
+if(user.transactions.length === 0){
+  container.innerHTML = "<p>No transactions yet</p>";
+} else {
 
-demoTx.forEach(tx => {
-  txContainer.innerHTML += `
-    <div class="tx">
-      <span>${tx.name}</span>
-      <span>${tx.amount}</span>
-    </div>
-  `;
-});
+  user.transactions.slice().reverse().forEach(tx => {
+
+    const color = tx.amount < 0 ? "red" : "lightgreen";
+
+    container.innerHTML += `
+      <div class="tx">
+        <span>${tx.note}</span>
+        <span style="color:${color}">
+          €${Math.abs(tx.amount)}
+        </span>
+      </div>
+    `;
+  });
+
+}
 
 function logout(){
   localStorage.removeItem("loggedInUser");
