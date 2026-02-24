@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Finance</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+
 <style>
 body{
   margin:0;
-  font-family:Arial, sans-serif;
-  background:#061a2f;
+  font-family:'Poppins', sans-serif;
+  background:linear-gradient(180deg,#031427,#071f3a);
   color:white;
 }
 
@@ -19,26 +21,51 @@ body{
   padding:20px;
 }
 
-.card{
-  background:#0d2b4d;
-  border-radius:14px;
-  padding:20px;
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.header h2{
+  margin:0;
+  font-weight:500;
+}
+
+.balanceCard{
   margin-top:20px;
+  padding:25px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+
+.balanceCard small{
+  opacity:.9;
 }
 
 .balance{
-  font-size:32px;
-  font-weight:bold;
-  margin-top:10px;
+  font-size:36px;
+  font-weight:600;
+  margin-top:8px;
+}
+
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(12px);
+  border-radius:18px;
+  padding:18px;
+  margin-top:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.25);
 }
 
 button{
   width:100%;
   padding:14px;
   border:none;
-  border-radius:10px;
-  margin-top:15px;
-  font-size:16px;
+  border-radius:12px;
+  margin-top:10px;
+  font-size:15px;
   background:#1e88e5;
   color:white;
 }
@@ -46,13 +73,39 @@ button{
 .tx{
   display:flex;
   justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1);
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.tx:last-child{
+  border-bottom:none;
+}
+
+.tx small{
+  display:block;
+  opacity:0.6;
+  font-size:11px;
 }
 
 .ref{
-  font-size:12px;
-  opacity:0.7;
+  font-size:11px;
+  opacity:0.6;
+}
+
+.amountPlus{
+  color:#00e676;
+  font-weight:500;
+}
+
+.amountMinus{
+  color:#ff5252;
+  font-weight:500;
+}
+
+.logout{
+  background:#ff5252;
+  margin-top:20px;
 }
 </style>
 </head>
@@ -60,10 +113,12 @@ button{
 
 <div class="container">
 
-  <h2 id="welcome"></h2>
+  <div class="header">
+    <h2 id="welcome">Hello</h2>
+  </div>
 
-  <div class="card">
-    <div>Available Balance</div>
+  <div class="balanceCard">
+    <small>Available Balance</small>
     <div class="balance" id="balance">0</div>
   </div>
 
@@ -76,7 +131,7 @@ button{
     <div id="transactions"></div>
   </div>
 
-  <button onclick="logout()">Logout</button>
+  <button class="logout" onclick="logout()">Logout</button>
 
 </div>
 
@@ -97,14 +152,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// check login
 const username = localStorage.getItem("loggedInUser");
 
 if(!username){
-  window.location.href = "login.html";
+  window.location.href="login.html";
 }
 
-// REAL-TIME LISTENER (auto updates)
+// REALTIME UPDATES
 db.collection("users").doc(username)
 .onSnapshot(doc => {
 
@@ -116,20 +170,16 @@ db.collection("users").doc(username)
 
   const user = doc.data();
 
-  // welcome
   document.getElementById("welcome").innerText =
     "Hello, " + user.username;
 
-  // currency support
   const symbol =
     user.currency === "USD" ? "$" :
     user.currency === "GBP" ? "£" : "€";
 
-  // balance
   document.getElementById("balance").innerText =
     symbol + Number(user.balance).toLocaleString();
 
-  // transactions
   const container = document.getElementById("transactions");
   container.innerHTML = "";
 
@@ -140,17 +190,18 @@ db.collection("users").doc(username)
 
   user.transactions.slice().reverse().forEach(tx => {
 
-    const color = tx.amount < 0 ? "red" : "lightgreen";
+    const cls = tx.amount < 0 ? "amountMinus" : "amountPlus";
 
     container.innerHTML += `
       <div class="tx">
         <div>
-          <div>${tx.note}</div>
+          ${tx.note}
+          <small>${tx.date || ""}</small>
           <div class="ref">${tx.ref || ""}</div>
         </div>
-        <span style="color:${color}">
+        <div class="${cls}">
           ${symbol}${Math.abs(tx.amount)}
-        </span>
+        </div>
       </div>
     `;
   });
@@ -159,7 +210,7 @@ db.collection("users").doc(username)
 
 function logout(){
   localStorage.removeItem("loggedInUser");
-  window.location.href = "login.html";
+  window.location.href="login.html";
 }
 </script>
 
