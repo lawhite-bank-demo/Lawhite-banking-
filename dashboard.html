@@ -1,78 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel</title>
 
 <style>
 body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#061a2f;
+  font-family: Arial;
+  background:#0b1e35;
   color:white;
+  text-align:center;
 }
-
-.container{
-  max-width:420px;
-  margin:auto;
-  padding:20px;
-}
-
 .card{
-  background:#0d2b4d;
-  border-radius:14px;
+  background:#102a46;
   padding:20px;
-  margin-top:20px;
+  border-radius:12px;
+  margin:20px;
 }
-
-.balance{
-  font-size:32px;
-  font-weight:bold;
+input,button,select{
+  width:90%;
+  padding:12px;
   margin-top:10px;
-}
-
-button{
-  width:100%;
-  padding:14px;
+  border-radius:8px;
   border:none;
-  border-radius:10px;
-  margin-top:15px;
-  font-size:16px;
-  background:#1e88e5;
+}
+button{
+  background:#2ecc71;
   color:white;
+  font-size:16px;
 }
-
-.tx{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1);
+.msg{
+  margin-top:10px;
+  color:#2ecc71;
 }
-small{
-  opacity:0.7;
+.result{
+  margin-top:10px;
+  background:#0b1e35;
+  padding:10px;
+  border-radius:8px;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
+<h2>Admin Panel</h2>
 
-  <h2 id="welcome"></h2>
-
-  <div class="card">
-    <div>Available Balance</div>
-    <div class="balance" id="balance">0</div>
-  </div>
-
-  <div class="card">
-    <h3>Transactions</h3>
-    <div id="transactions"></div>
-  </div>
-
-  <button onclick="logout()">Logout</button>
-
+<!-- CREATE USER -->
+<div class="card">
+  <h3>Create User</h3>
+  <input id="newUser" placeholder="Username">
+  <input id="newPin" placeholder="PIN">
+  <input id="newBalance" placeholder="Starting Balance">
+  <select id="newCurrency">
+    <option value="EUR">EUR</option>
+    <option value="USD">USD</option>
+    <option value="GBP">GBP</option>
+  </select>
+  <button onclick="createUser()">Create User</button>
 </div>
+
+<!-- CREDIT -->
+<div class="card">
+  <h3>Credit Account</h3>
+  <input id="targetUser" placeholder="Username">
+  <input id="amount" placeholder="Amount">
+  <button onclick="addMoney()">Add Money</button>
+</div>
+
+<!-- DEBIT -->
+<div class="card">
+  <h3>Debit Account</h3>
+  <input id="deductUser" placeholder="Username">
+  <input id="deductAmount" placeholder="Amount">
+  <button onclick="deductMoney()">Deduct Money</button>
+</div>
+
+<!-- TRANSFER -->
+<div class="card">
+  <h3>Transfer Using Account Number</h3>
+  <input id="fromUser" placeholder="From Account Number">
+  <input id="toUser" placeholder="To Account Number">
+  <input id="transferAmount" placeholder="Amount">
+  <button onclick="transferMoney()">Transfer</button>
+</div>
+
+<!-- SEARCH -->
+<div class="card">
+  <h3>Search Transaction</h3>
+  <input id="searchRef" placeholder="Reference Number">
+  <button onclick="searchTransaction()">Search</button>
+  <div id="searchResult" class="result"></div>
+</div>
+
+<div class="msg" id="msg"></div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -91,68 +111,176 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const username = localStorage.getItem("loggedInUser");
-
-if(!username){
-  window.location.href = "login.html";
+function generateRef(){
+  return "DCB-" + Math.floor(10000000 + Math.random()*90000000);
 }
 
-// REAL-TIME LISTENER
-db.collection("users").doc(username)
-.onSnapshot(doc => {
+function generateAccount(){
+  return "DCB-" + Math.floor(10000000 + Math.random()*90000000);
+}
 
-  if(!doc.exists){
-    alert("User not found");
+// CREATE USER
+function createUser(){
+  const username = newUser.value.trim();
+  const pin = newPin.value.trim();
+  const balance = Number(newBalance.value) || 0;
+  const currency = newCurrency.value;
+
+  if(!username || !pin){
+    alert("Enter username & PIN");
     return;
   }
 
-  const user = doc.data();
-
-  document.getElementById("welcome").innerText =
-    "Hello, " + user.username;
-
-  const symbolMap = {
-    EUR: "€",
-    USD: "$",
-    GBP: "£",
-    NGN: "₦"
-  };
-
-  const symbol = symbolMap[user.currency] || "";
-
-  document.getElementById("balance").innerText =
-    symbol + Number(user.balance).toLocaleString();
-
-  const container = document.getElementById("transactions");
-  container.innerHTML = "";
-
-  if(!user.transactions || user.transactions.length === 0){
-    container.innerHTML = "<p>No transactions yet</p>";
-    return;
-  }
-
-  user.transactions.slice().reverse().forEach(tx => {
-
-    const color = tx.amount < 0 ? "red" : "lightgreen";
-
-    container.innerHTML += `
-      <div class="tx">
-        <span>
-          ${tx.note}<br>
-          <small>${tx.ref || ""}</small>
-        </span>
-        <span style="color:${color}">
-          ${symbol}${Math.abs(tx.amount)}
-        </span>
-      </div>
-    `;
+  db.collection("users").doc(username).set({
+    username,
+    pin,
+    balance,
+    currency,
+    role: "user",
+    accountNumber: generateAccount(),
+    transactions: []
   });
 
-});
+  msg.innerText = "✅ User created";
+}
 
-function logout(){
-  localStorage.removeItem("loggedInUser");
-  window.location.href = "login.html";
+// CREDIT
+function addMoney(){
+  const username = targetUser.value.trim();
+  const amount = Number(amount.value);
+
+  const ref = db.collection("users").doc(username);
+
+  db.runTransaction(async (t)=>{
+    const doc = await t.get(ref);
+    if(!doc.exists){ alert("User not found"); return; }
+
+    const newBal = (doc.data().balance||0)+amount;
+
+    t.update(ref,{
+      balance:newBal,
+      transactions:firebase.firestore.FieldValue.arrayUnion({
+        amount,
+        note:"Admin credit",
+        ref:generateRef(),
+        date:new Date().toLocaleString()
+      })
+    });
+  });
+
+  msg.innerText="✅ Money added";
+}
+
+// DEBIT
+function deductMoney(){
+  const username = deductUser.value.trim();
+  const amount = Number(deductAmount.value);
+
+  const ref = db.collection("users").doc(username);
+
+  db.runTransaction(async (t)=>{
+    const doc = await t.get(ref);
+    if(!doc.exists){ alert("User not found"); return; }
+
+    const bal = doc.data().balance||0;
+    if(bal < amount){ alert("Insufficient funds"); return; }
+
+    t.update(ref,{
+      balance:bal-amount,
+      transactions:firebase.firestore.FieldValue.arrayUnion({
+        amount:-amount,
+        note:"Admin debit",
+        ref:generateRef(),
+        date:new Date().toLocaleString()
+      })
+    });
+  });
+
+  msg.innerText="✅ Money deducted";
+}
+
+// TRANSFER USING ACCOUNT NUMBER
+async function transferMoney(){
+
+  const fromAcc = fromUser.value.trim();
+  const toAcc = toUser.value.trim();
+  const amount = Number(transferAmount.value);
+
+  if(!fromAcc || !toAcc || !amount){
+    alert("Enter details");
+    return;
+  }
+
+  const users = db.collection("users");
+
+  const fromQuery = await users.where("accountNumber","==",fromAcc).get();
+  const toQuery = await users.where("accountNumber","==",toAcc).get();
+
+  if(fromQuery.empty || toQuery.empty){
+    alert("Account not found");
+    return;
+  }
+
+  const fromDoc = fromQuery.docs[0];
+  const toDoc = toQuery.docs[0];
+
+  const refNum = generateRef();
+
+  await db.runTransaction(async (t)=>{
+
+    const fromBal = fromDoc.data().balance||0;
+    if(fromBal < amount){ alert("Insufficient funds"); return; }
+
+    const toBal = toDoc.data().balance||0;
+
+    t.update(fromDoc.ref,{
+      balance:fromBal-amount,
+      transactions:firebase.firestore.FieldValue.arrayUnion({
+        amount:-amount,
+        note:"Transfer to "+toAcc,
+        ref:refNum,
+        date:new Date().toLocaleString()
+      })
+    });
+
+    t.update(toDoc.ref,{
+      balance:toBal+amount,
+      transactions:firebase.firestore.FieldValue.arrayUnion({
+        amount:amount,
+        note:"Transfer from "+fromAcc,
+        ref:refNum,
+        date:new Date().toLocaleString()
+      })
+    });
+
+  });
+
+  msg.innerText="✅ Transfer complete";
+}
+
+// SEARCH TRANSACTION
+async function searchTransaction(){
+  const ref = searchRef.value.trim();
+  searchResult.innerHTML="Searching...";
+
+  const snapshot = await db.collection("users").get();
+  let found=false;
+
+  snapshot.forEach(doc=>{
+    const data=doc.data();
+    (data.transactions||[]).forEach(tx=>{
+      if(tx.ref===ref){
+        found=true;
+        searchResult.innerHTML=
+        `<b>User:</b> ${data.username}<br>
+         <b>Amount:</b> ${tx.amount}<br>
+         <b>Note:</b> ${tx.note}<br>
+         <b>Date:</b> ${tx.date}`;
+      }
+    });
+  });
+
+  if(!found) searchResult.innerHTML="No transaction found";
 }
 </script>
 
