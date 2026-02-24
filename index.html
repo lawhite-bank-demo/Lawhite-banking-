@@ -1,126 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Lawhite Mobile Bank</title>  <!-- PWA Manifest -->  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1220">  <!-- iOS Support -->  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(180deg, #0b1220, #102a54);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
-<title>Lawhite Mobile Bank</title>
+    .card {
+      background: #ffffff;
+      width: 90%;
+      max-width: 380px;
+      padding: 30px 20px;
+      border-radius: 20px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
 
-<!-- PWA + INSTALL SUPPORT -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0b1220">
-<link rel="icon" href="icon.png">
+    .logo {
+      width: 90px;
+      margin-bottom: 15px;
+    }
 
-<style>
-body{
-  margin:0;
-  font-family:system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg,#0b1220,#163a5f);
-  color:white;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  height:100vh;
-}
+    h1 {
+      margin: 10px 0 5px;
+      color: #111;
+    }
 
-.card{
-  width:90%;
-  max-width:380px;
-  background:white;
-  color:#111;
-  border-radius:18px;
-  padding:25px;
-  text-align:center;
-  box-shadow:0 10px 25px rgba(0,0,0,0.2);
-}
+    .subtitle {
+      color: #666;
+      margin-bottom: 25px;
+    }
 
-.logo{
-  width:90px;
-  margin-bottom:10px;
-}
+    input {
+      width: 100%;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
 
-h1{
-  margin:5px 0;
-}
+    button {
+      width: 100%;
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      background: #1f3b63;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+    }
 
-.subtitle{
-  color:#666;
-  margin-bottom:20px;
-}
+    button:active {
+      transform: scale(0.98);
+    }
+  </style></head>
+<body>  <div class="card">
+    <img src="icon.png" class="logo" alt="Bank Logo"><h1>Lawhite Bank</h1>
+<div class="subtitle">Secure Online Banking</div>
 
-input{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  font-size:16px;
-}
+<input type="text" placeholder="Username">
+<input type="password" placeholder="PIN">
 
-button{
-  width:100%;
-  margin-top:15px;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  background:#163a5f;
-  color:white;
-  font-size:16px;
-  cursor:pointer;
-}
+<button onclick="login()">Login</button>
 
-#error{
-  color:red;
-  margin-top:10px;
-}
-</style>
-</head>
+  </div>  <script>
+    function login() {
+      alert("Login successful (demo)");
+      window.location.href = "dashboard.html";
+    }
 
-<body>
-
-<div class="card">
-  <img src="icon.png" class="logo">
-
-  <h1>Lawhite Bank</h1>
-  <div class="subtitle">Secure Online Banking</div>
-
-  <input id="username" placeholder="Username">
-  <input id="pin" type="password" placeholder="PIN">
-
-  <button onclick="login()">Login</button>
-
-  <div id="error"></div>
-</div>
-
-<script>
-// LOGIN FUNCTION
-function login(){
-
-  const name = document.getElementById("username").value.trim().toLowerCase();
-  const pin = document.getElementById("pin").value.trim();
-
-  const users = JSON.parse(localStorage.getItem("users")) || [];
-
-  const user = users.find(u =>
-    u.username.toLowerCase() === name &&
-    u.pin === pin
-  );
-
-  if(!user){
-    document.getElementById("error").innerText =
-      "Invalid username or PIN";
-    return;
-  }
-
-  localStorage.setItem("currentUser", JSON.stringify(user));
-  window.location.href = "bank.html";
-}
-
-// SERVICE WORKER REGISTER
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
-</script>
-
-</body>
+    // Register Service Worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker Registered"));
+    }
+  </script></body>
 </html>
