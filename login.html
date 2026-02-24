@@ -1,112 +1,76 @@
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Secure Login - DeChase Finance</title>
+  <meta charset="UTF-8">
+  <title>DeChase Bank Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#0f2a44,#153e5c);
-  height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0b2c5a;
+      color: white;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+    }
 
-.card{
-  background:white;
-  padding:30px;
-  border-radius:18px;
-  width:320px;
-  text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.2);
-}
+    .card {
+      background: white;
+      color: black;
+      padding: 25px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+    }
 
-input{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  font-size:16px;
-}
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
 
-button{
-  width:100%;
-  padding:14px;
-  margin-top:18px;
-  border:none;
-  border-radius:10px;
-  background:#0f2a44;
-  color:white;
-  font-size:16px;
-}
-
-#error{
-  color:red;
-  margin-top:12px;
-}
-</style>
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 15px;
+      background: #0b2c5a;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+  </style>
 </head>
-
 <body>
 
 <div class="card">
-  <h2>DeChase Finance</h2>
-  <p>Secure Online Banking</p>
+  <h2>DeChase Bank</h2>
 
-  <input id="username" placeholder="Username">
-  <input id="pin" type="password" placeholder="PIN">
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
 
   <button onclick="login()">Login</button>
-  <div id="error"></div>
 </div>
 
 <script>
+function login() {
+  const user = document.getElementById("username").value;
+  const pass = document.getElementById("password").value;
 
-// Ensure database exists
-let users = JSON.parse(localStorage.getItem("users")) || [];
+  if(user && pass){
+    alert("Login successful (demo)");
 
-if(users.length === 0){
-  users = [
-    { username:"admin", pin:"4321", balance:15000, transactions:[] }
-  ];
-  localStorage.setItem("users", JSON.stringify(users));
-}
-
-// LOGIN FUNCTION
-function login(){
-
-  const username = document.getElementById("username").value.trim().toLowerCase();
-  const pin = document.getElementById("pin").value.trim();
-
-  const users = JSON.parse(localStorage.getItem("users")) || [];
-
-  const user = users.find(u =>
-    u.username.toLowerCase() === username &&
-    u.pin === pin
-  );
-
-  if(!user){
-    document.getElementById("error").innerText =
-      "Invalid username or PIN";
-    return;
+    // ✅ IMPORTANT: RELATIVE PATH
+    window.location.href = "Dashboard.html";
+  } else {
+    alert("Enter login details");
   }
-
-  // save session
-  localStorage.setItem("currentUser", JSON.stringify(user));
-
-  // redirect
-  window.location.href = "dashboard.html";
 }
 </script>
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
-</script>
+
 </body>
 </html>
