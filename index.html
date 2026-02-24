@@ -2,8 +2,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Lawhite Mobile Bank</title>  <!-- PWA Manifest -->  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b1220">  <!-- iOS Support -->  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>DeChase Bank</title>  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0b1220">  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  <style>
     body {
       margin: 0;
@@ -65,10 +65,9 @@
     }
   </style></head>
 <body>  <div class="card">
-    <img src="icon.png" class="logo" alt="Bank Logo"><h1>Lawhite Bank</h1>
-<div class="subtitle">Secure Online Banking</div>
-
-<input type="text" placeholder="Username">
+    <img src="icon.png" class="logo" alt="Bank Logo">
+    <h1>DeChase Bank</h1>
+    <div class="subtitle">Secure Online Banking</div><input type="text" placeholder="Username">
 <input type="password" placeholder="PIN">
 
 <button onclick="login()">Login</button>
@@ -79,10 +78,8 @@
       window.location.href = "dashboard.html";
     }
 
-    // Register Service Worker
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js")
-        .then(() => console.log("Service Worker Registered"));
+      navigator.serviceWorker.register("service-worker.js");
     }
   </script></body>
 </html>
