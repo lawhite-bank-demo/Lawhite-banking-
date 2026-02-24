@@ -75,31 +75,53 @@ button{
 
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 <script>
-const user = JSON.parse(localStorage.getItem("loggedInUser"));
+const firebaseConfig = {
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank",
+  storageBucket: "dechase-bank.firebasestorage.app",
+  messagingSenderId: "44428081485",
+  appId: "1:44428081485:web:85d993a939d380336e1f04"
+};
 
-if(!user){
-  window.location.href = "index.html";
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// get logged in user
+const username = localStorage.getItem("loggedInUser");
+
+if(!username){
+  window.location.href = "login.html";
 }
 
-// ensure transactions array exists
-if(!user.transactions){
-  user.transactions = [];
-}
+// load user data from Firestore
+db.collection("users").doc(username).get().then(doc => {
 
-// display info
-document.getElementById("welcome").innerText =
-  "Hello, " + user.username;
+  if(!doc.exists){
+    alert("User not found");
+    logout();
+    return;
+  }
 
-document.getElementById("balance").innerText =
-  "€" + user.balance.toLocaleString();
+  const user = doc.data();
 
-// show transactions
-const container = document.getElementById("transactions");
+  document.getElementById("welcome").innerText =
+    "Hello, " + user.username;
 
-if(user.transactions.length === 0){
-  container.innerHTML = "<p>No transactions yet</p>";
-} else {
+  document.getElementById("balance").innerText =
+    "€" + Number(user.balance).toLocaleString();
+
+  const container = document.getElementById("transactions");
+
+  if(!user.transactions || user.transactions.length === 0){
+    container.innerHTML = "<p>No transactions yet</p>";
+    return;
+  }
 
   user.transactions.slice().reverse().forEach(tx => {
 
@@ -115,11 +137,11 @@ if(user.transactions.length === 0){
     `;
   });
 
-}
+});
 
 function logout(){
   localStorage.removeItem("loggedInUser");
-  window.location.href = "index.html";
+  window.location.href = "login.html";
 }
 </script>
 
