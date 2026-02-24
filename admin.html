@@ -2,12 +2,41 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin</title>
+<title>Admin Panel</title>
+
 <style>
-body{font-family:Arial;background:#0b1e35;color:white;text-align:center}
-.card{background:#102a46;padding:20px;border-radius:12px;margin:20px}
-input,button{width:90%;padding:12px;margin-top:10px;border-radius:8px;border:none}
-button{background:#2ecc71;color:white;font-size:16px}
+body{
+  font-family: Arial;
+  background:#0b1e35;
+  color:white;
+  text-align:center;
+}
+
+.card{
+  background:#102a46;
+  padding:20px;
+  border-radius:12px;
+  margin:20px;
+}
+
+input,button{
+  width:90%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
+}
+
+button{
+  background:#2ecc71;
+  color:white;
+  font-size:16px;
+}
+
+.msg{
+  margin-top:10px;
+  color:#2ecc71;
+}
 </style>
 </head>
 <body>
@@ -18,54 +47,60 @@ button{background:#2ecc71;color:white;font-size:16px}
   <h3>Create User</h3>
   <input id="user" placeholder="Username">
   <input id="pin" placeholder="PIN">
+  <input id="balance" placeholder="Starting Balance (optional)">
+  <select id="currency">
+    <option value="EUR">EUR</option>
+    <option value="USD">USD</option>
+    <option value="GBP">GBP</option>
+  </select>
   <button onclick="createUser()">Create User</button>
+  <div class="msg" id="msg"></div>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE",
-  projectId: "PASTE",
-  storageBucket: "PASTE",
-  messagingSenderId: "PASTE",
-  appId: "PASTE"
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank",
+  storageBucket: "dechase-bank.appspot.com",
+  messagingSenderId: "44428081485",
+  appId: "1:44428081485:web:85d993a939d380336e1f04"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 function createUser(){
-  const username = document.getElementById("user").value;
-  const pin = document.getElementById("pin").value;
+
+  const username = document.getElementById("user").value.trim();
+  const pin = document.getElementById("pin").value.trim();
+  const balance = Number(document.getElementById("balance").value) || 0;
+  const currency = document.getElementById("currency").value;
+
+  if(!username || !pin){
+    alert("Enter username and PIN");
+    return;
+  }
 
   db.collection("users").doc(username).set({
     username: username,
     pin: pin,
-    balance: 0
+    balance: balance,
+    currency: currency,
+    role: "user",
+    transactions: []
+  })
+  .then(() => {
+    document.getElementById("msg").innerText = "✅ User created successfully";
+  })
+  .catch((error)=>{
+    alert(error);
   });
-
-  alert("User created");
 }
-</script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<script>
-const firebaseConfig = {
-  apiKey: "PASTE YOURS",
-  authDomain: "PASTE YOURS",
-  projectId: "PASTE YOURS",
-  storageBucket: "PASTE YOURS",
-  messagingSenderId: "PASTE YOURS",
-  appId: "PASTE YOURS"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 </script>
 
 </body>
