@@ -26,12 +26,12 @@
       margin-top:10px;
       border-radius:8px;
       border:1px solid #ccc;
+      font-size:16px;
     }
     button{
       background:#1e88e5;
       color:white;
       border:none;
-      font-size:16px;
     }
   </style>
 </head>
@@ -44,26 +44,32 @@
   <button onclick="login()">Login</button>
 </div>
 
-<!-- Firebase -->
+<!-- Firebase v8 (simple & stable) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
 const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE",
-  projectId: "PASTE",
-  storageBucket: "PASTE",
-  messagingSenderId: "PASTE",
-  appId: "PASTE"
+  apiKey: "PASTE_YOURS_HERE",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank",
+  storageBucket: "dechase-bank.appspot.com",
+  messagingSenderId: "PASTE_YOURS_HERE",
+  appId: "PASTE_YOURS_HERE"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 function login(){
-  const username = document.getElementById("username").value;
-  const pin = document.getElementById("pin").value;
+
+  const username = document.getElementById("username").value.trim().toLowerCase();
+  const pin = document.getElementById("pin").value.trim();
+
+  if(username === "" || pin === ""){
+    alert("Enter username and PIN");
+    return;
+  }
 
   db.collection("users").doc(username).get().then(doc => {
 
@@ -74,13 +80,17 @@ function login(){
 
     const user = doc.data();
 
-    if(user.pin === pin){
+    // ensure both compared as strings
+    if(String(user.pin) === String(pin)){
       localStorage.setItem("loggedInUser", username);
-      window.location = "dashboard.html";
+      window.location.href = "dashboard.html";
     }else{
-      alert("Wrong PIN");
+      alert("Invalid PIN");
     }
 
+  }).catch(error => {
+    alert("Connection error. Check internet.");
+    console.log(error);
   });
 }
 </script>
