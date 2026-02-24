@@ -69,6 +69,15 @@ button{
   <button onclick="deductMoney()">Debit Account</button>
 </div>
 
+<!-- TRANSFER MONEY -->
+<div class="card">
+  <h3>Transfer Between Users</h3>
+  <input id="fromUser" placeholder="From Username">
+  <input id="toUser" placeholder="To Username">
+  <input id="transferAmount" placeholder="Amount">
+  <button onclick="transferMoney()">Transfer</button>
+</div>
+
 <div class="msg" id="msg"></div>
 
 <!-- Firebase -->
@@ -130,8 +139,7 @@ function addMoney(){
       return;
     }
 
-    const currentBalance = doc.data().balance || 0;
-    const newBalance = currentBalance + amount;
+    const newBalance = (doc.data().balance || 0) + amount;
 
     transaction.update(ref, {
       balance: newBalance,
@@ -143,7 +151,7 @@ function addMoney(){
     });
   });
 
-  msg.innerText = "✅ Money added successfully";
+  msg.innerText = "✅ Money added";
 }
 
 function deductMoney(){
@@ -165,17 +173,15 @@ function deductMoney(){
       return;
     }
 
-    const currentBalance = doc.data().balance || 0;
+    const balance = doc.data().balance || 0;
 
-    if(currentBalance < amount){
+    if(balance < amount){
       alert("Insufficient balance");
       return;
     }
 
-    const newBalance = currentBalance - amount;
-
     transaction.update(ref, {
-      balance: newBalance,
+      balance: balance - amount,
       transactions: firebase.firestore.FieldValue.arrayUnion({
         amount: -amount,
         note: "Admin debit",
@@ -185,6 +191,67 @@ function deductMoney(){
   });
 
   msg.innerText = "✅ Money deducted";
+}
+
+function transferMoney(){
+
+  const fromUser = fromUser.value.trim();
+  const toUser = toUser.value.trim();
+  const amount = Number(document.getElementById("transferAmount").value);
+
+  if(!fromUser || !toUser || !amount){
+    alert("Enter all transfer details");
+    return;
+  }
+
+  if(fromUser === toUser){
+    alert("Cannot transfer to same account");
+    return;
+  }
+
+  const fromRef = db.collection("users").doc(fromUser);
+  const toRef = db.collection("users").doc(toUser);
+
+  db.runTransaction(async (transaction) => {
+
+    const fromDoc = await transaction.get(fromRef);
+    const toDoc = await transaction.get(toRef);
+
+    if(!fromDoc.exists || !toDoc.exists){
+      alert("User not found");
+      return;
+    }
+
+    const fromBalance = fromDoc.data().balance || 0;
+
+    if(fromBalance < amount){
+      alert("Insufficient funds");
+      return;
+    }
+
+    const toBalance = toDoc.data().balance || 0;
+
+    transaction.update(fromRef, {
+      balance: fromBalance - amount,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount: -amount,
+        note: "Transfer to " + toUser,
+        date: new Date().toLocaleString()
+      })
+    });
+
+    transaction.update(toRef, {
+      balance: toBalance + amount,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount: amount,
+        note: "Transfer from " + fromUser,
+        date: new Date().toLocaleString()
+      })
+    });
+
+  });
+
+  msg.innerText = "✅ Transfer successful";
 }
 </script>
 
