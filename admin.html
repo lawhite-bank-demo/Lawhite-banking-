@@ -97,6 +97,10 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+function generateRef(){
+  return "DCB-" + Math.floor(10000000 + Math.random() * 90000000);
+}
+
 function createUser(){
   const username = newUser.value.trim();
   const pin = newPin.value.trim();
@@ -133,11 +137,7 @@ function addMoney(){
 
   db.runTransaction(async (transaction) => {
     const doc = await transaction.get(ref);
-
-    if(!doc.exists){
-      alert("User not found");
-      return;
-    }
+    if(!doc.exists){ alert("User not found"); return; }
 
     const newBalance = (doc.data().balance || 0) + amount;
 
@@ -146,6 +146,7 @@ function addMoney(){
       transactions: firebase.firestore.FieldValue.arrayUnion({
         amount: amount,
         note: "Admin credit",
+        ref: generateRef(),
         date: new Date().toLocaleString()
       })
     });
@@ -167,24 +168,17 @@ function deductMoney(){
 
   db.runTransaction(async (transaction) => {
     const doc = await transaction.get(ref);
-
-    if(!doc.exists){
-      alert("User not found");
-      return;
-    }
+    if(!doc.exists){ alert("User not found"); return; }
 
     const balance = doc.data().balance || 0;
-
-    if(balance < amount){
-      alert("Insufficient balance");
-      return;
-    }
+    if(balance < amount){ alert("Insufficient balance"); return; }
 
     transaction.update(ref, {
       balance: balance - amount,
       transactions: firebase.firestore.FieldValue.arrayUnion({
         amount: -amount,
         note: "Admin debit",
+        ref: generateRef(),
         date: new Date().toLocaleString()
       })
     });
@@ -195,8 +189,8 @@ function deductMoney(){
 
 function transferMoney(){
 
-  const fromUser = fromUser.value.trim();
-  const toUser = toUser.value.trim();
+  const fromUser = document.getElementById("fromUser").value.trim();
+  const toUser = document.getElementById("toUser").value.trim();
   const amount = Number(document.getElementById("transferAmount").value);
 
   if(!fromUser || !toUser || !amount){
@@ -223,19 +217,20 @@ function transferMoney(){
     }
 
     const fromBalance = fromDoc.data().balance || 0;
-
     if(fromBalance < amount){
       alert("Insufficient funds");
       return;
     }
 
     const toBalance = toDoc.data().balance || 0;
+    const refNum = generateRef();
 
     transaction.update(fromRef, {
       balance: fromBalance - amount,
       transactions: firebase.firestore.FieldValue.arrayUnion({
         amount: -amount,
         note: "Transfer to " + toUser,
+        ref: refNum,
         date: new Date().toLocaleString()
       })
     });
@@ -245,6 +240,7 @@ function transferMoney(){
       transactions: firebase.firestore.FieldValue.arrayUnion({
         amount: amount,
         note: "Transfer from " + fromUser,
+        ref: refNum,
         date: new Date().toLocaleString()
       })
     });
