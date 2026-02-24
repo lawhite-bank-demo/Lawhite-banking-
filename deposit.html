@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deposit</title>
+<style>
+body{
+  font-family:Arial;
+  background:#061a2f;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:#0d2b4d;
+  padding:25px;
+  border-radius:12px;
+  width:300px;
+}
+input,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:8px;
+  border:none;
+}
+button{
+  background:#1e88e5;
+  color:white;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Deposit Money</h2>
+
+<input type="number" id="amount" placeholder="Amount">
+
+<button onclick="deposit()">Deposit</button>
+<button onclick="goBack()">Back</button>
+
+<p id="msg"></p>
+</div>
+
+<script>
+function deposit(){
+
+  const amount = parseFloat(document.getElementById("amount").value);
+  let user = JSON.parse(localStorage.getItem("loggedInUser"));
+  let users = JSON.parse(localStorage.getItem("bankUsers"));
+
+  if(amount <= 0){
+    msg.innerText = "Enter valid amount";
+    return;
+  }
+
+  user.balance += amount;
+
+  if(!user.transactions) user.transactions = [];
+
+  user.transactions.push({
+    amount: amount,
+    note: "Cash Deposit",
+    date: new Date().toLocaleDateString()
+  });
+
+  const updated = users.map(u =>
+    u.username === user.username ? user : u
+  );
+
+  localStorage.setItem("bankUsers", JSON.stringify(updated));
+  localStorage.setItem("loggedInUser", JSON.stringify(user));
+
+  msg.innerText = "Deposit successful";
+
+  setTimeout(()=> window.location.href="Dashboard.html", 1000);
+}
+
+function goBack(){
+  window.location.href="Dashboard.html";
+}
+</script>
+
+</body>
+</html>
