@@ -21,105 +21,45 @@ body{
   padding:20px;
 }
 
-/* HEADER */
+.card{
+  background:#0d2b4d;
+  border-radius:14px;
+  padding:20px;
+  margin-top:20px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.25);
+}
+
 h1{
   font-size:22px;
-  margin-bottom:15px;
-}
-
-/* BALANCE CARD */
-.balance-card{
-  background:linear-gradient(135deg,#5fa8ff,#2ed3ff);
-  border-radius:24px;
-  padding:25px;
-  box-shadow:0 20px 40px rgba(0,0,0,0.35);
-}
-
-.balance-title{
-  opacity:0.9;
-  font-size:15px;
+  margin-bottom:10px;
 }
 
 .balance{
-  font-size:40px;
-  margin-top:8px;
+  font-size:32px;
   font-weight:600;
+  margin-top:10px;
 }
 
-/* ACTION BUTTONS */
-.actions{
-  display:flex;
-  justify-content:space-between;
-  margin-top:20px;
-}
-
-.action{
-  width:31%;
-  background:#0d2746;
-  border-radius:16px;
-  padding:16px 0;
-  text-align:center;
-  box-shadow:0 8px 18px rgba(0,0,0,0.25);
-  transition:.2s;
-}
-
-.action:active{
-  transform:scale(.95);
-}
-
-.icon{
-  font-size:22px;
-}
-
-.action span{
-  display:block;
-  margin-top:6px;
-  font-size:13px;
-}
-
-/* SEND PANEL */
-.card{
-  background:#0d2746;
-  border-radius:20px;
-  padding:20px;
-  margin-top:18px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.25);
-}
-
-input{
+button{
   width:100%;
   padding:14px;
-  margin-top:10px;
   border:none;
-  border-radius:12px;
+  border-radius:10px;
+  margin-top:15px;
   font-size:16px;
+  background:#1e88e5;
+  color:white;
 }
 
-button.send{
-  width:100%;
-  padding:15px;
-  margin-top:12px;
-  border:none;
-  border-radius:14px;
-  background:#2ecc71;
-  color:white;
-  font-size:16px;
+.transactions{
+  margin-top:15px;
 }
 
 .tx{
-  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  justify-content:space-between;
   padding:10px 0;
-}
-
-.logout{
-  width:100%;
-  margin-top:20px;
-  padding:15px;
-  border:none;
-  border-radius:14px;
-  background:#e74c3c;
-  color:white;
-  font-size:16px;
+  border-bottom:1px solid rgba(255,255,255,0.1);
 }
 </style>
 </head>
@@ -127,148 +67,59 @@ button.send{
 
 <div class="container">
 
-<h1>DeChase Finance</h1>
+  <h1 id="welcome">Welcome</h1>
 
-<!-- BALANCE -->
-<div class="balance-card">
-  <div class="balance-title">Available Balance</div>
-  <div class="balance" id="balance"></div>
-</div>
-
-<!-- ACTION BUTTONS -->
-<div class="actions">
-  <div class="action" onclick="toggleSend()">
-    <div class="icon">💸</div>
-    <span>Send</span>
+  <div class="card">
+    <div>Available Balance</div>
+    <div class="balance" id="balance">€0</div>
   </div>
-  <div class="action">
-    <div class="icon">💰</div>
-    <span>Receive</span>
+
+  <div class="card">
+    <h3>Recent Transactions</h3>
+    <div class="transactions" id="transactions"></div>
   </div>
-  <div class="action" onclick="scrollHistory()">
-    <div class="icon">📜</div>
-    <span>History</span>
-  </div>
-</div>
 
-<!-- SEND MONEY -->
-<div class="card" id="sendPanel" style="display:none">
-  <input id="receiver" list="userList" placeholder="Recipient">
-  <datalist id="userList"></datalist>
-
-  <input id="amount" type="number" placeholder="Amount">
-  <button class="send" onclick="transferMoney()">Send</button>
-  <div id="transferMsg"></div>
-</div>
-
-<!-- HISTORY -->
-<div class="card" id="historyCard">
-  <h3>Recent Activity</h3>
-  <div id="history"></div>
-</div>
-
-<button class="logout" onclick="logout()">Logout</button>
+  <button onclick="logout()">Logout</button>
 
 </div>
 
 <script>
-let currentUser = JSON.parse(localStorage.getItem("currentUser"));
-if(!currentUser) location.href="login.html";
+// protect dashboard if not logged in
+const user = JSON.parse(localStorage.getItem("loggedInUser"));
 
-let users = JSON.parse(localStorage.getItem("users")) || [];
-
-// sync user
-const dbUser = users.find(u=>u.username===currentUser.username);
-if(dbUser){
-  currentUser=dbUser;
-  localStorage.setItem("currentUser",JSON.stringify(currentUser));
+if(!user){
+  window.location.href = "index.html";
 }
 
-// fix old transactions
-users.forEach(u=>{
-  if(u.transactions){
-    u.transactions.forEach(t=>{
-      if(!t.name && t.type){ t.name=t.type; }
-    });
-  }
+// show user info
+document.getElementById("welcome").innerText =
+  "Hello, " + user.username;
+
+document.getElementById("balance").innerText =
+  "€" + user.balance.toLocaleString();
+
+// demo transactions
+const demoTx = [
+  {name:"Amazon Purchase", amount:"-€120"},
+  {name:"Salary Deposit", amount:"+€2,400"},
+  {name:"Netflix", amount:"-€15"},
+  {name:"Electric Bill", amount:"-€64"}
+];
+
+const txContainer = document.getElementById("transactions");
+
+demoTx.forEach(tx => {
+  txContainer.innerHTML += `
+    <div class="tx">
+      <span>${tx.name}</span>
+      <span>${tx.amount}</span>
+    </div>
+  `;
 });
-localStorage.setItem("users",JSON.stringify(users));
-
-// display balance
-balance.innerText="€"+Number(currentUser.balance).toLocaleString();
-
-// autocomplete
-users.forEach(u=>{
- if(u.username!==currentUser.username){
-   let opt=document.createElement("option");
-   opt.value=u.username;
-   userList.appendChild(opt);
- }
-});
-
-// toggle send
-function toggleSend(){
- sendPanel.style.display=
- sendPanel.style.display==="none"?"block":"none";
-}
-
-function scrollHistory(){
- historyCard.scrollIntoView({behavior:"smooth"});
-}
-
-// load history
-function loadHistory(){
- const user=users.find(u=>u.username===currentUser.username);
-
- if(!user.transactions || user.transactions.length===0){
-   history.innerHTML="No activity yet";
-   return;
- }
-
- history.innerHTML=user.transactions.slice(0,5).map(t=>`
-   <div class="tx">
-     ${t.name} €${t.amount}<br>
-     <small>${t.date}</small>
-   </div>
- `).join("");
-}
-loadHistory();
-
-// transfer
-function transferMoney(){
- const name=receiver.value.trim().toLowerCase();
- const amt=parseFloat(amount.value);
-
- if(!name || !amt || amt<=0){
-   transferMsg.innerText="Enter valid details";
-   return;
- }
-
- const sender=users.find(u=>u.username===currentUser.username);
- const rec=users.find(u=>u.username.toLowerCase()===name);
-
- if(!rec){ transferMsg.innerText="User not found"; return; }
- if(sender.balance<amt){ transferMsg.innerText="Insufficient funds"; return; }
-
- sender.balance-=amt;
- rec.balance+=amt;
-
- const now=new Date().toLocaleString();
-
- sender.transactions.unshift({name:"Sent to "+rec.username,amount:amt,date:now});
- rec.transactions.unshift({name:"Received from "+sender.username,amount:amt,date:now});
-
- localStorage.setItem("users",JSON.stringify(users));
- localStorage.setItem("currentUser",JSON.stringify(sender));
-
- transferMsg.innerText="Transfer successful";
-
- setTimeout(()=>location.reload(),800);
-}
 
 function logout(){
- localStorage.removeItem("currentUser");
- location.href="login.html";
+  localStorage.removeItem("loggedInUser");
+  window.location.href = "index.html";
 }
 </script>
 
