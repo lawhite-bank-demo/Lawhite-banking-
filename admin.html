@@ -17,7 +17,7 @@ body{
   border-radius:12px;
   margin:20px;
 }
-input,button,select{
+input,button{
   width:90%;
   padding:12px;
   margin-top:10px;
@@ -45,54 +45,61 @@ button{
 
 <h2>Admin Panel</h2>
 
+<!-- ADMIN LOGIN -->
+<div class="card" id="loginCard">
+  <h3>Admin Login</h3>
+  <input id="adminUser" placeholder="Admin Username">
+  <input id="adminPin" placeholder="Admin PIN">
+  <button onclick="adminLogin()">Login</button>
+</div>
+
+<div id="panel" style="display:none">
+
 <!-- CREATE USER -->
 <div class="card">
   <h3>Create User</h3>
   <input id="newUser" placeholder="Username">
   <input id="newPin" placeholder="PIN">
   <input id="newBalance" placeholder="Starting Balance">
-  <select id="newCurrency">
-    <option value="EUR">EUR</option>
-    <option value="USD">USD</option>
-    <option value="GBP">GBP</option>
-  </select>
   <button onclick="createUser()">Create User</button>
 </div>
 
-<!-- ADD MONEY -->
+<!-- CREDIT -->
 <div class="card">
   <h3>Add Money</h3>
-  <input id="targetUser" placeholder="Username">
-  <input id="amount" placeholder="Amount">
-  <button onclick="addMoney()">Credit Account</button>
+  <input id="creditUser" placeholder="Username or Account #">
+  <input id="creditAmount" placeholder="Amount">
+  <button onclick="addMoney()">Credit</button>
 </div>
 
-<!-- DEDUCT MONEY -->
+<!-- DEBIT -->
 <div class="card">
   <h3>Deduct Money</h3>
-  <input id="deductUser" placeholder="Username">
-  <input id="deductAmount" placeholder="Amount">
-  <button onclick="deductMoney()">Debit Account</button>
+  <input id="debitUser" placeholder="Username or Account #">
+  <input id="debitAmount" placeholder="Amount">
+  <button onclick="deductMoney()">Debit</button>
 </div>
 
-<!-- TRANSFER MONEY -->
+<!-- TRANSFER -->
 <div class="card">
-  <h3>Transfer Between Users</h3>
-  <input id="fromUser" placeholder="From Username">
-  <input id="toUser" placeholder="To Username">
+  <h3>Transfer</h3>
+  <input id="fromAcc" placeholder="From Username/Acc #">
+  <input id="toAcc" placeholder="To Username/Acc #">
   <input id="transferAmount" placeholder="Amount">
   <button onclick="transferMoney()">Transfer</button>
 </div>
 
-<!-- SEARCH TRANSACTION -->
+<!-- SEARCH -->
 <div class="card">
   <h3>Search Transaction</h3>
-  <input id="searchRef" placeholder="Enter Reference Number">
+  <input id="searchRef" placeholder="Reference Number">
   <button onclick="searchTransaction()">Search</button>
   <div id="searchResult" class="result"></div>
 </div>
 
 <div class="msg" id="msg"></div>
+
+</div>
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -111,200 +118,180 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+/* ---------- HELPERS ---------- */
 
-// 🔐 ADMIN ACCESS PROTECTION
-const loggedUser = localStorage.getItem("loggedInUser");
-
-if(!loggedUser){
-  alert("Login required");
-  window.location.href = "login.html";
+function generateAccount(){
+  return "DCB-" + Math.floor(1000000 + Math.random()*9000000);
 }
-
-db.collection("users").doc(loggedUser).get().then(doc => {
-  if(!doc.exists || doc.data().role !== "admin"){
-    alert("Access denied: Admin only");
-    window.location.href = "dashboard.html";
-  }
-});
-
 
 function generateRef(){
-  return "DCB-" + Math.floor(10000000 + Math.random() * 90000000);
+  return "TX-" + Math.floor(10000000 + Math.random()*90000000);
 }
 
-function createUser(){
-  const username = newUser.value.trim();
-  const pin = newPin.value.trim();
-  const balance = Number(newBalance.value) || 0;
-  const currency = newCurrency.value;
+async function findUser(input){
+  const doc = await db.collection("users").doc(input).get();
+  if(doc.exists) return doc;
 
-  if(!username || !pin){
-    alert("Enter username and PIN");
+  const snap = await db.collection("users")
+    .where("accountNumber","==",input).get();
+
+  if(!snap.empty) return snap.docs[0];
+
+  return null;
+}
+
+/* ---------- ADMIN LOGIN ---------- */
+
+async function adminLogin(){
+  const user = adminUser.value.trim();
+  const pin = adminPin.value.trim();
+
+  const doc = await db.collection("users").doc(user).get();
+
+  if(!doc.exists || doc.data().pin !== pin || doc.data().role !== "admin"){
+    alert("Invalid admin login");
     return;
   }
 
-  db.collection("users").doc(username).set({
+  loginCard.style.display="none";
+  panel.style.display="block";
+}
+
+/* ---------- CREATE USER ---------- */
+
+async function createUser(){
+  const username = newUser.value.trim();
+  const pin = newPin.value.trim();
+  const balance = Number(newBalance.value)||0;
+
+  if(!username || !pin) return alert("Enter details");
+
+  const exists = await db.collection("users").doc(username).get();
+  if(exists.exists) return alert("User exists");
+
+  const acc = generateAccount();
+
+  await db.collection("users").doc(username).set({
     username,
     pin,
     balance,
-    currency,
-    role: "user",
-    transactions: []
+    role:"user",
+    accountNumber:acc,
+    transactions:[]
   });
 
-  msg.innerText = "✅ User created";
+  msg.innerHTML = `✅ User created<br>Account #: <b>${acc}</b>`;
 }
 
-function addMoney(){
-  const username = targetUser.value.trim();
-  const amount = Number(document.getElementById("amount").value);
+/* ---------- CREDIT ---------- */
 
-  if(!username || !amount){
-    alert("Enter username & amount");
-    return;
-  }
+async function addMoney(){
+  const user = creditUser.value.trim();
+  const amount = Number(creditAmount.value);
 
-  const ref = db.collection("users").doc(username);
+  const doc = await findUser(user);
+  if(!doc) return alert("User not found");
 
-  db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(ref);
-    if(!doc.exists){ alert("User not found"); return; }
+  const ref = doc.ref;
+  const data = doc.data();
+  const newBal = (data.balance||0)+amount;
+  const txRef = generateRef();
 
-    const newBalance = (doc.data().balance || 0) + amount;
-
-    transaction.update(ref, {
-      balance: newBalance,
-      transactions: firebase.firestore.FieldValue.arrayUnion({
-        amount: amount,
-        note: "Admin credit",
-        ref: generateRef(),
-        date: new Date().toLocaleString()
-      })
-    });
+  await ref.update({
+    balance:newBal,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
+      amount,
+      note:"Admin credit",
+      ref:txRef,
+      date:new Date().toLocaleString()
+    })
   });
 
-  msg.innerText = "✅ Money added";
+  msg.innerText="✅ Credited | Ref: "+txRef;
 }
 
-function deductMoney(){
-  const username = deductUser.value.trim();
-  const amount = Number(document.getElementById("deductAmount").value);
+/* ---------- DEBIT ---------- */
 
-  if(!username || !amount){
-    alert("Enter username & amount");
-    return;
-  }
+async function deductMoney(){
+  const user = debitUser.value.trim();
+  const amount = Number(debitAmount.value);
 
-  const ref = db.collection("users").doc(username);
+  const doc = await findUser(user);
+  if(!doc) return alert("User not found");
 
-  db.runTransaction(async (transaction) => {
-    const doc = await transaction.get(ref);
-    if(!doc.exists){ alert("User not found"); return; }
+  const data = doc.data();
+  if(data.balance < amount) return alert("Insufficient funds");
 
-    const balance = doc.data().balance || 0;
-    if(balance < amount){ alert("Insufficient balance"); return; }
+  const txRef = generateRef();
 
-    transaction.update(ref, {
-      balance: balance - amount,
-      transactions: firebase.firestore.FieldValue.arrayUnion({
-        amount: -amount,
-        note: "Admin debit",
-        ref: generateRef(),
-        date: new Date().toLocaleString()
-      })
-    });
+  await doc.ref.update({
+    balance:data.balance - amount,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
+      amount:-amount,
+      note:"Admin debit",
+      ref:txRef,
+      date:new Date().toLocaleString()
+    })
   });
 
-  msg.innerText = "✅ Money deducted";
+  msg.innerText="✅ Debited | Ref: "+txRef;
 }
 
-function transferMoney(){
+/* ---------- TRANSFER ---------- */
 
-  const fromUser = document.getElementById("fromUser").value.trim();
-  const toUser = document.getElementById("toUser").value.trim();
-  const amount = Number(document.getElementById("transferAmount").value);
+async function transferMoney(){
+  const from = fromAcc.value.trim();
+  const to = toAcc.value.trim();
+  const amount = Number(transferAmount.value);
 
-  if(!fromUser || !toUser || !amount){
-    alert("Enter all transfer details");
-    return;
-  }
+  const fromDoc = await findUser(from);
+  const toDoc = await findUser(to);
 
-  if(fromUser === toUser){
-    alert("Cannot transfer to same account");
-    return;
-  }
+  if(!fromDoc || !toDoc) return alert("User not found");
+  if(fromDoc.data().balance < amount) return alert("Insufficient");
 
-  const fromRef = db.collection("users").doc(fromUser);
-  const toRef = db.collection("users").doc(toUser);
+  const refNum = generateRef();
 
-  db.runTransaction(async (transaction) => {
-
-    const fromDoc = await transaction.get(fromRef);
-    const toDoc = await transaction.get(toRef);
-
-    if(!fromDoc.exists || !toDoc.exists){
-      alert("User not found");
-      return;
-    }
-
-    const fromBalance = fromDoc.data().balance || 0;
-    if(fromBalance < amount){
-      alert("Insufficient funds");
-      return;
-    }
-
-    const toBalance = toDoc.data().balance || 0;
-    const refNum = generateRef();
-
-    transaction.update(fromRef, {
-      balance: fromBalance - amount,
-      transactions: firebase.firestore.FieldValue.arrayUnion({
-        amount: -amount,
-        note: "Transfer to " + toUser,
-        ref: refNum,
-        date: new Date().toLocaleString()
-      })
-    });
-
-    transaction.update(toRef, {
-      balance: toBalance + amount,
-      transactions: firebase.firestore.FieldValue.arrayUnion({
-        amount: amount,
-        note: "Transfer from " + fromUser,
-        ref: refNum,
-        date: new Date().toLocaleString()
-      })
-    });
-
+  await fromDoc.ref.update({
+    balance: fromDoc.data().balance - amount,
+    transactions: firebase.firestore.FieldValue.arrayUnion({
+      amount:-amount,
+      note:"Transfer to "+toDoc.data().username,
+      ref:refNum,
+      date:new Date().toLocaleString()
+    })
   });
 
-  msg.innerText = "✅ Transfer successful";
+  await toDoc.ref.update({
+    balance: toDoc.data().balance + amount,
+    transactions: firebase.firestore.FieldValue.arrayUnion({
+      amount:amount,
+      note:"Transfer from "+fromDoc.data().username,
+      ref:refNum,
+      date:new Date().toLocaleString()
+    })
+  });
+
+  msg.innerText="✅ Transfer complete | Ref: "+refNum;
 }
+
+/* ---------- SEARCH ---------- */
 
 async function searchTransaction(){
+  const ref = searchRef.value.trim();
+  searchResult.innerHTML="Searching...";
 
-  const ref = document.getElementById("searchRef").value.trim();
+  const snap = await db.collection("users").get();
 
-  if(!ref){
-    alert("Enter reference number");
-    return;
-  }
+  let found=false;
 
-  searchResult.innerHTML = "Searching...";
-
-  const snapshot = await db.collection("users").get();
-
-  let found = false;
-
-  snapshot.forEach(doc => {
-    const data = doc.data();
-    const txs = data.transactions || [];
-
-    txs.forEach(tx => {
-      if(tx.ref === ref){
-        found = true;
+  snap.forEach(doc=>{
+    const txs = doc.data().transactions||[];
+    txs.forEach(tx=>{
+      if(tx.ref===ref){
+        found=true;
         searchResult.innerHTML =
-          `<b>User:</b> ${data.username}<br>
+          `<b>User:</b> ${doc.data().username}<br>
            <b>Amount:</b> ${tx.amount}<br>
            <b>Note:</b> ${tx.note}<br>
            <b>Date:</b> ${tx.date}`;
@@ -312,11 +299,8 @@ async function searchTransaction(){
     });
   });
 
-  if(!found){
-    searchResult.innerHTML = "No transaction found";
-  }
+  if(!found) searchResult.innerHTML="No transaction found";
 }
 </script>
-
 </body>
 </html>
