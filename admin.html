@@ -111,6 +111,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+
+// 🔐 ADMIN ACCESS PROTECTION
+const loggedUser = localStorage.getItem("loggedInUser");
+
+if(!loggedUser){
+  alert("Login required");
+  window.location.href = "login.html";
+}
+
+db.collection("users").doc(loggedUser).get().then(doc => {
+  if(!doc.exists || doc.data().role !== "admin"){
+    alert("Access denied: Admin only");
+    window.location.href = "dashboard.html";
+  }
+});
+
+
 function generateRef(){
   return "DCB-" + Math.floor(10000000 + Math.random() * 90000000);
 }
