@@ -49,6 +49,9 @@ button{
   padding:8px 0;
   border-bottom:1px solid rgba(255,255,255,0.1);
 }
+small{
+  opacity:0.7;
+}
 </style>
 </head>
 <body>
@@ -59,11 +62,7 @@ button{
 
   <div class="card">
     <div>Available Balance</div>
-    <div class="balance" id="balance">€0</div>
-  </div>
-
-  <div class="card">
-    <button onclick="location.href='send.html'">Send Money</button>
+    <div class="balance" id="balance">0</div>
   </div>
 
   <div class="card">
@@ -84,7 +83,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
   projectId: "dechase-bank",
-  storageBucket: "dechase-bank.firebasestorage.app",
+  storageBucket: "dechase-bank.appspot.com",
   messagingSenderId: "44428081485",
   appId: "1:44428081485:web:85d993a939d380336e1f04"
 };
@@ -92,19 +91,18 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// get logged in user
 const username = localStorage.getItem("loggedInUser");
 
 if(!username){
   window.location.href = "login.html";
 }
 
-// load user data from Firestore
-db.collection("users").doc(username).get().then(doc => {
+// REAL-TIME LISTENER
+db.collection("users").doc(username)
+.onSnapshot(doc => {
 
   if(!doc.exists){
     alert("User not found");
-    logout();
     return;
   }
 
@@ -113,10 +111,20 @@ db.collection("users").doc(username).get().then(doc => {
   document.getElementById("welcome").innerText =
     "Hello, " + user.username;
 
+  const symbolMap = {
+    EUR: "€",
+    USD: "$",
+    GBP: "£",
+    NGN: "₦"
+  };
+
+  const symbol = symbolMap[user.currency] || "";
+
   document.getElementById("balance").innerText =
-    "€" + Number(user.balance).toLocaleString();
+    symbol + Number(user.balance).toLocaleString();
 
   const container = document.getElementById("transactions");
+  container.innerHTML = "";
 
   if(!user.transactions || user.transactions.length === 0){
     container.innerHTML = "<p>No transactions yet</p>";
@@ -129,9 +137,12 @@ db.collection("users").doc(username).get().then(doc => {
 
     container.innerHTML += `
       <div class="tx">
-        <span>${tx.note}</span>
+        <span>
+          ${tx.note}<br>
+          <small>${tx.ref || ""}</small>
+        </span>
         <span style="color:${color}">
-          €${Math.abs(tx.amount)}
+          ${symbol}${Math.abs(tx.amount)}
         </span>
       </div>
     `;
