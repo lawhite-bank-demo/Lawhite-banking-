@@ -1,85 +1,105 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>DeChase Bank</title>  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b1220">  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(180deg, #0b1220, #102a54);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DeChase Bank</title>
 
-    .card {
-      background: #ffffff;
-      width: 90%;
-      max-width: 380px;
-      padding: 30px 20px;
-      border-radius: 20px;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    }
+<meta name="theme-color" content="#0b1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    .logo {
-      width: 90px;
-      margin-bottom: 15px;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(180deg, #0b1220, #102a54);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
 
-    h1 {
-      margin: 10px 0 5px;
-      color: #111;
-    }
+.card {
+  background: #ffffff;
+  width: 90%;
+  max-width: 380px;
+  padding: 30px 20px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
 
-    .subtitle {
-      color: #666;
-      margin-bottom: 25px;
-    }
+.logo {
+  width: 90px;
+  margin-bottom: 15px;
+}
 
-    input {
-      width: 100%;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 12px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
+h1 {
+  margin: 10px 0 5px;
+  color: #111;
+}
 
-    button {
-      width: 100%;
-      padding: 15px;
-      border-radius: 12px;
-      border: none;
-      background: #1f3b63;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-    }
+.subtitle {
+  color: #666;
+  margin-bottom: 25px;
+}
 
-    button:active {
-      transform: scale(0.98);
-    }
-  </style></head>
-<body>  <div class="card">
-    <img src="icon.png" class="logo" alt="Bank Logo">
-    <h1>DeChase Bank</h1>
-    <div class="subtitle">Secure Online Banking</div><input type="text" placeholder="Username">
-<input type="password" placeholder="PIN">
+input {
+  width: 100%;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
 
-<button onclick="login()">Login</button>
+button {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  border: none;
+  background: #1f3b63;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+}
 
-  </div>  <script>
-    function login() {
-      alert("Login successful (demo)");
-      window.location.href = "dashboard.html";
-    }
+button:active {
+  transform: scale(0.98);
+}
+</style>
+</head>
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js");
-    }
-  </script></body>
+<body>
+
+<div class="card">
+  <img src="icon.png" class="logo" alt="Bank Logo">
+  <h1>DeChase Bank</h1>
+  <div class="subtitle">Secure Online Banking</div>
+
+  <input id="username" type="text" placeholder="Username">
+  <input id="pin" type="password" placeholder="PIN">
+
+  <button onclick="login()">Login</button>
+</div>
+
+<script>
+function login() {
+  // demo login
+  alert("Login successful");
+
+  // ✅ FIXED CASE-SENSITIVE PATH
+  window.location.href = "Dashboard.html";
+}
+
+/*
+⚠️ SERVICE WORKER DISABLED FOR NOW
+This prevents cached 404 errors.
+
+You can enable it later after testing.
+*/
+</script>
+
+</body>
 </html>
