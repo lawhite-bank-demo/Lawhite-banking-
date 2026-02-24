@@ -1,47 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
   <title>DeChase Bank Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #0b2c5a;
-      color: white;
-      display: flex;
-      height: 100vh;
-      justify-content: center;
-      align-items: center;
+    body{
+      font-family: Arial;
+      background:#0b1e35;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
     }
-
-    .card {
-      background: white;
-      color: black;
-      padding: 25px;
-      border-radius: 12px;
-      width: 300px;
-      text-align: center;
+    .card{
+      background:white;
+      padding:25px;
+      border-radius:12px;
+      width:300px;
+      text-align:center;
     }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-top: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    input,button{
+      width:100%;
+      padding:12px;
+      margin-top:10px;
+      border-radius:8px;
+      border:1px solid #ccc;
     }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      margin-top: 15px;
-      background: #0b2c5a;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
+    button{
+      background:#1e88e5;
+      color:white;
+      border:none;
+      font-size:16px;
     }
   </style>
 </head>
@@ -49,26 +39,49 @@
 
 <div class="card">
   <h2>DeChase Bank</h2>
-
-  <input type="text" id="username" placeholder="Username">
-  <input type="password" id="password" placeholder="Password">
-
+  <input id="username" placeholder="Username">
+  <input id="pin" placeholder="PIN" type="password">
   <button onclick="login()">Login</button>
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 <script>
-function login() {
-  const user = document.getElementById("username").value;
-  const pass = document.getElementById("password").value;
+const firebaseConfig = {
+  apiKey: "PASTE",
+  authDomain: "PASTE",
+  projectId: "PASTE",
+  storageBucket: "PASTE",
+  messagingSenderId: "PASTE",
+  appId: "PASTE"
+};
 
-  if(user && pass){
-    alert("Login successful (demo)");
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-    // ✅ IMPORTANT: RELATIVE PATH
-    window.location.href = "Dashboard.html";
-  } else {
-    alert("Enter login details");
-  }
+function login(){
+  const username = document.getElementById("username").value;
+  const pin = document.getElementById("pin").value;
+
+  db.collection("users").doc(username).get().then(doc => {
+
+    if(!doc.exists){
+      alert("User not found");
+      return;
+    }
+
+    const user = doc.data();
+
+    if(user.pin === pin){
+      localStorage.setItem("loggedInUser", username);
+      window.location = "dashboard.html";
+    }else{
+      alert("Wrong PIN");
+    }
+
+  });
 }
 </script>
 
