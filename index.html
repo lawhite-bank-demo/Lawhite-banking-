@@ -86,19 +86,30 @@ button:active {
 
 <script>
 function login() {
-  // demo login
-  alert("Login successful");
 
-  // ✅ FIXED CASE-SENSITIVE PATH
-  window.location.href = "Dashboard.html";
+  const username = document.getElementById("username").value.toLowerCase();
+  const pin = document.getElementById("pin").value;
+
+  const users = JSON.parse(localStorage.getItem("users")) || [];
+
+  const user = users.find(u =>
+    u.username === username && u.pin === pin
+  );
+
+  if(user){
+
+    localStorage.setItem("loggedInUser", JSON.stringify(user));
+
+    if(user.username === "admin"){
+      window.location.href = "admin.html";
+    } else {
+      window.location.href = "Dashboard.html";
+    }
+
+  } else {
+    alert("Invalid username or PIN");
+  }
 }
-
-/*
-⚠️ SERVICE WORKER DISABLED FOR NOW
-This prevents cached 404 errors.
-
-You can enable it later after testing.
-*/
 </script>
 
 </body>
