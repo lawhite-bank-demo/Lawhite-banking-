@@ -69,6 +69,7 @@ button{
   <h3>Add Money</h3>
   <input id="creditUser" placeholder="Username or Account #">
   <input id="creditAmount" placeholder="Amount">
+  <input id="creditDate" placeholder="Date (optional)">
   <button onclick="addMoney()">Credit</button>
 </div>
 
@@ -77,6 +78,7 @@ button{
   <h3>Deduct Money</h3>
   <input id="debitUser" placeholder="Username or Account #">
   <input id="debitAmount" placeholder="Amount">
+  <input id="debitDate" placeholder="Date (optional)">
   <button onclick="deductMoney()">Debit</button>
 </div>
 
@@ -86,6 +88,7 @@ button{
   <input id="fromAcc" placeholder="From Username/Acc #">
   <input id="toAcc" placeholder="To Username/Acc #">
   <input id="transferAmount" placeholder="Amount">
+  <input id="transferDate" placeholder="Date (optional)">
   <button onclick="transferMoney()">Transfer</button>
 </div>
 
@@ -101,7 +104,6 @@ button{
 
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -109,147 +111,110 @@ button{
 const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank",
-  storageBucket: "dechase-bank.appspot.com",
-  messagingSenderId: "44428081485",
-  appId: "1:44428081485:web:85d993a939d380336e1f04"
+  projectId: "dechase-bank"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* ---------- HELPERS ---------- */
-
+/* HELPERS */
 function generateAccount(){
   return "DCB-" + Math.floor(1000000 + Math.random()*9000000);
 }
-
 function generateRef(){
   return "TX-" + Math.floor(10000000 + Math.random()*90000000);
 }
-
 async function findUser(input){
   const doc = await db.collection("users").doc(input).get();
   if(doc.exists) return doc;
-
   const snap = await db.collection("users")
     .where("accountNumber","==",input).get();
-
   if(!snap.empty) return snap.docs[0];
-
   return null;
 }
 
-/* ---------- ADMIN LOGIN ---------- */
-
+/* ADMIN LOGIN */
 async function adminLogin(){
   const user = adminUser.value.trim();
   const pin = adminPin.value.trim();
-
   const doc = await db.collection("users").doc(user).get();
-
   if(!doc.exists || doc.data().pin !== pin || doc.data().role !== "admin"){
     alert("Invalid admin login");
     return;
   }
-
   loginCard.style.display="none";
   panel.style.display="block";
 }
 
-/* ---------- CREATE USER ---------- */
-
+/* CREATE USER */
 async function createUser(){
   const username = newUser.value.trim();
   const pin = newPin.value.trim();
   const balance = Number(newBalance.value)||0;
-
   if(!username || !pin) return alert("Enter details");
-
   const exists = await db.collection("users").doc(username).get();
   if(exists.exists) return alert("User exists");
-
   const acc = generateAccount();
-
   await db.collection("users").doc(username).set({
-    username,
-    pin,
-    balance,
+    username,pin,balance,
     role:"user",
     accountNumber:acc,
     transactions:[]
   });
-
   msg.innerHTML = `✅ User created<br>Account #: <b>${acc}</b>`;
 }
 
-/* ---------- CREDIT ---------- */
-
+/* CREDIT */
 async function addMoney(){
   const user = creditUser.value.trim();
   const amount = Number(creditAmount.value);
-
+  const date = creditDate.value || new Date().toLocaleString();
   const doc = await findUser(user);
   if(!doc) return alert("User not found");
-
-  const ref = doc.ref;
-  const data = doc.data();
-  const newBal = (data.balance||0)+amount;
   const txRef = generateRef();
-
-  await ref.update({
-    balance:newBal,
+  await doc.ref.update({
+    balance:(doc.data().balance||0)+amount,
     transactions:firebase.firestore.FieldValue.arrayUnion({
       amount,
       note:"Admin credit",
       ref:txRef,
-      date:new Date().toLocaleString()
+      date:date
     })
   });
-
   msg.innerText="✅ Credited | Ref: "+txRef;
 }
 
-/* ---------- DEBIT ---------- */
-
+/* DEBIT */
 async function deductMoney(){
   const user = debitUser.value.trim();
   const amount = Number(debitAmount.value);
-
+  const date = debitDate.value || new Date().toLocaleString();
   const doc = await findUser(user);
   if(!doc) return alert("User not found");
-
-  const data = doc.data();
-  if(data.balance < amount) return alert("Insufficient funds");
-
+  if(doc.data().balance < amount) return alert("Insufficient funds");
   const txRef = generateRef();
-
   await doc.ref.update({
-    balance:data.balance - amount,
+    balance:doc.data().balance - amount,
     transactions:firebase.firestore.FieldValue.arrayUnion({
       amount:-amount,
       note:"Admin debit",
       ref:txRef,
-      date:new Date().toLocaleString()
+      date:date
     })
   });
-
   msg.innerText="✅ Debited | Ref: "+txRef;
 }
 
-/* ---------- TRANSFER ---------- */
-
+/* TRANSFER */
 async function transferMoney(){
   const from = fromAcc.value.trim();
   const to = toAcc.value.trim();
   const amount = Number(transferAmount.value);
-
+  const date = transferDate.value || new Date().toLocaleString();
   const fromDoc = await findUser(from);
   const toDoc = await findUser(to);
-
   if(!fromDoc || !toDoc) return alert("User not found");
   if(fromDoc.data().balance < amount) return alert("Insufficient");
-
   const refNum = generateRef();
 
   await fromDoc.ref.update({
@@ -258,7 +223,7 @@ async function transferMoney(){
       amount:-amount,
       note:"Transfer to "+toDoc.data().username,
       ref:refNum,
-      date:new Date().toLocaleString()
+      date:date
     })
   });
 
@@ -268,23 +233,19 @@ async function transferMoney(){
       amount:amount,
       note:"Transfer from "+fromDoc.data().username,
       ref:refNum,
-      date:new Date().toLocaleString()
+      date:date
     })
   });
 
   msg.innerText="✅ Transfer complete | Ref: "+refNum;
 }
 
-/* ---------- SEARCH ---------- */
-
+/* SEARCH */
 async function searchTransaction(){
   const ref = searchRef.value.trim();
   searchResult.innerHTML="Searching...";
-
   const snap = await db.collection("users").get();
-
   let found=false;
-
   snap.forEach(doc=>{
     const txs = doc.data().transactions||[];
     txs.forEach(tx=>{
@@ -298,7 +259,6 @@ async function searchTransaction(){
       }
     });
   });
-
   if(!found) searchResult.innerHTML="No transaction found";
 }
 </script>
