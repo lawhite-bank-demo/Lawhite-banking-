@@ -137,7 +137,6 @@ body.light .logout{background:#e53935;}
     <input id="amount" placeholder="Amount">
     <input id="note" placeholder="Description (optional)">
     <button onclick="sendMoney()">Send</button>
-    <div id="msg"></div>
   </div>
 
   <div class="card">
@@ -246,6 +245,8 @@ async function sendMoney(){
     return;
   }
 
+  const receiverData = receiverDoc.data();
+
   const ref="TX-"+Math.floor(Math.random()*99999999);
   const date=new Date().toLocaleString();
 
@@ -253,17 +254,17 @@ async function sendMoney(){
     balance: senderData.balance - amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
       amount:-amt,
-      note: noteText,
+      note: "Sent to " + receiverData.username + " • " + noteText,
       ref,
       date
     })
   });
 
   await receiverDoc.ref.update({
-    balance: receiverDoc.data().balance + amt,
+    balance: receiverData.balance + amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
       amount:amt,
-      note: noteText,
+      note: "From " + username + " • " + noteText,
       ref,
       date
     })
