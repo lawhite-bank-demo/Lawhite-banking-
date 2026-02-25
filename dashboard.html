@@ -13,6 +13,7 @@ body{
   font-family:'Poppins', sans-serif;
   background:linear-gradient(180deg,#031427,#071f3a);
   color:white;
+  transition:0.3s;
 }
 
 .container{
@@ -105,6 +106,42 @@ input{
   margin-top:10px;
   font-size:13px;
 }
+
+/* toggle button */
+#themeToggle{
+  width:auto;
+  padding:8px 12px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.15);
+  font-size:16px;
+}
+
+/* LIGHT MODE */
+body.light{
+  background:linear-gradient(180deg,#f4f7fb,#e6eef7);
+  color:#111;
+}
+
+body.light .card{
+  background:white;
+  color:#111;
+}
+
+body.light .tx{
+  border-bottom:1px solid rgba(0,0,0,0.08);
+}
+
+body.light input{
+  background:#f1f3f6;
+}
+
+body.light button{
+  background:#1976d2;
+}
+
+body.light .logout{
+  background:#e53935;
+}
 </style>
 </head>
 <body>
@@ -113,6 +150,7 @@ input{
 
   <div class="header">
     <h2 id="welcome">Hello</h2>
+    <button id="themeToggle" onclick="toggleTheme()">🌙</button>
   </div>
 
   <div class="balanceCard">
@@ -120,7 +158,6 @@ input{
     <div class="balance" id="balance">0</div>
   </div>
 
-  <!-- QUICK SEND -->
   <div class="card">
     <h3>Send Money</h3>
     <input id="receiver" placeholder="Receiver username">
@@ -157,28 +194,39 @@ if(!username){
   window.location.href="login.html";
 }
 
+// LOAD SAVED THEME
+if(localStorage.getItem("theme")==="light"){
+  document.body.classList.add("light");
+  document.getElementById("themeToggle").innerText="☀️";
+}
+
+// TOGGLE THEME
+function toggleTheme(){
+  document.body.classList.toggle("light");
+  if(document.body.classList.contains("light")){
+    localStorage.setItem("theme","light");
+    themeToggle.innerText="☀️";
+  }else{
+    localStorage.setItem("theme","dark");
+    themeToggle.innerText="🌙";
+  }
+}
+
 let currencySymbol="$";
 
 // REALTIME USER DATA
 db.collection("users").doc(username)
 .onSnapshot(doc => {
 
-  if(!doc.exists){
-    alert("User not found");
-    logout();
-    return;
-  }
-
   const user = doc.data();
 
-  document.getElementById("welcome").innerText =
-    "Hello, " + user.username;
+  welcome.innerText = "Hello, " + user.username;
 
   currencySymbol =
     user.currency === "GBP" ? "£" :
     user.currency === "EUR" ? "€" : "$";
 
-  document.getElementById("balance").innerText =
+  balance.innerText =
     currencySymbol + Number(user.balance).toLocaleString();
 
   const container = document.getElementById("transactions");
@@ -209,14 +257,13 @@ db.collection("users").doc(username)
 
 });
 
-
 // SEND MONEY
 async function sendMoney(){
 
   const to = receiver.value.trim();
-  const amount = Number(document.getElementById("amount").value);
+  const amt = Number(amount.value);
 
-  if(!to || !amount || amount <= 0){
+  if(!to || !amt || amt<=0){
     msg.innerText="Enter valid details";
     return;
   }
@@ -232,19 +279,18 @@ async function sendMoney(){
     return;
   }
 
-  if(fromDoc.data().balance < amount){
+  if(fromDoc.data().balance < amt){
     msg.innerText="Insufficient balance";
     return;
   }
 
-  const ref = "TX-"+Math.floor(Math.random()*99999999);
-
-  const date = new Date().toLocaleString();
+  const ref="TX-"+Math.floor(Math.random()*99999999);
+  const date=new Date().toLocaleString();
 
   await fromRef.update({
-    balance: fromDoc.data().balance - amount,
+    balance: fromDoc.data().balance - amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
-      amount:-amount,
+      amount:-amt,
       note:"Transfer to "+to,
       ref:ref,
       date:date
@@ -252,9 +298,9 @@ async function sendMoney(){
   });
 
   await toRef.update({
-    balance: toDoc.data().balance + amount,
+    balance: toDoc.data().balance + amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
-      amount:amount,
+      amount:amt,
       note:"Transfer from "+username,
       ref:ref,
       date:date
