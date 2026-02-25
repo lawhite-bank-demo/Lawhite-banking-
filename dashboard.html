@@ -15,69 +15,41 @@ body{
   color:white;
   transition:0.3s;
 }
-
 .container{max-width:420px;margin:auto;padding:20px;}
 .header{display:flex;justify-content:space-between;align-items:center;}
-
 .balanceCard{
-  margin-top:20px;
-  padding:25px;
-  border-radius:20px;
+  margin-top:20px;padding:25px;border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
 }
-
 .balance{font-size:36px;font-weight:600;margin-top:8px;}
-
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(12px);
-  border-radius:18px;
-  padding:18px;
-  margin-top:20px;
+  border-radius:18px;padding:18px;margin-top:20px;
 }
-
 button{
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  margin-top:10px;
-  font-size:15px;
-  background:#1e88e5;
-  color:white;
+  width:100%;padding:14px;border:none;border-radius:12px;
+  margin-top:10px;font-size:15px;background:#1e88e5;color:white;
 }
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:10px;
+input,select{
+  width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;
 }
-
 .tx{
-  display:flex;
-  justify-content:space-between;
-  padding:10px 0;
-  border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);
 }
-
 .amountPlus{color:#00e676;}
 .amountMinus{color:#ff5252;}
-
 .logout{background:#ff5252;margin-top:20px;}
-
 #themeToggle{
-  width:auto;
-  padding:8px 12px;
-  border-radius:10px;
+  width:auto;padding:8px 12px;border-radius:10px;
   background:rgba(255,255,255,0.15);
 }
 
 /* LIGHT MODE */
 body.light{background:#f4f7fb;color:#111;}
 body.light .card{background:white;color:#111;}
-body.light input{background:#f1f3f6;}
+body.light input,body.light select{background:#f1f3f6;}
 body.light button{background:#1976d2;}
 body.light .logout{background:#e53935;}
 
@@ -128,9 +100,10 @@ body.light .logout{background:#e53935;}
 
   <div class="balanceCard">
     <small>Available Balance</small>
-    <div class="balance" id="balance">0</div>
+    <div class="balance" id="balance">€0</div>
   </div>
 
+  <!-- SEND MONEY -->
   <div class="card">
     <h3>Send Money</h3>
     <input id="receiver" placeholder="Username or Account Number">
@@ -139,6 +112,27 @@ body.light .logout{background:#e53935;}
     <button onclick="sendMoney()">Send</button>
   </div>
 
+  <!-- PAY BILLS -->
+  <div class="card">
+    <h3>Pay Bills</h3>
+    <select id="billType">
+      <option value="Electricity">⚡ Electricity</option>
+      <option value="TV Subscription">📺 TV Subscription</option>
+      <option value="Internet">🌐 Internet</option>
+      <option value="Water">💧 Water</option>
+    </select>
+    <input id="billAmount" placeholder="Amount">
+    <button onclick="payBill()">Pay Bill</button>
+  </div>
+
+  <!-- LOAN -->
+  <div class="card">
+    <h3>Request Loan</h3>
+    <input id="loanAmount" placeholder="Loan amount">
+    <button onclick="requestLoan()">Request Loan</button>
+  </div>
+
+  <!-- TRANSACTIONS -->
   <div class="card">
     <h3>Transactions</h3>
     <div id="transactions"></div>
@@ -147,16 +141,12 @@ body.light .logout{background:#e53935;}
   <button class="logout" onclick="logout()">Logout</button>
 </div>
 
-<!-- SPINNER -->
-<div class="spinnerOverlay" id="spinner">
-  <div class="spinner"></div>
-</div>
+<div class="spinnerOverlay" id="spinner"><div class="spinner"></div></div>
 
-<!-- SUCCESS -->
 <div class="successPopup" id="successPopup">
   <div class="successBox">
     <div class="checkmark">✓</div>
-    <h3>Transfer Successful</h3>
+    <h3>Transaction Successful</h3>
   </div>
 </div>
 
@@ -165,120 +155,143 @@ body.light .logout{background:#e53935;}
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
-  authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank"
+  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain:"dechase-bank.firebaseapp.com",
+  projectId:"dechase-bank"
 };
-
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db=firebase.firestore();
 
-const username = localStorage.getItem("loggedInUser");
+const username=localStorage.getItem("loggedInUser");
 if(!username) window.location.href="login.html";
 
-/* THEME */
-function toggleTheme(){
-  document.body.classList.toggle("light");
-}
+function toggleTheme(){document.body.classList.toggle("light");}
 
-/* REALTIME DATA */
-db.collection("users").doc(username)
-.onSnapshot(doc=>{
+db.collection("users").doc(username).onSnapshot(doc=>{
   const user=doc.data();
   welcome.innerText="Hello, "+user.username;
-  balance.innerText=(user.currency==="EUR"?"€":"$")+Number(user.balance).toLocaleString();
+  balance.innerText="€"+Number(user.balance).toLocaleString();
 
-  const container=document.getElementById("transactions");
-  container.innerHTML="";
-
+  const box=document.getElementById("transactions");
+  box.innerHTML="";
   if(!user.transactions) return;
 
   user.transactions.slice().reverse().forEach(tx=>{
     const cls=tx.amount<0?"amountMinus":"amountPlus";
-    container.innerHTML+=`
+    box.innerHTML+=`
       <div class="tx">
-        <div>
-          ${tx.note}
-          <small>${tx.date}</small>
-        </div>
-        <div class="${cls}">
-          ${Math.abs(tx.amount)}
-        </div>
+        <div>${tx.note}<small>${tx.date}</small></div>
+        <div class="${cls}">€${Math.abs(tx.amount)}</div>
       </div>`;
   });
 });
 
-/* UI helpers */
-function showSpinner(){ spinner.classList.add("show"); }
-function hideSpinner(){ spinner.classList.remove("show"); }
-function showSuccess(){
-  successPopup.classList.add("show");
-  setTimeout(()=>successPopup.classList.remove("show"),1800);
-}
+function showSpinner(){spinner.classList.add("show");}
+function hideSpinner(){spinner.classList.remove("show");}
+function showSuccess(){successPopup.classList.add("show");
+  setTimeout(()=>successPopup.classList.remove("show"),1800);}
 
 /* SEND MONEY */
 async function sendMoney(){
-
-  const input=receiver.value.trim();
+  const to=receiver.value.trim();
   const amt=Number(amount.value);
-  const noteText = note.value.trim() || "Transfer";
-
-  if(!input || amt<=0) return;
+  const noteText=note.value.trim()||"Transfer";
+  if(!to||amt<=0) return;
 
   showSpinner();
-
   const senderRef=db.collection("users").doc(username);
-  const senderDoc=await senderRef.get();
-  const senderData=senderDoc.data();
+  const sender=await senderRef.get();
+  const sData=sender.data();
 
-  let receiverDoc=await db.collection("users").doc(input).get();
-
+  let receiverDoc=await db.collection("users").doc(to).get();
   if(!receiverDoc.exists){
     const snap=await db.collection("users")
-      .where("accountNumber","==",input).get();
+      .where("accountNumber","==",to).get();
     if(!snap.empty) receiverDoc=snap.docs[0];
   }
+  if(!receiverDoc.exists){hideSpinner();alert("Recipient not found");return;}
 
-  if(!receiverDoc.exists){
-    hideSpinner();
-    alert("Recipient not found");
-    return;
-  }
-
-  const receiverData = receiverDoc.data();
-
+  const rData=receiverDoc.data();
   const ref="TX-"+Math.floor(Math.random()*99999999);
   const date=new Date().toLocaleString();
 
   await senderRef.update({
-    balance: senderData.balance - amt,
-    transactions: firebase.firestore.FieldValue.arrayUnion({
+    balance:sData.balance-amt,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
       amount:-amt,
-      note: "Sent to " + receiverData.username + " • " + noteText,
-      ref,
-      date
+      note:"Sent to "+rData.username+" • "+noteText,
+      ref,date
     })
   });
 
   await receiverDoc.ref.update({
-    balance: receiverData.balance + amt,
-    transactions: firebase.firestore.FieldValue.arrayUnion({
+    balance:rData.balance+amt,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
       amount:amt,
-      note: "From " + username + " • " + noteText,
-      ref,
-      date
+      note:"From "+username+" • "+noteText,
+      ref,date
     })
   });
 
-  hideSpinner();
-  showSuccess();
-
-  receiver.value="";
-  amount.value="";
-  note.value="";
+  hideSpinner(); showSuccess();
+  receiver.value=""; amount.value=""; note.value="";
 }
 
-/* LOGOUT */
+/* PAY BILL */
+async function payBill(){
+  const type=billType.value;
+  const amt=Number(billAmount.value);
+  if(!amt||amt<=0) return;
+
+  showSpinner();
+  const ref="TX-"+Math.floor(Math.random()*99999999);
+  const date=new Date().toLocaleString();
+
+  const userRef=db.collection("users").doc(username);
+  const doc=await userRef.get();
+  const user=doc.data();
+
+  if(user.balance<amt){hideSpinner();alert("Insufficient balance");return;}
+
+  await userRef.update({
+    balance:user.balance-amt,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
+      amount:-amt,
+      note:type+" Bill Payment",
+      ref,date
+    })
+  });
+
+  hideSpinner(); showSuccess();
+  billAmount.value="";
+}
+
+/* REQUEST LOAN */
+async function requestLoan(){
+  const amt=Number(loanAmount.value);
+  if(!amt||amt<=0) return;
+
+  showSpinner();
+  const ref="TX-"+Math.floor(Math.random()*99999999);
+  const date=new Date().toLocaleString();
+
+  const userRef=db.collection("users").doc(username);
+  const doc=await userRef.get();
+  const user=doc.data();
+
+  await userRef.update({
+    balance:user.balance+amt,
+    transactions:firebase.firestore.FieldValue.arrayUnion({
+      amount:amt,
+      note:"Loan credited",
+      ref,date
+    })
+  });
+
+  hideSpinner(); showSuccess();
+  loanAmount.value="";
+}
+
 function logout(){
   localStorage.removeItem("loggedInUser");
   window.location.href="login.html";
