@@ -15,133 +15,44 @@ body{
   color:white;
   transition:0.3s;
 }
-
-.container{
-  max-width:420px;
-  margin:auto;
-  padding:20px;
-}
-
-.header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
+.container{max-width:420px;margin:auto;padding:20px;}
+.header{display:flex;justify-content:space-between;align-items:center;}
 .balanceCard{
-  margin-top:20px;
-  padding:25px;
-  border-radius:20px;
+  margin-top:20px;padding:25px;border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
   box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
-
-.balance{
-  font-size:36px;
-  font-weight:600;
-  margin-top:8px;
-}
-
+.balance{font-size:36px;font-weight:600;margin-top:8px;}
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(12px);
-  border-radius:18px;
-  padding:18px;
-  margin-top:20px;
-  box-shadow:0 8px 20px rgba(0,0,0,0.25);
+  border-radius:18px;padding:18px;margin-top:20px;
 }
-
 button{
-  width:100%;
-  padding:14px;
-  border:none;
-  border-radius:12px;
-  margin-top:10px;
-  font-size:15px;
-  background:#1e88e5;
-  color:white;
+  width:100%;padding:14px;border:none;border-radius:12px;
+  margin-top:10px;font-size:15px;background:#1e88e5;color:white;
 }
-
 input{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border:none;
-  border-radius:10px;
+  width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;
 }
-
-.tx{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:10px 0;
-  border-bottom:1px solid rgba(255,255,255,0.06);
-}
-
-.tx:last-child{
-  border-bottom:none;
-}
-
-.tx small{
-  display:block;
-  opacity:0.6;
-  font-size:11px;
-}
-
-.ref{
-  font-size:11px;
-  opacity:0.6;
-}
-
-.amountPlus{ color:#00e676; font-weight:500; }
-.amountMinus{ color:#ff5252; font-weight:500; }
-
-.logout{
-  background:#ff5252;
-  margin-top:20px;
-}
-
-.msg{
-  text-align:center;
-  margin-top:10px;
-  font-size:13px;
-}
-
-/* toggle button */
+.tx{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+.tx:last-child{border-bottom:none;}
+.amountPlus{color:#00e676;font-weight:500;}
+.amountMinus{color:#ff5252;font-weight:500;}
+.logout{background:#ff5252;margin-top:20px;}
+.msg{text-align:center;margin-top:10px;font-size:13px;}
 #themeToggle{
-  width:auto;
-  padding:8px 12px;
-  border-radius:10px;
-  background:rgba(255,255,255,0.15);
-  font-size:16px;
+  width:auto;padding:8px 12px;border-radius:10px;
+  background:rgba(255,255,255,0.15);font-size:16px;
 }
 
 /* LIGHT MODE */
-body.light{
-  background:linear-gradient(180deg,#f4f7fb,#e6eef7);
-  color:#111;
-}
-
-body.light .card{
-  background:white;
-  color:#111;
-}
-
-body.light .tx{
-  border-bottom:1px solid rgba(0,0,0,0.08);
-}
-
-body.light input{
-  background:#f1f3f6;
-}
-
-body.light button{
-  background:#1976d2;
-}
-
-body.light .logout{
-  background:#e53935;
-}
+body.light{background:linear-gradient(180deg,#f4f7fb,#e6eef7);color:#111;}
+body.light .card{background:white;color:#111;}
+body.light .tx{border-bottom:1px solid rgba(0,0,0,0.08);}
+body.light input{background:#f1f3f6;}
+body.light button{background:#1976d2;}
+body.light .logout{background:#e53935;}
 </style>
 </head>
 <body>
@@ -160,7 +71,7 @@ body.light .logout{
 
   <div class="card">
     <h3>Send Money</h3>
-    <input id="receiver" placeholder="Receiver username">
+    <input id="receiver" placeholder="Username or Account Number">
     <input id="amount" placeholder="Amount">
     <button onclick="sendMoney()">Send</button>
     <div class="msg" id="msg"></div>
@@ -189,37 +100,28 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const username = localStorage.getItem("loggedInUser");
+if(!username) window.location.href="login.html";
 
-if(!username){
-  window.location.href="login.html";
-}
-
-// LOAD SAVED THEME
+/* THEME */
 if(localStorage.getItem("theme")==="light"){
   document.body.classList.add("light");
-  document.getElementById("themeToggle").innerText="☀️";
+  themeToggle.innerText="☀️";
 }
-
-// TOGGLE THEME
 function toggleTheme(){
   document.body.classList.toggle("light");
-  if(document.body.classList.contains("light")){
-    localStorage.setItem("theme","light");
-    themeToggle.innerText="☀️";
-  }else{
-    localStorage.setItem("theme","dark");
-    themeToggle.innerText="🌙";
-  }
+  localStorage.setItem("theme",
+    document.body.classList.contains("light") ? "light":"dark");
+  themeToggle.innerText =
+    document.body.classList.contains("light") ? "☀️":"🌙";
 }
 
 let currencySymbol="$";
 
-// REALTIME USER DATA
+/* REALTIME USER DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc => {
 
   const user = doc.data();
-
   welcome.innerText = "Hello, " + user.username;
 
   currencySymbol =
@@ -230,17 +132,15 @@ db.collection("users").doc(username)
     currencySymbol + Number(user.balance).toLocaleString();
 
   const container = document.getElementById("transactions");
-  container.innerHTML = "";
+  container.innerHTML="";
 
-  if(!user.transactions || user.transactions.length === 0){
-    container.innerHTML = "<p>No transactions yet</p>";
+  if(!user.transactions || user.transactions.length===0){
+    container.innerHTML="<p>No transactions yet</p>";
     return;
   }
 
-  user.transactions.slice().reverse().forEach(tx => {
-
-    const cls = tx.amount < 0 ? "amountMinus" : "amountPlus";
-
+  user.transactions.slice().reverse().forEach(tx=>{
+    const cls = tx.amount<0?"amountMinus":"amountPlus";
     container.innerHTML += `
       <div class="tx">
         <div>
@@ -251,54 +151,67 @@ db.collection("users").doc(username)
         <div class="${cls}">
           ${currencySymbol}${Math.abs(tx.amount).toLocaleString()}
         </div>
-      </div>
-    `;
+      </div>`;
   });
 
 });
 
-// SEND MONEY
+/* SEND MONEY — username OR account number */
 async function sendMoney(){
 
-  const to = receiver.value.trim();
+  const input = receiver.value.trim();
   const amt = Number(amount.value);
 
-  if(!to || !amt || amt<=0){
+  if(!input || amt<=0){
     msg.innerText="Enter valid details";
     return;
   }
 
-  const fromRef = db.collection("users").doc(username);
-  const toRef = db.collection("users").doc(to);
+  const senderRef = db.collection("users").doc(username);
+  const senderDoc = await senderRef.get();
+  const senderData = senderDoc.data();
 
-  const fromDoc = await fromRef.get();
-  const toDoc = await toRef.get();
-
-  if(!toDoc.exists){
-    msg.innerText="Receiver not found";
-    return;
-  }
-
-  if(fromDoc.data().balance < amt){
+  if(senderData.balance < amt){
     msg.innerText="Insufficient balance";
     return;
   }
 
-  const ref="TX-"+Math.floor(Math.random()*99999999);
+  // find receiver
+  let receiverDoc = await db.collection("users").doc(input).get();
+
+  if(!receiverDoc.exists){
+    const snap = await db.collection("users")
+      .where("accountNumber","==",input).get();
+    if(!snap.empty) receiverDoc = snap.docs[0];
+  }
+
+  if(!receiverDoc.exists){
+    msg.innerText="Recipient not found";
+    return;
+  }
+
+  const receiverData = receiverDoc.data();
+
+  if(receiverData.username === username){
+    msg.innerText="You cannot send to yourself";
+    return;
+  }
+
+  const ref="TX-"+Math.floor(10000000+Math.random()*90000000);
   const date=new Date().toLocaleString();
 
-  await fromRef.update({
-    balance: fromDoc.data().balance - amt,
+  await senderRef.update({
+    balance: senderData.balance - amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
       amount:-amt,
-      note:"Transfer to "+to,
+      note:"Transfer to "+receiverData.username,
       ref:ref,
       date:date
     })
   });
 
-  await toRef.update({
-    balance: toDoc.data().balance + amt,
+  await receiverDoc.ref.update({
+    balance:(receiverData.balance||0)+amt,
     transactions: firebase.firestore.FieldValue.arrayUnion({
       amount:amt,
       note:"Transfer from "+username,
@@ -312,7 +225,7 @@ async function sendMoney(){
   amount.value="";
 }
 
-// LOGOUT
+/* LOGOUT */
 function logout(){
   localStorage.removeItem("loggedInUser");
   window.location.href="login.html";
