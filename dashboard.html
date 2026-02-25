@@ -15,44 +15,108 @@ body{
   color:white;
   transition:0.3s;
 }
+
 .container{max-width:420px;margin:auto;padding:20px;}
 .header{display:flex;justify-content:space-between;align-items:center;}
+
 .balanceCard{
-  margin-top:20px;padding:25px;border-radius:20px;
+  margin-top:20px;
+  padding:25px;
+  border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
   box-shadow:0 10px 30px rgba(0,0,0,0.4);
 }
+
 .balance{font-size:36px;font-weight:600;margin-top:8px;}
+
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(12px);
-  border-radius:18px;padding:18px;margin-top:20px;
+  border-radius:18px;
+  padding:18px;
+  margin-top:20px;
 }
+
 button{
-  width:100%;padding:14px;border:none;border-radius:12px;
-  margin-top:10px;font-size:15px;background:#1e88e5;color:white;
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  margin-top:10px;
+  font-size:15px;
+  background:#1e88e5;
+  color:white;
 }
+
 input{
-  width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
 }
-.tx{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);}
+
+.tx{
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
 .tx:last-child{border-bottom:none;}
+
 .amountPlus{color:#00e676;font-weight:500;}
 .amountMinus{color:#ff5252;font-weight:500;}
+
 .logout{background:#ff5252;margin-top:20px;}
 .msg{text-align:center;margin-top:10px;font-size:13px;}
+
 #themeToggle{
-  width:auto;padding:8px 12px;border-radius:10px;
-  background:rgba(255,255,255,0.15);font-size:16px;
+  width:auto;
+  padding:8px 12px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.15);
+  font-size:16px;
 }
 
 /* LIGHT MODE */
 body.light{background:linear-gradient(180deg,#f4f7fb,#e6eef7);color:#111;}
 body.light .card{background:white;color:#111;}
-body.light .tx{border-bottom:1px solid rgba(0,0,0,0.08);}
 body.light input{background:#f1f3f6;}
 body.light button{background:#1976d2;}
 body.light .logout{background:#e53935;}
+
+/* SUCCESS POPUP */
+.successPopup{
+  position:fixed;
+  top:0;left:0;width:100%;height:100%;
+  background:rgba(0,0,0,0.35);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:0.3s;
+}
+
+.successPopup.show{
+  opacity:1;pointer-events:auto;
+}
+
+.successBox{
+  background:white;color:#111;
+  padding:25px 30px;border-radius:18px;
+  text-align:center;
+  transform:scale(0.7);transition:0.3s;
+}
+
+.successPopup.show .successBox{
+  transform:scale(1);
+}
+
+.checkmark{
+  width:70px;height:70px;border-radius:50%;
+  background:#2ecc71;
+  display:flex;align-items:center;justify-content:center;
+  margin:auto;font-size:36px;color:white;
+  margin-bottom:10px;
+}
 </style>
 </head>
 <body>
@@ -83,7 +147,15 @@ body.light .logout{background:#e53935;}
   </div>
 
   <button class="logout" onclick="logout()">Logout</button>
+</div>
 
+<!-- SUCCESS POPUP -->
+<div class="successPopup" id="successPopup">
+  <div class="successBox">
+    <div class="checkmark">✓</div>
+    <h3>Transfer Successful</h3>
+    <p id="successText"></p>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -120,7 +192,6 @@ let currencySymbol="$";
 /* REALTIME USER DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc => {
-
   const user = doc.data();
   welcome.innerText = "Hello, " + user.username;
 
@@ -146,17 +217,22 @@ db.collection("users").doc(username)
         <div>
           ${tx.note}
           <small>${tx.date || ""}</small>
-          <div class="ref">${tx.ref || ""}</div>
         </div>
         <div class="${cls}">
           ${currencySymbol}${Math.abs(tx.amount).toLocaleString()}
         </div>
       </div>`;
   });
-
 });
 
-/* SEND MONEY — username OR account number */
+/* SUCCESS POPUP */
+function showSuccess(message){
+  successText.innerText = message;
+  successPopup.classList.add("show");
+  setTimeout(()=> successPopup.classList.remove("show"), 2200);
+}
+
+/* SEND MONEY */
 async function sendMoney(){
 
   const input = receiver.value.trim();
@@ -176,7 +252,6 @@ async function sendMoney(){
     return;
   }
 
-  // find receiver
   let receiverDoc = await db.collection("users").doc(input).get();
 
   if(!receiverDoc.exists){
@@ -193,7 +268,7 @@ async function sendMoney(){
   const receiverData = receiverDoc.data();
 
   if(receiverData.username === username){
-    msg.innerText="You cannot send to yourself";
+    msg.innerText="Cannot send to yourself";
     return;
   }
 
@@ -220,7 +295,7 @@ async function sendMoney(){
     })
   });
 
-  msg.innerText="Transfer successful";
+  showSuccess("Money sent successfully");
   receiver.value="";
   amount.value="";
 }
