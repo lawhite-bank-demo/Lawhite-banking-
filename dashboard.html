@@ -32,4 +32,245 @@ body{
   padding:25px;
   border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
-  box-shadow:0 10px 30px rgba(0,0,0,0.
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+
+.balance{
+  font-size:36px;
+  font-weight:600;
+  margin-top:8px;
+}
+
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(12px);
+  border-radius:18px;
+  padding:18px;
+  margin-top:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.25);
+}
+
+button{
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  margin-top:10px;
+  font-size:15px;
+  background:#1e88e5;
+  color:white;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
+}
+
+.tx{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+
+.tx:last-child{
+  border-bottom:none;
+}
+
+.tx small{
+  display:block;
+  opacity:0.6;
+  font-size:11px;
+}
+
+.ref{
+  font-size:11px;
+  opacity:0.6;
+}
+
+.amountPlus{ color:#00e676; font-weight:500; }
+.amountMinus{ color:#ff5252; font-weight:500; }
+
+.logout{
+  background:#ff5252;
+  margin-top:20px;
+}
+
+.msg{
+  text-align:center;
+  margin-top:10px;
+  font-size:13px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="header">
+    <h2 id="welcome">Hello</h2>
+  </div>
+
+  <div class="balanceCard">
+    <small>Available Balance</small>
+    <div class="balance" id="balance">0</div>
+  </div>
+
+  <!-- QUICK SEND -->
+  <div class="card">
+    <h3>Send Money</h3>
+    <input id="receiver" placeholder="Receiver username">
+    <input id="amount" placeholder="Amount">
+    <button onclick="sendMoney()">Send</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card">
+    <h3>Transactions</h3>
+    <div id="transactions"></div>
+  </div>
+
+  <button class="logout" onclick="logout()">Logout</button>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const username = localStorage.getItem("loggedInUser");
+
+if(!username){
+  window.location.href="login.html";
+}
+
+let currencySymbol="$";
+
+// REALTIME USER DATA
+db.collection("users").doc(username)
+.onSnapshot(doc => {
+
+  if(!doc.exists){
+    alert("User not found");
+    logout();
+    return;
+  }
+
+  const user = doc.data();
+
+  document.getElementById("welcome").innerText =
+    "Hello, " + user.username;
+
+  currencySymbol =
+    user.currency === "GBP" ? "£" :
+    user.currency === "EUR" ? "€" : "$";
+
+  document.getElementById("balance").innerText =
+    currencySymbol + Number(user.balance).toLocaleString();
+
+  const container = document.getElementById("transactions");
+  container.innerHTML = "";
+
+  if(!user.transactions || user.transactions.length === 0){
+    container.innerHTML = "<p>No transactions yet</p>";
+    return;
+  }
+
+  user.transactions.slice().reverse().forEach(tx => {
+
+    const cls = tx.amount < 0 ? "amountMinus" : "amountPlus";
+
+    container.innerHTML += `
+      <div class="tx">
+        <div>
+          ${tx.note}
+          <small>${tx.date || ""}</small>
+          <div class="ref">${tx.ref || ""}</div>
+        </div>
+        <div class="${cls}">
+          ${currencySymbol}${Math.abs(tx.amount).toLocaleString()}
+        </div>
+      </div>
+    `;
+  });
+
+});
+
+
+// SEND MONEY
+async function sendMoney(){
+
+  const to = receiver.value.trim();
+  const amount = Number(document.getElementById("amount").value);
+
+  if(!to || !amount || amount <= 0){
+    msg.innerText="Enter valid details";
+    return;
+  }
+
+  const fromRef = db.collection("users").doc(username);
+  const toRef = db.collection("users").doc(to);
+
+  const fromDoc = await fromRef.get();
+  const toDoc = await toRef.get();
+
+  if(!toDoc.exists){
+    msg.innerText="Receiver not found";
+    return;
+  }
+
+  if(fromDoc.data().balance < amount){
+    msg.innerText="Insufficient balance";
+    return;
+  }
+
+  const ref = "TX-"+Math.floor(Math.random()*99999999);
+
+  const date = new Date().toLocaleString();
+
+  await fromRef.update({
+    balance: fromDoc.data().balance - amount,
+    transactions: firebase.firestore.FieldValue.arrayUnion({
+      amount:-amount,
+      note:"Transfer to "+to,
+      ref:ref,
+      date:date
+    })
+  });
+
+  await toRef.update({
+    balance: toDoc.data().balance + amount,
+    transactions: firebase.firestore.FieldValue.arrayUnion({
+      amount:amount,
+      note:"Transfer from "+username,
+      ref:ref,
+      date:date
+    })
+  });
+
+  msg.innerText="Transfer successful";
+  receiver.value="";
+  amount.value="";
+}
+
+// LOGOUT
+function logout(){
+  localStorage.removeItem("loggedInUser");
+  window.location.href="login.html";
+}
+</script>
+</body>
+</html>
