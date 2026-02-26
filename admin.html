@@ -1,86 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Panel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeChase Finance</title>
 
 <style>
 body{
-  font-family: Arial;
-  background:#0b1e35;
+  margin:0;
+  font-family:Arial;
+  background:#031427;
   color:white;
-  text-align:center;
 }
+.container{max-width:420px;margin:auto;padding:20px;}
+
+.balanceCard{
+  margin-top:20px;
+  padding:25px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+}
+
+.balance{font-size:32px;font-weight:bold;}
+
 .card{
-  background:#102a46;
-  padding:20px;
-  border-radius:12px;
-  margin:20px;
+  background:rgba(255,255,255,0.05);
+  border-radius:18px;
+  padding:18px;
+  margin-top:20px;
 }
-input,button{
-  width:90%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
-}
+
 button{
-  background:#2ecc71;
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  margin-top:10px;
+  background:#1e88e5;
   color:white;
-  font-size:16px;
 }
-.msg{
-  margin-top:10px;
-  color:#2ecc71;
+
+input,select{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border:none;
+  border-radius:8px;
 }
-.result{
-  margin-top:10px;
-  background:#0b1e35;
+
+.tx{
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.1);
+}
+
+.amountPlus{color:#00e676;}
+.amountMinus{color:#ff5252;}
+
+small{opacity:.6;display:block;margin-top:3px;}
+
+.logout{background:#ff5252;}
+
+.frozenBanner{
+  background:#e74c3c;
   padding:10px;
   border-radius:8px;
+  margin-top:10px;
+  text-align:center;
 }
 </style>
 </head>
 <body>
 
-<h2>👑 Admin Panel</h2>
+<div class="container">
 
-<!-- LOGIN -->
-<div class="card" id="loginCard">
-  <h3>Admin Login</h3>
-  <input id="adminUser" placeholder="Admin Username">
-  <input id="adminPin" placeholder="Admin PIN">
-  <button onclick="adminLogin()">Login</button>
+<h2 id="welcome">Hello</h2>
+<div id="frozenNotice"></div>
+
+<div class="balanceCard">
+  <small>Available Balance</small>
+  <div class="balance" id="balance">€0</div>
 </div>
 
-<div id="panel" style="display:none">
-
-<!-- CREATE USER -->
+<!-- 💳 CARD DISPLAY -->
 <div class="card">
-  <h3>Create User</h3>
-  <input id="newUser" placeholder="Username">
-  <input id="newPin" placeholder="PIN">
-  <input id="newBalance" placeholder="Starting Balance">
-  <button onclick="createUser()">Create User</button>
+<strong>💳 My Bank Card</strong>
+<div id="cardBox"></div>
 </div>
 
-<!-- CREDIT -->
+<!-- SEND MONEY -->
 <div class="card">
-  <h3>Add Money</h3>
-  <input id="creditUser" placeholder="Username">
-  <input id="creditAmount" placeholder="Amount">
-  <button onclick="addMoney()">Credit</button>
+<strong>💸 Send Money</strong>
+<input id="receiver" placeholder="Username">
+<input id="amount" type="number" placeholder="Amount">
+<input id="desc" placeholder="Description">
+<button onclick="sendMoney()">Send</button>
 </div>
 
-<!-- DEBIT -->
+<!-- PAY BILLS -->
 <div class="card">
-  <h3>Deduct Money</h3>
-  <input id="debitUser" placeholder="Username">
-  <input id="debitAmount" placeholder="Amount">
-  <button onclick="deductMoney()">Debit</button>
+<strong>💡 Pay Bills</strong>
+<select id="billType">
+<option>Electricity</option>
+<option>Internet</option>
+<option>Water</option>
+</select>
+<input id="billAmount" type="number" placeholder="Amount">
+<button onclick="payBill()">Pay Bill</button>
 </div>
 
-<div class="msg" id="msg"></div>
+<!-- LOAN -->
+<div class="card">
+<strong>🏦 Request Loan</strong>
+<input id="loanAmount" type="number" placeholder="Loan amount">
+<button onclick="requestLoan()">Request Loan</button>
+</div>
+
+<!-- GIFT CARD -->
+<div class="card">
+<strong>🎁 Buy Gift Card</strong>
+<select id="giftType">
+<option>Amazon</option>
+<option>Apple</option>
+<option>Google Play</option>
+</select>
+<input id="giftAmount" type="number" placeholder="Amount">
+<button onclick="buyGift()">Buy Gift Card</button>
+</div>
+
+<!-- SHOP -->
+<div class="card">
+<strong>🛒 Online Shopping</strong>
+<input id="store" placeholder="Store name">
+<input id="shopAmount" type="number" placeholder="Amount">
+<button onclick="shop()">Pay</button>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="card">
+<strong>📜 Transactions</strong>
+<div id="transactions"></div>
+</div>
+
+<button class="logout" onclick="logout()">Logout</button>
 
 </div>
 
@@ -97,117 +158,129 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* LOGIN */
-async function adminLogin(){
-  const user = adminUser.value.trim().toLowerCase();
-  const pin = adminPin.value.trim();
+let username = localStorage.getItem("loggedInUser");
+if(!username) location.href="login.html";
+username=username.toLowerCase();
 
-  const doc = await db.collection("users").doc(user).get();
+let isFrozen=false;
 
-  if(!doc.exists || doc.data().pin !== pin || doc.data().role !== "admin"){
-    alert("Invalid admin login");
-    return;
-  }
+/* REALTIME USER DATA */
+db.collection("users").doc(username)
+.onSnapshot(doc=>{
+ if(!doc.exists) return;
+ const user=doc.data();
 
-  loginCard.style.display="none";
-  panel.style.display="block";
+ welcome.innerText="Hello, "+user.username;
+ balance.innerText="€"+(user.balance||0).toLocaleString();
+
+ isFrozen=user.frozen||false;
+ frozenNotice.innerHTML=isFrozen?
+ '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>':"";
+
+ /* CARD DISPLAY */
+ if(user.cardNumber){
+   cardBox.innerHTML=`
+   <div style="margin-top:10px">
+   <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
+   Exp: ${user.expiry}<br>
+   CVV: <span id="cvv">•••</span>
+   <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
+   Status: ${user.cardStatus}
+   </div>`;
+ }
+
+ /* TRANSACTIONS */
+ transactions.innerHTML="";
+ (user.transactions||[]).slice().reverse().slice(0,6).forEach(tx=>{
+   const cls=tx.amount<0?"amountMinus":"amountPlus";
+   transactions.innerHTML+=`
+   <div class="tx">
+     <span class="${cls}">
+     ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+     </span>
+     <small>${tx.date||""}</small>
+   </div>`;
+ });
+});
+
+/* TOGGLE CVV */
+function toggleCVV(real){
+ const el=document.getElementById("cvv");
+ el.innerText = el.innerText==="•••" ? real : "•••";
 }
 
-/* HELPERS */
-function generateAccount(){
-  return "DCB-" + Math.floor(1000000 + Math.random()*9000000);
+/* SEND MONEY */
+async function sendMoney(){
+ if(isFrozen) return alert("Account frozen");
+
+ const to=receiver.value.trim().toLowerCase();
+ const amt=Number(amount.value);
+ const descVal=desc.value||"Transfer";
+
+ if(!to||amt<=0) return alert("Enter valid details");
+
+ const fromRef=db.collection("users").doc(username);
+ const toRef=db.collection("users").doc(to);
+
+ try{
+ await db.runTransaction(async t=>{
+   const f=await t.get(fromRef);
+   const r=await t.get(toRef);
+   if(!r.exists) throw "Receiver not found";
+   if(f.data().balance<amt) throw "Insufficient balance";
+
+   const now=new Date().toLocaleString();
+
+   t.update(fromRef,{
+     balance:f.data().balance-amt,
+     transactions:firebase.firestore.FieldValue.arrayUnion({
+       amount:-amt,note:`Sent to ${to} • ${descVal}`,date:now})
+   });
+
+   t.update(toRef,{
+     balance:(r.data().balance||0)+amt,
+     transactions:firebase.firestore.FieldValue.arrayUnion({
+       amount:amt,note:`Received from ${username}`,date:now})
+   });
+ });
+
+ alert("Transfer successful");
+ receiver.value="";amount.value="";desc.value="";
+ }catch(e){alert(e);}
 }
 
-function generateCardNumber(){
-  return "53" + Math.floor(1000000000000000 + Math.random()*9000000000000000);
+/* OTHER FEATURES */
+function payBill(){
+ if(isFrozen) return alert("Account frozen");
+ const amt=Number(billAmount.value);
+ if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
+}
+function requestLoan(){
+ const amt=Number(loanAmount.value);
+ if(amt>0) updateBalance(amt,"Loan credited");
+}
+function buyGift(){
+ const amt=Number(giftAmount.value);
+ if(amt>0) updateBalance(-amt,"Gift card • "+giftType.value);
+}
+function shop(){
+ const amt=Number(shopAmount.value);
+ if(amt>0) updateBalance(-amt,"Shopping • "+store.value);
+}
+async function updateBalance(amount,note){
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+ const now=new Date().toLocaleString();
+ await ref.update({
+  balance:(doc.data().balance||0)+amount,
+  transactions:firebase.firestore.FieldValue.arrayUnion({
+   amount,note,date:now})
+ });
 }
 
-function generateExpiry(){
-  const year = new Date().getFullYear()+3;
-  const month = String(Math.floor(Math.random()*12)+1).padStart(2,'0');
-  return month + "/" + String(year).slice(2);
-}
-
-function generateCVV(){
-  return Math.floor(100 + Math.random()*900).toString();
-}
-
-/* CREATE USER WITH CARD */
-async function createUser(){
-
-  const username = newUser.value.trim().toLowerCase();
-  const pin = newPin.value.trim();
-  const balance = Number(newBalance.value)||0;
-
-  if(!username || !pin) return alert("Enter details");
-
-  const exists = await db.collection("users").doc(username).get();
-  if(exists.exists) return alert("User exists");
-
-  const acc = generateAccount();
-  const cardNumber = generateCardNumber();
-  const expiry = generateExpiry();
-  const cvv = generateCVV();
-
-  await db.collection("users").doc(username).set({
-    username,
-    pin,
-    balance,
-    role:"user",
-    accountNumber:acc,
-    frozen:false,
-    transactions:[],
-
-    // 💳 CARD DETAILS
-    cardNumber,
-    expiry,
-    cvv,
-    cardStatus:"active"
-  });
-
-  msg.innerHTML = `
-  ✅ User created<br>
-  Account #: <b>${acc}</b><br>
-  Card: <b>${cardNumber}</b><br>
-  Exp: ${expiry} | CVV: ${cvv}
-  `;
-}
-
-/* CREDIT */
-async function addMoney(){
-  const user = creditUser.value.trim().toLowerCase();
-  const amount = Number(creditAmount.value);
-  if(amount<=0) return alert("Enter valid amount");
-
-  const ref = db.collection("users").doc(user);
-  const doc = await ref.get();
-  if(!doc.exists) return alert("User not found");
-
-  await ref.update({
-    balance:(doc.data().balance||0)+amount
-  });
-
-  msg.innerText="✅ Money credited";
-}
-
-/* DEBIT */
-async function deductMoney(){
-  const user = debitUser.value.trim().toLowerCase();
-  const amount = Number(debitAmount.value);
-  if(amount<=0) return alert("Enter valid amount");
-
-  const ref = db.collection("users").doc(user);
-  const doc = await ref.get();
-  if(!doc.exists) return alert("User not found");
-
-  if(doc.data().balance < amount)
-    return alert("Insufficient funds");
-
-  await ref.update({
-    balance:doc.data().balance - amount
-  });
-
-  msg.innerText="✅ Money deducted";
+function logout(){
+ localStorage.removeItem("loggedInUser");
+ location.href="login.html";
 }
 </script>
 </body>
