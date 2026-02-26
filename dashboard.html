@@ -49,7 +49,6 @@ body{
 .eye{
   font-size:22px;
   cursor:pointer;
-  opacity:.9;
 }
 
 .card{
@@ -107,13 +106,12 @@ input,select{
 
 <div class="header">
   <h2 id="welcome">Hello</h2>
-  <button onclick="toggleTheme()">🌙</button>
 </div>
 
 <div class="balanceCard">
   <small>Available Balance</small>
   <div class="balanceRow">
-    <div class="balance" id="balance">€0</div>
+    <div class="balance" id="balance">••••••</div>
     <div class="eye" onclick="toggleBalance()">👁</div>
   </div>
 </div>
@@ -187,8 +185,8 @@ const db = firebase.firestore();
 const username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 
-let balanceVisible = true;
 let realBalance = 0;
+let balanceVisible = false;
 
 function toggleBalance(){
   balanceVisible = !balanceVisible;
@@ -207,25 +205,37 @@ function addTransaction(note, amount){
 
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
+ if(!doc.exists) return;
+
  const user=doc.data();
- welcome.innerText="Hello, "+user.username;
- realBalance=user.balance;
- toggleBalance();
+ document.getElementById("welcome").innerText="Hello, "+user.username;
+
+ realBalance = user.balance || 0;
+
+ if(balanceVisible){
+   document.getElementById("balance").innerText =
+   "€"+realBalance.toLocaleString();
+ }
 
  const container=document.getElementById("transactions");
  container.innerHTML="";
 
- if(!user.transactions) return;
+ if(!user.transactions || user.transactions.length===0){
+   container.innerHTML="<small>No transactions yet</small>";
+   return;
+ }
 
  user.transactions.slice().reverse().forEach(tx=>{
    const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
    container.innerHTML += `
    <div class="tx">
      <div>
-       ${tx.note}
+       ${tx.note || ""}
        <small>${tx.date || ""}</small>
      </div>
-     <div class="${cls}">€${Math.abs(tx.amount)}</div>
+     <div class="${cls}">
+       €${Math.abs(tx.amount).toLocaleString()}
+     </div>
    </div>`;
  });
 });
@@ -233,9 +243,9 @@ db.collection("users").doc(username)
 async function sendMoney(){
  const to=receiver.value.trim();
  const amt=Number(amount.value);
- const desc=document.getElementById("desc").value || "";
+ const desc=document.getElementById("desc").value.trim();
 
- if(!to || amt<=0) return;
+ if(!to || amt<=0) return alert("Enter valid details");
 
  const fromRef=db.collection("users").doc(username);
  const toRef=db.collection("users").doc(to);
@@ -249,16 +259,20 @@ async function sendMoney(){
  await fromRef.update({
   balance: fromDoc.data().balance - amt,
   transactions: firebase.firestore.FieldValue.arrayUnion(
-    addTransaction(`Sent to ${to} • ${desc}`, -amt)
+    addTransaction(`Sent to ${to}${desc ? " • "+desc : ""}`, -amt)
   )
  });
 
  await toRef.update({
   balance: toDoc.data().balance + amt,
   transactions: firebase.firestore.FieldValue.arrayUnion(
-    addTransaction(`Received from ${username} • ${desc}`, amt)
+    addTransaction(`Received from ${username}${desc ? " • "+desc : ""}`, amt)
   )
  });
+
+ receiver.value="";
+ amount.value="";
+ desc.value="";
 }
 
 async function payBill(){
