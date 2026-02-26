@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Panel - Users Table</title>
+<title>Admin Panel - Account Control</title>
 
 <style>
 body{
@@ -17,16 +17,15 @@ body{
   border-radius:12px;
   margin:20px;
 }
-input,button{
-  padding:10px;
+button{
+  padding:8px 12px;
   border-radius:6px;
   border:none;
-}
-button{
-  background:#2ecc71;
-  color:white;
   cursor:pointer;
+  color:white;
 }
+.freezeBtn{ background:#e74c3c; }
+.unfreezeBtn{ background:#2ecc71; }
 table{
   width:100%;
   margin-top:15px;
@@ -36,21 +35,15 @@ th,td{
   padding:10px;
   border-bottom:1px solid rgba(255,255,255,0.2);
 }
-th{
-  background:#0b1e35;
-}
-.totalBox{
-  margin-top:15px;
-  font-size:18px;
-  color:#2ecc71;
-}
+th{ background:#0b1e35; }
+.statusActive{ color:#2ecc71; }
+.statusFrozen{ color:#e74c3c; }
 </style>
 </head>
 <body>
 
-<h2>👑 Admin Panel - Users Overview</h2>
+<h2>👑 Admin - Account Control</h2>
 
-<!-- LOGIN -->
 <div class="card" id="loginCard">
   <h3>Admin Login</h3>
   <input id="adminUser" placeholder="Admin Username">
@@ -59,26 +52,24 @@ th{
   <button onclick="adminLogin()">Login</button>
 </div>
 
-<!-- MAIN PANEL -->
 <div id="panel" style="display:none">
 
 <div class="card">
-  <h3>All Users</h3>
+  <h3>Users Table</h3>
 
   <table>
     <thead>
       <tr>
         <th>Username</th>
-        <th>Account #</th>
-        <th>Balance (€)</th>
+        <th>Balance</th>
         <th>Role</th>
+        <th>Status</th>
+        <th>Action</th>
       </tr>
     </thead>
-    <tbody id="usersTable">
-    </tbody>
+    <tbody id="usersTable"></tbody>
   </table>
 
-  <div class="totalBox" id="totalMoney"></div>
 </div>
 
 </div>
@@ -115,7 +106,7 @@ async function adminLogin(){
   loadUsers();
 }
 
-/* LOAD USERS TABLE */
+/* LOAD USERS */
 function loadUsers(){
 
   db.collection("users").onSnapshot(snapshot=>{
@@ -123,30 +114,40 @@ function loadUsers(){
     const table = document.getElementById("usersTable");
     table.innerHTML="";
 
-    let total = 0;
-
     snapshot.forEach(doc=>{
       const user = doc.data();
-      const balance = Number(user.balance) || 0;
-
-      total += balance;
+      const frozen = user.frozen || false;
 
       const row = document.createElement("tr");
 
       row.innerHTML = `
         <td>${user.username}</td>
-        <td>${user.accountNumber || "N/A"}</td>
-        <td>€${balance.toLocaleString()}</td>
+        <td>€${(user.balance||0).toLocaleString()}</td>
         <td>${user.role}</td>
+        <td class="${frozen ? 'statusFrozen' : 'statusActive'}">
+          ${frozen ? "🔒 Frozen" : "🟢 Active"}
+        </td>
+        <td>
+          <button class="${frozen ? 'unfreezeBtn' : 'freezeBtn'}"
+            onclick="toggleFreeze('${doc.id}', ${frozen})">
+            ${frozen ? "Unfreeze" : "Freeze"}
+          </button>
+        </td>
       `;
 
       table.appendChild(row);
     });
 
-    document.getElementById("totalMoney").innerHTML =
-      "💰 Total Money In System: €" + total.toLocaleString();
-
   });
+}
+
+/* TOGGLE FREEZE */
+async function toggleFreeze(username, currentState){
+
+  await db.collection("users").doc(username).update({
+    frozen: !currentState
+  });
+
 }
 </script>
 
