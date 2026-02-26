@@ -43,9 +43,9 @@ button{
 </head>
 <body>
 
-<h2>Admin Panel</h2>
+<h2>👑 Admin Panel</h2>
 
-<!-- ADMIN LOGIN -->
+<!-- LOGIN -->
 <div class="card" id="loginCard">
   <h3>Admin Login</h3>
   <input id="adminUser" placeholder="Admin Username">
@@ -135,32 +135,42 @@ async function findUser(input){
 
 /* ADMIN LOGIN */
 async function adminLogin(){
-  const user = adminUser.value.trim();
+  const user = adminUser.value.trim().toLowerCase();
   const pin = adminPin.value.trim();
+
   const doc = await db.collection("users").doc(user).get();
+
   if(!doc.exists || doc.data().pin !== pin || doc.data().role !== "admin"){
     alert("Invalid admin login");
     return;
   }
+
   loginCard.style.display="none";
   panel.style.display="block";
 }
 
 /* CREATE USER */
 async function createUser(){
-  const username = newUser.value.trim();
+  const username = newUser.value.trim().toLowerCase();
   const pin = newPin.value.trim();
   const balance = Number(newBalance.value)||0;
+
   if(!username || !pin) return alert("Enter details");
+
   const exists = await db.collection("users").doc(username).get();
   if(exists.exists) return alert("User exists");
+
   const acc = generateAccount();
+
   await db.collection("users").doc(username).set({
-    username,pin,balance,
+    username,
+    pin,
+    balance,
     role:"user",
     accountNumber:acc,
     transactions:[]
   });
+
   msg.innerHTML = `✅ User created<br>Account #: <b>${acc}</b>`;
 }
 
@@ -168,10 +178,14 @@ async function createUser(){
 async function addMoney(){
   const user = creditUser.value.trim();
   const amount = Number(creditAmount.value);
+  if(amount <= 0) return alert("Enter valid amount");
+
   const date = creditDate.value || new Date().toLocaleString();
   const doc = await findUser(user);
   if(!doc) return alert("User not found");
+
   const txRef = generateRef();
+
   await doc.ref.update({
     balance:(doc.data().balance||0)+amount,
     transactions:firebase.firestore.FieldValue.arrayUnion({
@@ -181,6 +195,7 @@ async function addMoney(){
       date:date
     })
   });
+
   msg.innerText="✅ Credited | Ref: "+txRef;
 }
 
@@ -188,11 +203,16 @@ async function addMoney(){
 async function deductMoney(){
   const user = debitUser.value.trim();
   const amount = Number(debitAmount.value);
+  if(amount <= 0) return alert("Enter valid amount");
+
   const date = debitDate.value || new Date().toLocaleString();
   const doc = await findUser(user);
   if(!doc) return alert("User not found");
+
   if(doc.data().balance < amount) return alert("Insufficient funds");
+
   const txRef = generateRef();
+
   await doc.ref.update({
     balance:doc.data().balance - amount,
     transactions:firebase.firestore.FieldValue.arrayUnion({
@@ -202,39 +222,56 @@ async function deductMoney(){
       date:date
     })
   });
+
   msg.innerText="✅ Debited | Ref: "+txRef;
 }
 
-/* TRANSFER */
+/* SAFE TRANSFER */
 async function transferMoney(){
+
   const from = fromAcc.value.trim();
   const to = toAcc.value.trim();
   const amount = Number(transferAmount.value);
+  if(amount <= 0) return alert("Enter valid amount");
+  if(from === to) return alert("Cannot transfer to same account");
+
   const date = transferDate.value || new Date().toLocaleString();
+
   const fromDoc = await findUser(from);
   const toDoc = await findUser(to);
+
   if(!fromDoc || !toDoc) return alert("User not found");
-  if(fromDoc.data().balance < amount) return alert("Insufficient");
+
   const refNum = generateRef();
 
-  await fromDoc.ref.update({
-    balance: fromDoc.data().balance - amount,
-    transactions: firebase.firestore.FieldValue.arrayUnion({
-      amount:-amount,
-      note:"Transfer to "+toDoc.data().username,
-      ref:refNum,
-      date:date
-    })
-  });
+  await db.runTransaction(async (t)=>{
 
-  await toDoc.ref.update({
-    balance: toDoc.data().balance + amount,
-    transactions: firebase.firestore.FieldValue.arrayUnion({
-      amount:amount,
-      note:"Transfer from "+fromDoc.data().username,
-      ref:refNum,
-      date:date
-    })
+    const freshFrom = await t.get(fromDoc.ref);
+    const freshTo   = await t.get(toDoc.ref);
+
+    if(freshFrom.data().balance < amount)
+      throw "Insufficient funds";
+
+    t.update(fromDoc.ref,{
+      balance: freshFrom.data().balance - amount,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount:-amount,
+        note:"Transfer to "+freshTo.data().username,
+        ref:refNum,
+        date:date
+      })
+    });
+
+    t.update(toDoc.ref,{
+      balance: freshTo.data().balance + amount,
+      transactions: firebase.firestore.FieldValue.arrayUnion({
+        amount:amount,
+        note:"Transfer from "+freshFrom.data().username,
+        ref:refNum,
+        date:date
+      })
+    });
+
   });
 
   msg.innerText="✅ Transfer complete | Ref: "+refNum;
@@ -246,6 +283,7 @@ async function searchTransaction(){
   searchResult.innerHTML="Searching...";
   const snap = await db.collection("users").get();
   let found=false;
+
   snap.forEach(doc=>{
     const txs = doc.data().transactions||[];
     txs.forEach(tx=>{
@@ -259,6 +297,7 @@ async function searchTransaction(){
       }
     });
   });
+
   if(!found) searchResult.innerHTML="No transaction found";
 }
 </script>
