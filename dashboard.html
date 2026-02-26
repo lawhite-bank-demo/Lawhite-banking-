@@ -94,9 +94,10 @@ input,select{
   margin-top:20px;
 }
 
-.feature-title{
-  font-weight:600;
-  margin-bottom:8px;
+small{
+  opacity:.6;
+  display:block;
+  margin-top:3px;
 }
 </style>
 </head>
@@ -106,18 +107,19 @@ input,select{
 
 <div class="header">
   <h2 id="welcome">Hello</h2>
+  <button onclick="toggleTheme()">🌙</button>
 </div>
 
 <div class="balanceCard">
   <small>Available Balance</small>
   <div class="balanceRow">
-    <div class="balance" id="balance">••••••</div>
+    <div class="balance" id="balance">€0</div>
     <div class="eye" onclick="toggleBalance()">👁</div>
   </div>
 </div>
 
 <div class="card">
-  <div class="feature-title">💸 Send Money</div>
+  <strong>💸 Send Money</strong>
   <input id="receiver" placeholder="Username or Account Number">
   <input id="amount" placeholder="Amount">
   <input id="desc" placeholder="Description (optional)">
@@ -125,7 +127,7 @@ input,select{
 </div>
 
 <div class="card">
-  <div class="feature-title">💡 Pay Bills</div>
+  <strong>💡 Pay Bills</strong>
   <select id="billType">
     <option>Electricity</option>
     <option>Internet</option>
@@ -136,13 +138,13 @@ input,select{
 </div>
 
 <div class="card">
-  <div class="feature-title">🏦 Request Loan</div>
+  <strong>🏦 Request Loan</strong>
   <input id="loanAmount" placeholder="Loan amount">
   <button onclick="requestLoan()">Request Loan</button>
 </div>
 
 <div class="card">
-  <div class="feature-title">🎁 Buy Gift Card</div>
+  <strong>🎁 Buy Gift Card</strong>
   <select id="giftType">
     <option>Amazon</option>
     <option>Apple</option>
@@ -153,7 +155,7 @@ input,select{
 </div>
 
 <div class="card">
-  <div class="feature-title">🛒 Online Shopping</div>
+  <strong>🛒 Online Shopping</strong>
   <input id="store" placeholder="Store name">
   <input id="item" placeholder="Item name">
   <input id="shopAmount" placeholder="Amount">
@@ -161,7 +163,7 @@ input,select{
 </div>
 
 <div class="card">
-  <div class="feature-title">📜 Transactions</div>
+  <strong>📜 Transactions</strong>
   <div id="transactions"></div>
 </div>
 
@@ -174,9 +176,13 @@ input,select{
 
 <script>
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_ID"
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank",
+  storageBucket: "dechase-bank.firebasestorage.app",
+  messagingSenderId: "44428081485",
+  appId: "1:44428081485:web:85d993a939d380336e1f04",
+  measurementId: "G-YP84F2GQ6Z"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -185,8 +191,8 @@ const db = firebase.firestore();
 const username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 
+let balanceVisible = true;
 let realBalance = 0;
-let balanceVisible = false;
 
 function toggleBalance(){
   balanceVisible = !balanceVisible;
@@ -206,46 +212,51 @@ function addTransaction(note, amount){
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
-
  const user=doc.data();
- document.getElementById("welcome").innerText="Hello, "+user.username;
 
- realBalance = user.balance || 0;
-
- if(balanceVisible){
-   document.getElementById("balance").innerText =
-   "€"+realBalance.toLocaleString();
- }
+ welcome.innerText="Hello, "+user.username;
+ realBalance=user.balance || 0;
+ toggleBalance();
 
  const container=document.getElementById("transactions");
  container.innerHTML="";
 
- if(!user.transactions || user.transactions.length===0){
-   container.innerHTML="<small>No transactions yet</small>";
-   return;
- }
+ if(!user.transactions) return;
 
- user.transactions.slice().reverse().forEach(tx=>{
-   const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
-   container.innerHTML += `
-   <div class="tx">
-     <div>
-       ${tx.note || ""}
-       <small>${tx.date || ""}</small>
-     </div>
-     <div class="${cls}">
-       €${Math.abs(tx.amount).toLocaleString()}
-     </div>
-   </div>`;
- });
+ user.transactions
+   .sort((a,b)=> new Date(b.date) - new Date(a.date))
+   .slice(0,5)
+   .forEach(tx=>{
+     const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
+     container.innerHTML += `
+     <div class="tx">
+       <div>
+         ${tx.note || "Transaction"}
+         <small>${tx.date || ""}</small>
+       </div>
+       <div class="${cls}">€${Math.abs(tx.amount)}</div>
+     </div>`;
+   });
 });
+
+async function updateBalance(amount, note){
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+ const newBal=(doc.data().balance||0)+amount;
+
+ await ref.update({
+  balance:newBal,
+  transactions:firebase.firestore.FieldValue.arrayUnion(
+    addTransaction(note, amount)
+  )
+ });
+}
 
 async function sendMoney(){
  const to=receiver.value.trim();
  const amt=Number(amount.value);
- const desc=document.getElementById("desc").value.trim();
-
- if(!to || amt<=0) return alert("Enter valid details");
+ const desc=desc.value || "";
+ if(!to || amt<=0) return;
 
  const fromRef=db.collection("users").doc(username);
  const toRef=db.collection("users").doc(to);
@@ -256,76 +267,34 @@ async function sendMoney(){
  if(!toDoc.exists) return alert("Receiver not found");
  if(fromDoc.data().balance < amt) return alert("Insufficient balance");
 
- await fromRef.update({
-  balance: fromDoc.data().balance - amt,
-  transactions: firebase.firestore.FieldValue.arrayUnion(
-    addTransaction(`Sent to ${to}${desc ? " • "+desc : ""}`, -amt)
-  )
- });
+ await updateBalance(-amt, `Sent to ${to} • ${desc}`);
 
  await toRef.update({
   balance: toDoc.data().balance + amt,
   transactions: firebase.firestore.FieldValue.arrayUnion(
-    addTransaction(`Received from ${username}${desc ? " • "+desc : ""}`, amt)
+    addTransaction(`Received from ${username}`, amt)
   )
  });
-
- receiver.value="";
- amount.value="";
- desc.value="";
 }
 
 async function payBill(){
  const amt=Number(billAmount.value);
- if(amt<=0) return;
- const ref=db.collection("users").doc(username);
- const doc=await ref.get();
-
- await ref.update({
-  balance: doc.data().balance - amt,
-  transactions: firebase.firestore.FieldValue.arrayUnion(
-   addTransaction("Bill payment • "+billType.value, -amt)
-  )
- });
+ if(amt>0) updateBalance(-amt, "Bill payment • "+billType.value);
 }
 
 async function requestLoan(){
  const amt=Number(loanAmount.value);
- const ref=db.collection("users").doc(username);
- const doc=await ref.get();
-
- await ref.update({
-  balance: doc.data().balance + amt,
-  transactions: firebase.firestore.FieldValue.arrayUnion(
-   addTransaction("Loan credited", amt)
-  )
- });
+ if(amt>0) updateBalance(amt, "Loan credited");
 }
 
 async function buyGift(){
  const amt=Number(giftAmount.value);
- const ref=db.collection("users").doc(username);
- const doc=await ref.get();
-
- await ref.update({
-  balance: doc.data().balance - amt,
-  transactions: firebase.firestore.FieldValue.arrayUnion(
-   addTransaction("Gift card • "+giftType.value, -amt)
-  )
- });
+ if(amt>0) updateBalance(-amt, "Gift card • "+giftType.value);
 }
 
 async function shop(){
  const amt=Number(shopAmount.value);
- const ref=db.collection("users").doc(username);
- const doc=await ref.get();
-
- await ref.update({
-  balance: doc.data().balance - amt,
-  transactions: firebase.firestore.FieldValue.arrayUnion(
-   addTransaction("Shopping • "+store.value+" ("+item.value+")", -amt)
-  )
- });
+ if(amt>0) updateBalance(-amt, "Shopping • "+store.value);
 }
 
 function logout(){
