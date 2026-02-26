@@ -38,6 +38,7 @@ button{
   margin-top:10px;
   background:#1e88e5;
   color:white;
+  font-weight:bold;
 }
 
 input,select{
@@ -78,20 +79,17 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <div class="balanceCard">
   <small>Available Balance</small>
-
   <div style="display:flex;justify-content:space-between;align-items:center">
     <div class="balance" id="balance">€0</div>
     <div onclick="toggleBalance()" style="cursor:pointer;font-size:22px">👁</div>
   </div>
 </div>
 
-<!-- CARD DISPLAY -->
 <div class="card">
 <strong>💳 My Bank Card</strong>
-<div id="cardBox"></div>
+<div id="cardBox">No card assigned</div>
 </div>
 
-<!-- SEND MONEY -->
 <div class="card">
 <strong>💸 Send Money</strong>
 <input id="receiver" placeholder="Username">
@@ -100,7 +98,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="sendMoney()">Send</button>
 </div>
 
-<!-- PAY BILLS -->
 <div class="card">
 <strong>💡 Pay Bills</strong>
 <select id="billType">
@@ -112,14 +109,12 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="payBill()">Pay Bill</button>
 </div>
 
-<!-- LOAN -->
 <div class="card">
 <strong>🏦 Request Loan</strong>
 <input id="loanAmount" type="number" placeholder="Loan amount">
 <button onclick="requestLoan()">Request Loan</button>
 </div>
 
-<!-- GIFT CARD -->
 <div class="card">
 <strong>🎁 Buy Gift Card</strong>
 <select id="giftType">
@@ -131,7 +126,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="buyGift()">Buy Gift Card</button>
 </div>
 
-<!-- SHOP -->
 <div class="card">
 <strong>🛒 Online Shopping</strong>
 <input id="store" placeholder="Store name">
@@ -139,7 +133,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="shop()">Pay</button>
 </div>
 
-<!-- TRANSACTIONS -->
 <div class="card">
 <strong>📜 Transactions</strong>
 <div id="transactions"></div>
@@ -154,9 +147,12 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <script>
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank"
+  projectId: "dechase-bank",
+  storageBucket: "dechase-bank.firebasestorage.app",
+  messagingSenderId: "44428081485",
+  appId: "1:44428081485:web:85d993a939d380336e1f04"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -170,7 +166,10 @@ let isFrozen=false;
 let balanceVisible=true;
 let realBalance=0;
 
-/* REALTIME USER DATA */
+function nowDate(){
+  return new Date().toLocaleString();
+}
+
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
@@ -178,17 +177,16 @@ db.collection("users").doc(username)
 
  welcome.innerText="Hello, "+user.username;
 
- realBalance=user.balance||0;
+ realBalance=Number(user.balance)||0;
  renderBalance();
 
  isFrozen=user.frozen||false;
  frozenNotice.innerHTML=isFrozen?
  '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>':"";
 
- /* CARD */
  if(user.cardNumber){
    cardBox.innerHTML=`
-   <div style="margin-top:10px">
+   <div>
    <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
    Exp: ${user.expiry}<br>
    CVV: <span id="cvv">•••</span>
@@ -197,7 +195,6 @@ db.collection("users").doc(username)
    </div>`;
  }
 
- /* TRANSACTIONS */
  transactions.innerHTML="";
  (user.transactions||[]).slice().reverse().slice(0,6).forEach(tx=>{
    const cls=tx.amount<0?"amountMinus":"amountPlus";
@@ -211,7 +208,6 @@ db.collection("users").doc(username)
  });
 });
 
-/* BALANCE TOGGLE */
 function toggleBalance(){
  balanceVisible=!balanceVisible;
  renderBalance();
@@ -222,13 +218,11 @@ function renderBalance(){
    : "••••••";
 }
 
-/* CVV TOGGLE */
 function toggleCVV(real){
  const el=document.getElementById("cvv");
  el.innerText = el.innerText==="•••" ? real : "•••";
 }
 
-/* SEND MONEY */
 async function sendMoney(){
  if(isFrozen) return alert("Account frozen");
 
@@ -245,21 +239,22 @@ async function sendMoney(){
  await db.runTransaction(async t=>{
    const f=await t.get(fromRef);
    const r=await t.get(toRef);
-   if(!r.exists) throw "Receiver not found";
-   if(f.data().balance<amt) throw "Insufficient balance";
 
-   const now=new Date().toLocaleString();
+   if(!r.exists) throw "Receiver not found";
+   if((f.data().balance||0)<amt) throw "Insufficient balance";
 
    t.update(fromRef,{
      balance:f.data().balance-amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:-amt,note:`Sent to ${to} • ${descVal}`,date:now})
+       amount:-amt,note:`Sent to ${to} • ${descVal}`,date:nowDate()
+     })
    });
 
    t.update(toRef,{
      balance:(r.data().balance||0)+amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:amt,note:`Received from ${username}`,date:now})
+       amount:amt,note:`Received from ${username}`,date:nowDate()
+     })
    });
  });
 
@@ -268,8 +263,7 @@ async function sendMoney(){
  }catch(e){alert(e);}
 }
 
-/* OTHER FEATURES */
-function payBill(){ if(isFrozen) return alert("Account frozen");
+function payBill(){
  const amt=Number(billAmount.value);
  if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
 }
@@ -285,14 +279,15 @@ function shop(){
  const amt=Number(shopAmount.value);
  if(amt>0) updateBalance(-amt,"Shopping • "+store.value);
 }
+
 async function updateBalance(amount,note){
  const ref=db.collection("users").doc(username);
  const doc=await ref.get();
- const now=new Date().toLocaleString();
  await ref.update({
   balance:(doc.data().balance||0)+amount,
   transactions:firebase.firestore.FieldValue.arrayUnion({
-   amount,note,date:now})
+   amount,note,date:nowDate()
+  })
  });
 }
 
