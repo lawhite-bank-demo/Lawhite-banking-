@@ -15,14 +15,12 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
-.header{display:flex;justify-content:space-between;align-items:center;}
 .balanceCard{
   margin-top:20px;padding:25px;border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
 }
 .balanceRow{display:flex;justify-content:space-between;align-items:center;}
 .balance{font-size:36px;font-weight:600;}
-.eye{cursor:pointer;}
 .card{
   background:rgba(255,255,255,0.05);
   border-radius:18px;padding:18px;margin-top:20px;
@@ -43,23 +41,25 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <div class="container">
 
-<div class="header">
-  <h2 id="welcome">Hello</h2>
-</div>
+<h2 id="welcome">Hello</h2>
 
 <div class="balanceCard">
   <small>Available Balance</small>
   <div class="balanceRow">
     <div class="balance" id="balance">€0</div>
-    <div class="eye" onclick="toggleBalance()">👁</div>
   </div>
 </div>
 
 <div class="card">
   <strong>💸 Send Money</strong>
+
   <input id="receiver" placeholder="Username">
   <input id="amount" type="number" placeholder="Amount">
   <input id="desc" placeholder="Description (optional)">
+
+  <!-- NEW DATE FIELD -->
+  <input id="customDate" type="datetime-local">
+
   <button onclick="sendMoney()">Send</button>
 </div>
 
@@ -89,44 +89,40 @@ let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 username = username.toLowerCase();
 
-let balanceVisible=true;
-let realBalance=0;
-
-function toggleBalance(){
- balanceVisible=!balanceVisible;
- renderBalance();
-}
-
-function renderBalance(){
- document.getElementById("balance").innerText =
- balanceVisible ? "€"+realBalance.toLocaleString() : "••••••";
-}
+let realBalance = 0;
 
 function addTransaction(note, amount){
+ const custom = document.getElementById("customDate").value;
+
  return {
    amount:Number(amount),
    note,
-   date:new Date().toLocaleString()
+   date: custom
+      ? new Date(custom).toLocaleString()
+      : new Date().toLocaleString()
  };
 }
 
-// LIVE USER DATA
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
+ const user = doc.data();
 
- const user=doc.data();
- document.getElementById("welcome").innerText="Hello, "+(user.username||username);
+ document.getElementById("welcome").innerText =
+   "Hello, " + (user.username || username);
 
- realBalance=Number(user.balance)||0;
- renderBalance();
+ realBalance = Number(user.balance) || 0;
+ document.getElementById("balance").innerText =
+   "€" + realBalance.toLocaleString();
 
- const container=document.getElementById("transactions");
- container.innerHTML="";
+ const container = document.getElementById("transactions");
+ container.innerHTML = "";
 
- (user.transactions||[]).slice().reverse().slice(0,5).forEach(tx=>{
-   const cls=tx.amount<0?"amountMinus":"amountPlus";
-   container.innerHTML+=`
+ (user.transactions || [])
+ .slice().reverse().slice(0,5)
+ .forEach(tx=>{
+   const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
+   container.innerHTML += `
    <div class="tx">
      <div>${tx.note}<small>${tx.date}</small></div>
      <div class="${cls}">€${Math.abs(tx.amount)}</div>
@@ -134,7 +130,6 @@ db.collection("users").doc(username)
  });
 });
 
-// ✅ FIXED SEND FUNCTION
 async function sendMoney(){
 
  const to = document.getElementById("receiver").value.trim().toLowerCase();
@@ -188,9 +183,9 @@ async function sendMoney(){
  document.getElementById("receiver").value="";
  document.getElementById("amount").value="";
  document.getElementById("desc").value="";
+ document.getElementById("customDate").value="";
 
  }catch(err){
-   console.error(err);
    alert(err);
  }
 }
