@@ -1,124 +1,73 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Send Money</title>
-
 <style>
 body{
-  font-family:Arial, sans-serif;
-  background:#061a2f;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+ background:#061a2f;color:white;font-family:Arial;
+ display:flex;justify-content:center;align-items:center;height:100vh;
 }
-
-.card{
-  background:#0d2b4d;
-  padding:25px;
-  border-radius:14px;
-  width:320px;
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:15px;
-  border:none;
-  border-radius:8px;
-  background:#1e88e5;
-  color:white;
-  font-size:16px;
-}
+.card{background:#0d2b4d;padding:25px;border-radius:14px;width:320px;}
+input{width:100%;padding:12px;margin-top:10px;border-radius:8px;border:none;}
+button{width:100%;padding:12px;margin-top:15px;border:none;border-radius:8px;background:#1e88e5;color:white;}
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2>Send Money</h2>
-
-  <input type="text" id="receiver" placeholder="Recipient Username">
-  <input type="number" id="amount" placeholder="Amount">
-
-  <button onclick="sendMoney()">Send</button>
-  <button onclick="goBack()">Back</button>
-
-  <p id="msg"></p>
+<h2>Send Money</h2>
+<input id="receiver" placeholder="Recipient Username">
+<input id="amount" type="number" placeholder="Amount">
+<button onclick="sendMoney()">Send</button>
+<p id="msg"></p>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 <script>
-function sendMoney(){
+const firebaseConfig={
+ apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+ authDomain:"dechase-bank.firebaseapp.com",
+ projectId:"dechase-bank"
+};
 
-  const receiverName = document.getElementById("receiver").value.toLowerCase();
-  const amount = parseFloat(document.getElementById("amount").value);
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
 
-  const users = JSON.parse(localStorage.getItem("bankUsers"));
-  let sender = JSON.parse(localStorage.getItem("loggedInUser"));
+let username=localStorage.getItem("loggedInUser");
+username=username.toLowerCase();
 
-  const receiver = users.find(u => u.username === receiverName);
+async function sendMoney(){
+ const to=document.getElementById("receiver").value.toLowerCase();
+ const amt=Number(document.getElementById("amount").value);
 
-  if(!receiver){
-    document.getElementById("msg").innerText = "User not found";
-    return;
-  }
+ if(!to||amt<=0) return;
 
-  if(amount <= 0 || amount > sender.balance){
-    document.getElementById("msg").innerText = "Invalid amount";
-    return;
-  }
+ const fromRef=db.collection("users").doc(username);
+ const toRef=db.collection("users").doc(to);
 
-  // ensure arrays exist
-  if(!sender.transactions) sender.transactions = [];
-  if(!receiver.transactions) receiver.transactions = [];
+ try{
+ await db.runTransaction(async t=>{
+   const fromDoc=await t.get(fromRef);
+   const toDoc=await t.get(toRef);
 
-  // update balances
-  sender.balance -= amount;
-  receiver.balance += amount;
+   if(!toDoc.exists) throw "User not found";
 
-  // store transactions
-  sender.transactions.push({
-    amount: -amount,
-    note: "Transfer to " + receiver.username,
-    date: new Date().toLocaleDateString()
-  });
+   const senderBal=fromDoc.data().balance||0;
+   if(senderBal<amt) throw "Insufficient balance";
 
-  receiver.transactions.push({
-    amount: amount,
-    note: "Transfer from " + sender.username,
-    date: new Date().toLocaleDateString()
-  });
+   t.update(fromRef,{balance:senderBal-amt});
+   t.update(toRef,{balance:(toDoc.data().balance||0)+amt});
+ });
 
-  // save users
-  const updatedUsers = users.map(u =>
-    u.username === sender.username ? sender :
-    u.username === receiver.username ? receiver : u
-  );
+ document.getElementById("msg").innerText="Sent successfully";
 
-  localStorage.setItem("bankUsers", JSON.stringify(updatedUsers));
-  localStorage.setItem("loggedInUser", JSON.stringify(sender));
-
-  document.getElementById("msg").innerText = "Transfer successful";
-
-  setTimeout(()=>{
-    window.location.href = "Dashboard.html";
-  },1000);
-}
-
-function goBack(){
-  window.location.href = "Dashboard.html";
+ }catch(err){
+  document.getElementById("msg").innerText=err;
+ }
 }
 </script>
-
 </body>
 </html>
