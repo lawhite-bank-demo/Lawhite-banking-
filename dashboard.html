@@ -13,19 +13,23 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
+
 .balanceCard{
   margin-top:20px;
   padding:25px;
   border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
 }
+
 .balance{font-size:32px;font-weight:bold;}
+
 .card{
   background:rgba(255,255,255,0.05);
   border-radius:18px;
   padding:18px;
   margin-top:20px;
 }
+
 button{
   width:100%;
   padding:12px;
@@ -34,7 +38,9 @@ button{
   margin-top:10px;
   background:#1e88e5;
   color:white;
+  font-size:15px;
 }
+
 input{
   width:100%;
   padding:10px;
@@ -42,17 +48,28 @@ input{
   border:none;
   border-radius:8px;
 }
+
 .tx{
-  padding:8px 0;
+  padding:10px 0;
   border-bottom:1px solid rgba(255,255,255,0.1);
 }
+
 .amountPlus{color:#00e676;}
 .amountMinus{color:#ff5252;}
+
+small{
+  display:block;
+  opacity:0.6;
+  margin-top:3px;
+}
+
 .frozenBanner{
   background:#e74c3c;
   padding:10px;
   border-radius:8px;
   margin-top:10px;
+  text-align:center;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -73,7 +90,7 @@ input{
   <strong>💸 Send Money</strong>
   <input id="receiver" placeholder="Username">
   <input id="amount" type="number" placeholder="Amount">
-  <input id="desc" placeholder="Description">
+  <input id="desc" placeholder="Description (optional)">
   <button onclick="sendMoney()">Send</button>
 </div>
 
@@ -91,7 +108,7 @@ input{
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  apiKey: "YOUR_KEY",
   authDomain: "dechase-bank.firebaseapp.com",
   projectId: "dechase-bank"
 };
@@ -105,11 +122,13 @@ username = username.toLowerCase();
 
 let isFrozen = false;
 
+/* REALTIME USER DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
 
  const user = doc.data();
+
  document.getElementById("welcome").innerText =
    "Hello, " + user.username;
 
@@ -118,25 +137,30 @@ db.collection("users").doc(username)
 
  isFrozen = user.frozen || false;
 
- if(isFrozen){
-   document.getElementById("frozenNotice").innerHTML =
-     '<div class="frozenBanner">🔒 Your account is frozen. Contact admin.</div>';
- } else {
-   document.getElementById("frozenNotice").innerHTML = "";
- }
+ document.getElementById("frozenNotice").innerHTML =
+   isFrozen
+   ? '<div class="frozenBanner">🔒 Your account is frozen. Contact admin.</div>'
+   : '';
 
  const txBox = document.getElementById("transactions");
  txBox.innerHTML="";
- (user.transactions||[]).slice().reverse().slice(0,5)
- .forEach(tx=>{
-   const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
-   txBox.innerHTML += `
-   <div class="tx ${cls}">
-     ${tx.note} (€${tx.amount})
-   </div>`;
- });
+
+ (user.transactions||[])
+   .slice().reverse().slice(0,5)
+   .forEach(tx=>{
+     const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
+
+     txBox.innerHTML += `
+     <div class="tx">
+       <span class="${cls}">
+         ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+       </span>
+       <small>${tx.date || ""}</small>
+     </div>`;
+   });
 });
 
+/* SEND MONEY */
 async function sendMoney(){
 
  if(isFrozen){
@@ -144,9 +168,9 @@ async function sendMoney(){
    return;
  }
 
- const to = document.getElementById("receiver").value.trim().toLowerCase();
- const amt = Number(document.getElementById("amount").value);
- const desc = document.getElementById("desc").value || "";
+ const to = receiver.value.trim().toLowerCase();
+ const amt = Number(amount.value);
+ const desc = descField();
 
  if(!to || amt<=0) return alert("Enter valid details");
  if(to===username) return alert("Cannot send to yourself");
@@ -154,34 +178,53 @@ async function sendMoney(){
  const fromRef=db.collection("users").doc(username);
  const toRef=db.collection("users").doc(to);
 
+ try{
+
  await db.runTransaction(async t=>{
    const fromDoc=await t.get(fromRef);
    const toDoc=await t.get(toRef);
 
    if(!toDoc.exists) throw "Receiver not found";
-   if(fromDoc.data().balance < amt) throw "Insufficient balance";
+
+   const senderBal = fromDoc.data().balance || 0;
+   if(senderBal < amt) throw "Insufficient balance";
+
+   const now = new Date().toLocaleString();
 
    t.update(fromRef,{
-     balance: fromDoc.data().balance - amt,
+     balance: senderBal - amt,
      transactions: firebase.firestore.FieldValue.arrayUnion({
        amount:-amt,
-       note:"Sent to "+to,
-       date:new Date().toLocaleString()
+       note:`Sent to ${to} • ${desc}`,
+       date:now
      })
    });
 
    t.update(toRef,{
-     balance: toDoc.data().balance + amt,
+     balance:(toDoc.data().balance||0)+amt,
      transactions: firebase.firestore.FieldValue.arrayUnion({
        amount:amt,
-       note:"Received from "+username,
-       date:new Date().toLocaleString()
+       note:`Received from ${username}`,
+       date:now
      })
    });
 
  });
 
- alert("Transfer successful");
+ alert("Transfer successful ✅");
+
+ receiver.value="";
+ amount.value="";
+ document.getElementById("desc").value="";
+
+ }catch(err){
+   alert(err);
+ }
+}
+
+function descField(){
+ const d = document.getElementById("desc").value.trim();
+ return d ? d : "Transfer";
 }
 
 function logout(){
