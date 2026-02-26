@@ -15,77 +15,111 @@ body{
   color:white;
   transition:.3s;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
-.header{display:flex;justify-content:space-between;align-items:center;}
-.balanceCard{
-  margin-top:20px;padding:25px;border-radius:20px;
-  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:20px;
 }
-.balance{font-size:36px;font-weight:600;margin-top:8px;}
+
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+h3{
+  margin-bottom:10px;
+}
+
+.balanceCard{
+  margin-top:20px;
+  padding:25px;
+  border-radius:20px;
+  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+  box-shadow:0 15px 35px rgba(0,0,0,0.35);
+}
+
+.balance{
+  font-size:36px;
+  font-weight:600;
+}
+
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(12px);
-  border-radius:18px;padding:18px;margin-top:20px;
+  border-radius:18px;
+  padding:18px;
+  margin-top:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.25);
+  transition:.2s;
 }
+
+.card:hover{
+  transform:translateY(-2px);
+}
+
+.feature-title{
+  font-weight:600;
+  margin-bottom:8px;
+}
+
+.feature-title span{
+  opacity:.8;
+  margin-right:6px;
+}
+
 button{
-  width:100%;padding:14px;border:none;border-radius:12px;
-  margin-top:10px;font-size:15px;background:#1e88e5;color:white;
+  width:100%;
+  padding:14px;
+  border:none;
+  border-radius:12px;
+  margin-top:10px;
+  font-size:15px;
+  background:#1e88e5;
+  color:white;
+  cursor:pointer;
+  transition:.2s;
 }
-input,select{
-  width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;
+
+button:hover{
+  background:#1976d2;
 }
+
+input, select{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
+}
+
 .tx{
-  display:flex;justify-content:space-between;
-  padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);
+  display:flex;
+  justify-content:space-between;
+  padding:10px 0;
+  border-bottom:1px solid rgba(255,255,255,0.06);
 }
-.amountPlus{color:#00e676;}
-.amountMinus{color:#ff5252;}
-.logout{background:#ff5252;margin-top:20px;}
+
+.tx small{
+  opacity:.6;
+  font-size:11px;
+  display:block;
+}
+
+.amountPlus{ color:#00e676; }
+.amountMinus{ color:#ff5252; }
+
+.logout{
+  background:#ff5252;
+  margin-top:20px;
+}
+
 #themeToggle{
-  width:auto;padding:8px 12px;border-radius:10px;
+  padding:8px 12px;
+  border-radius:10px;
   background:rgba(255,255,255,0.15);
-}
-
-/* LIGHT MODE */
-body.light{background:#f4f7fb;color:#111;}
-body.light .card{background:white;color:#111;}
-body.light input,body.light select{background:#f1f3f6;}
-body.light button{background:#1976d2;}
-body.light .logout{background:#e53935;}
-
-/* SPINNER */
-.spinnerOverlay{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.45);
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:.3s;
-}
-.spinnerOverlay.show{opacity:1;pointer-events:auto;}
-.spinner{
-  width:60px;height:60px;border:6px solid #eee;
-  border-top:6px solid #2ecc71;border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* SUCCESS */
-.successPopup{
-  position:fixed;top:0;left:0;width:100%;height:100%;
-  background:rgba(0,0,0,.35);
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:.3s;
-}
-.successPopup.show{opacity:1;pointer-events:auto;}
-.successBox{
-  background:white;color:#111;padding:25px;border-radius:18px;
-  text-align:center;transform:scale(.7);transition:.3s;
-}
-.successPopup.show .successBox{transform:scale(1);}
-.checkmark{
-  width:70px;height:70px;border-radius:50%;
-  background:#2ecc71;color:white;font-size:36px;
-  display:flex;align-items:center;justify-content:center;
-  margin:auto;margin-bottom:10px;
+  font-size:16px;
 }
 </style>
 </head>
@@ -93,188 +127,227 @@ body.light .logout{background:#e53935;}
 
 <div class="container">
 
-  <div class="header">
-    <h2 id="welcome">Hello</h2>
-    <button id="themeToggle" onclick="toggleTheme()">🌙</button>
-  </div>
-
-  <div class="balanceCard">
-    <small>Available Balance</small>
-    <div class="balance" id="balance">€0</div>
-  </div>
-
-  <!-- SEND MONEY -->
-  <div class="card">
-    <h3>Send Money</h3>
-    <input id="receiver" placeholder="Username or Account Number">
-    <input id="amount" placeholder="Amount">
-    <input id="note" placeholder="Description (optional)">
-    <button onclick="sendMoney()">Send</button>
-  </div>
-
-  <!-- PAY BILLS -->
-  <div class="card">
-    <h3>Pay Bills</h3>
-    <select id="billType">
-      <option>Electricity</option>
-      <option>TV Subscription</option>
-      <option>Internet</option>
-      <option>Water</option>
-    </select>
-    <input id="billAmount" placeholder="Amount">
-    <button onclick="payBill()">Pay Bill</button>
-  </div>
-
-  <!-- LOAN -->
-  <div class="card">
-    <h3>Request Loan</h3>
-    <input id="loanAmount" placeholder="Loan amount">
-    <button onclick="requestLoan()">Request Loan</button>
-  </div>
-
-  <!-- GIFT CARDS -->
-  <div class="card">
-    <h3>Buy Gift Card</h3>
-    <select id="giftType">
-      <option>Amazon</option>
-      <option>Apple / iTunes</option>
-      <option>Steam</option>
-      <option>PlayStation</option>
-      <option>Xbox</option>
-    </select>
-    <input id="giftAmount" placeholder="Amount">
-    <button onclick="buyGiftCard()">Buy Gift Card</button>
-  </div>
-
-  <!-- ONLINE SHOPPING -->
-  <div class="card">
-    <h3>Online Shopping</h3>
-    <input id="storeName" placeholder="Store name">
-    <input id="itemName" placeholder="Item name">
-    <input id="shopAmount" placeholder="Amount">
-    <button onclick="payShopping()">Pay</button>
-  </div>
-
-  <!-- TRANSACTIONS -->
-  <div class="card">
-    <h3>Transactions</h3>
-    <div id="transactions"></div>
-  </div>
-
-  <button class="logout" onclick="logout()">Logout</button>
+<div class="header">
+  <h2 id="welcome">Hello</h2>
+  <button id="themeToggle" onclick="toggleTheme()">🌙</button>
 </div>
 
-<div class="spinnerOverlay" id="spinner"><div class="spinner"></div></div>
+<div class="balanceCard">
+  <small>Available Balance</small>
+  <div class="balance" id="balance">€0</div>
+</div>
 
-<div class="successPopup" id="successPopup">
-  <div class="successBox">
-    <div class="checkmark">✓</div>
-    <h3>Transaction Successful</h3>
-  </div>
+<!-- SEND MONEY -->
+<div class="card">
+  <div class="feature-title"><span>💸</span>Send Money</div>
+  <input id="receiver" placeholder="Username or Account Number">
+  <input id="amount" placeholder="Amount">
+  <input id="desc" placeholder="Description (optional)">
+  <button onclick="sendMoney()">Send</button>
+  <div id="msg"></div>
+</div>
+
+<!-- PAY BILLS -->
+<div class="card">
+  <div class="feature-title"><span>💡</span>Pay Bills</div>
+  <select id="billType">
+    <option>Electricity</option>
+    <option>Internet</option>
+    <option>Water</option>
+    <option>TV</option>
+  </select>
+  <input id="billAmount" placeholder="Amount">
+  <button onclick="payBill()">Pay Bill</button>
+</div>
+
+<!-- LOAN -->
+<div class="card">
+  <div class="feature-title"><span>🏦</span>Request Loan</div>
+  <input id="loanAmount" placeholder="Loan amount">
+  <button onclick="requestLoan()">Request Loan</button>
+</div>
+
+<!-- GIFT CARD -->
+<div class="card">
+  <div class="feature-title"><span>🎁</span>Buy Gift Card</div>
+  <select id="giftType">
+    <option>Amazon</option>
+    <option>Apple</option>
+    <option>Google Play</option>
+    <option>Steam</option>
+  </select>
+  <input id="giftAmount" placeholder="Amount">
+  <button onclick="buyGift()">Buy Gift Card</button>
+</div>
+
+<!-- SHOPPING -->
+<div class="card">
+  <div class="feature-title"><span>🛒</span>Online Shopping</div>
+  <input id="store" placeholder="Store name">
+  <input id="item" placeholder="Item name">
+  <input id="shopAmount" placeholder="Amount">
+  <button onclick="shop()">Pay</button>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="card">
+  <div class="feature-title"><span>📜</span>Transactions</div>
+  <div id="transactions"></div>
+</div>
+
+<button class="logout" onclick="logout()">Logout</button>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
 <script>
-const firebaseConfig={
-  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
-  authDomain:"dechase-bank.firebaseapp.com",
-  projectId:"dechase-bank"
+const firebaseConfig = {
+  apiKey: "YOUR-KEY",
+  authDomain: "YOUR-DOMAIN",
+  projectId: "YOUR-ID"
 };
 firebase.initializeApp(firebaseConfig);
-const db=firebase.firestore();
+const db = firebase.firestore();
 
-const username=localStorage.getItem("loggedInUser");
+const username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 
-function toggleTheme(){document.body.classList.toggle("light");}
+function toggleTheme(){
+ document.body.classList.toggle("light");
+}
 
-db.collection("users").doc(username).onSnapshot(doc=>{
-  const user=doc.data();
-  welcome.innerText="Hello, "+user.username;
-  balance.innerText="€"+Number(user.balance).toLocaleString();
-
-  const box=document.getElementById("transactions");
-  box.innerHTML="";
-  if(!user.transactions) return;
-
-  user.transactions.slice().reverse().forEach(tx=>{
-    const cls=tx.amount<0?"amountMinus":"amountPlus";
-    box.innerHTML+=`
-      <div class="tx">
-        <div>${tx.note}<small>${tx.date}</small></div>
-        <div class="${cls}">€${Math.abs(tx.amount)}</div>
-      </div>`;
-  });
-});
-
-function showSpinner(){spinner.classList.add("show");}
-function hideSpinner(){spinner.classList.remove("show");}
-function showSuccess(){successPopup.classList.add("show");
- setTimeout(()=>successPopup.classList.remove("show"),1800);}
-
-async function updateBalance(amount,note){
- showSpinner();
+function addTransaction(note, amount){
  const ref="TX-"+Math.floor(Math.random()*99999999);
  const date=new Date().toLocaleString();
- const userRef=db.collection("users").doc(username);
- const doc=await userRef.get();
+
+ return {
+   amount:amount,
+   note:note,
+   ref:ref,
+   date:date
+ };
+}
+
+db.collection("users").doc(username)
+.onSnapshot(doc=>{
  const user=doc.data();
- if(user.balance+amount<0){hideSpinner();alert("Insufficient balance");return;}
- await userRef.update({
-   balance:user.balance+amount,
-   transactions:firebase.firestore.FieldValue.arrayUnion({
-     amount,note,ref,date
-   })
+ welcome.innerText="Hello, "+user.username;
+ balance.innerText="€"+Number(user.balance).toLocaleString();
+
+ const container=document.getElementById("transactions");
+ container.innerHTML="";
+
+ if(!user.transactions) return;
+
+ user.transactions.slice().reverse().forEach(tx=>{
+   const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
+   container.innerHTML += `
+   <div class="tx">
+     <div>
+       ${tx.note || ""}
+       <small>${tx.date || ""}</small>
+     </div>
+     <div class="${cls}">
+       €${Math.abs(tx.amount)}
+     </div>
+   </div>`;
  });
- hideSpinner();showSuccess();
+});
+
+async function sendMoney(){
+ const to = receiver.value.trim();
+ const amt = Number(amount.value);
+ const desc = descInput = document.getElementById("desc").value;
+
+ if(!to || amt<=0) return;
+
+ const fromRef=db.collection("users").doc(username);
+ const toRef=db.collection("users").doc(to);
+
+ const fromDoc=await fromRef.get();
+ const toDoc=await toRef.get();
+
+ if(!toDoc.exists) return alert("Receiver not found");
+ if(fromDoc.data().balance < amt) return alert("Insufficient balance");
+
+ await fromRef.update({
+  balance: fromDoc.data().balance - amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Sent to "+to+" • "+desc, -amt)
+  )
+ });
+
+ await toRef.update({
+  balance: toDoc.data().balance + amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Received from "+username+" • "+desc, amt)
+  )
+ });
+
+ receiver.value="";
+ amount.value="";
+ desc.value="";
 }
 
-/* FEATURES */
-function sendMoney(){
-  const to=receiver.value.trim();
-  const amt=Number(amount.value);
-  const noteText=note.value.trim()||"Transfer";
-  if(!to||amt<=0) return;
+async function payBill(){
+ const amt=Number(billAmount.value);
+ if(amt<=0) return;
 
-  db.collection("users").doc(to).get().then(doc=>{
-    if(!doc.exists){alert("User not found");return;}
-    updateBalance(-amt,"Sent to "+to+" • "+noteText);
-    db.collection("users").doc(to).update({
-      balance:doc.data().balance+amt,
-      transactions:firebase.firestore.FieldValue.arrayUnion({
-        amount:amt,
-        note:"From "+username+" • "+noteText,
-        ref:"TX-"+Math.random(),
-        date:new Date().toLocaleString()
-      })
-    });
-  });
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+
+ await ref.update({
+  balance: doc.data().balance - amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Bill payment • "+billType.value, -amt)
+  )
+ });
 }
 
-function payBill(){
-  updateBalance(-Number(billAmount.value),billType.value+" Bill Payment");
+async function requestLoan(){
+ const amt=Number(loanAmount.value);
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+
+ await ref.update({
+  balance: doc.data().balance + amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Loan credited", amt)
+  )
+ });
 }
 
-function requestLoan(){
-  updateBalance(Number(loanAmount.value),"Loan credited");
+async function buyGift(){
+ const amt=Number(giftAmount.value);
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+
+ await ref.update({
+  balance: doc.data().balance - amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Gift card • "+giftType.value, -amt)
+  )
+ });
 }
 
-function buyGiftCard(){
-  updateBalance(-Number(giftAmount.value),giftType.value+" Gift Card");
-}
+async function shop(){
+ const amt=Number(shopAmount.value);
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
 
-function payShopping(){
-  const store=storeName.value;
-  const item=itemName.value;
-  const amt=Number(shopAmount.value);
-  updateBalance(-amt,store+" • "+item);
+ await ref.update({
+  balance: doc.data().balance - amt,
+  transactions: firebase.firestore.FieldValue.arrayUnion(
+   addTransaction("Shopping • "+store.value+" ("+item.value+")", -amt)
+  )
+ });
 }
 
 function logout(){
-  localStorage.removeItem("loggedInUser");
-  location.href="login.html";
+ localStorage.removeItem("loggedInUser");
+ location.href="login.html";
 }
 </script>
 </body>
