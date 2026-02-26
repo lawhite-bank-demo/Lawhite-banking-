@@ -79,4 +79,126 @@ small{opacity:.6;display:block;margin-top:3px;}
 const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase
+  projectId: "dechase-bank"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let username = localStorage.getItem("loggedInUser");
+if(!username) location.href="login.html";
+username = username.toLowerCase();
+
+let balanceVisible=true;
+let realBalance=0;
+
+function toggleBalance(){
+ balanceVisible=!balanceVisible;
+ renderBalance();
+}
+
+function renderBalance(){
+ document.getElementById("balance").innerText =
+ balanceVisible ? "€"+realBalance.toLocaleString() : "••••••";
+}
+
+function addTransaction(note, amount){
+ return {
+   amount:Number(amount),
+   note,
+   date:new Date().toLocaleString()
+ };
+}
+
+// LIVE USER DATA
+db.collection("users").doc(username)
+.onSnapshot(doc=>{
+ if(!doc.exists) return;
+
+ const user=doc.data();
+ document.getElementById("welcome").innerText="Hello, "+(user.username||username);
+
+ realBalance=Number(user.balance)||0;
+ renderBalance();
+
+ const container=document.getElementById("transactions");
+ container.innerHTML="";
+
+ (user.transactions||[]).slice().reverse().slice(0,5).forEach(tx=>{
+   const cls=tx.amount<0?"amountMinus":"amountPlus";
+   container.innerHTML+=`
+   <div class="tx">
+     <div>${tx.note}<small>${tx.date}</small></div>
+     <div class="${cls}">€${Math.abs(tx.amount)}</div>
+   </div>`;
+ });
+});
+
+// ✅ FIXED SEND FUNCTION
+async function sendMoney(){
+
+ const to = document.getElementById("receiver").value.trim().toLowerCase();
+ const amt = Number(document.getElementById("amount").value);
+ const desc = document.getElementById("desc").value || "";
+
+ if(!to || amt <= 0){
+   alert("Enter valid details");
+   return;
+ }
+
+ if(to === username){
+   alert("Cannot send to yourself");
+   return;
+ }
+
+ const fromRef = db.collection("users").doc(username);
+ const toRef   = db.collection("users").doc(to);
+
+ try{
+ await db.runTransaction(async (t)=>{
+
+   const fromDoc = await t.get(fromRef);
+   const toDoc   = await t.get(toRef);
+
+   if(!toDoc.exists) throw "Receiver not found";
+
+   const senderBal = Number(fromDoc.data().balance) || 0;
+   const recvBal   = Number(toDoc.data().balance) || 0;
+
+   if(senderBal < amt) throw "Insufficient balance";
+
+   t.update(fromRef,{
+     balance: senderBal - amt,
+     transactions: firebase.firestore.FieldValue.arrayUnion(
+       addTransaction(`Sent to ${to} • ${desc}`, -amt)
+     )
+   });
+
+   t.update(toRef,{
+     balance: recvBal + amt,
+     transactions: firebase.firestore.FieldValue.arrayUnion(
+       addTransaction(`Received from ${username}`, amt)
+     )
+   });
+
+ });
+
+ alert("Transfer successful ✅");
+
+ document.getElementById("receiver").value="";
+ document.getElementById("amount").value="";
+ document.getElementById("desc").value="";
+
+ }catch(err){
+   console.error(err);
+   alert(err);
+ }
+}
+
+function logout(){
+ localStorage.removeItem("loggedInUser");
+ location.href="login.html";
+}
+</script>
+</body>
+</html>
