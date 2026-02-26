@@ -1,37 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>User Login</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeChase Bank</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#061a2f;
-  color:white;
+  height:100vh;
+  font-family:'Poppins',sans-serif;
+  background:linear-gradient(160deg,#021224,#052a4f,#031427);
   display:flex;
   align-items:center;
   justify-content:center;
-  height:100vh;
+  color:white;
 }
 
-.card{
-  background:#0d2b4d;
-  padding:30px;
-  border-radius:16px;
-  width:90%;
-  max-width:350px;
+/* floating background glow */
+body::before{
+  content:"";
+  position:absolute;
+  width:500px;
+  height:500px;
+  background:radial-gradient(circle,#1e88e5,transparent 70%);
+  filter:blur(120px);
+  opacity:.35;
+  top:-120px;
+  left:-120px;
+}
+
+.container{
+  width:350px;
   text-align:center;
+  animation:fadeIn .8s ease;
+}
+
+/* LOGO */
+.logo{
+  margin-bottom:25px;
+}
+
+.logo-circle{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  font-weight:700;
+  margin:auto;
+  box-shadow:0 8px 25px rgba(0,0,0,0.4);
+}
+
+.bank-name{
+  font-size:22px;
+  font-weight:600;
+  margin-top:10px;
+  letter-spacing:1px;
+}
+
+.tagline{
+  font-size:13px;
+  opacity:.7;
+  margin-top:4px;
+}
+
+/* LOGIN CARD */
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(14px);
+  padding:28px;
+  border-radius:18px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.35);
 }
 
 input{
   width:100%;
   padding:14px;
   margin-top:12px;
-  border-radius:10px;
   border:none;
-  font-size:16px;
+  border-radius:10px;
+  font-size:15px;
+  outline:none;
 }
 
 button{
@@ -40,31 +95,54 @@ button{
   margin-top:18px;
   border:none;
   border-radius:10px;
-  background:#2ecc71;
-  color:white;
   font-size:16px;
+  font-weight:600;
+  background:linear-gradient(135deg,#00c853,#00e676);
+  color:white;
+  cursor:pointer;
+  transition:.3s;
 }
 
-.error{
-  margin-top:10px;
-  color:#ff6b6b;
+button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 20px rgba(0,0,0,0.3);
+}
+
+.footer{
+  margin-top:15px;
+  font-size:12px;
+  opacity:.6;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px)}
+  to{opacity:1; transform:translateY(0)}
 }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Login</h2>
+<div class="container">
 
-  <input id="username" placeholder="Username">
-  <input id="pin" type="password" placeholder="PIN">
+  <div class="logo">
+      <div class="logo-circle">D</div>
+      <div class="bank-name">DeChase</div>
+      <div class="tagline">Secure Digital Banking</div>
+  </div>
 
-  <button onclick="login()">Login</button>
+  <div class="card">
+      <h2>Login</h2>
+      <input id="username" placeholder="Username">
+      <input id="pin" type="password" placeholder="PIN">
+      <button onclick="login()">Login</button>
+  </div>
 
-  <div id="error" class="error"></div>
+  <div class="footer">
+    © 2026 DeChase Bank
+  </div>
+
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -72,47 +150,30 @@ button{
 const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank",
-  storageBucket: "dechase-bank.appspot.com",
-  messagingSenderId: "44428081485",
-  appId: "1:44428081485:web:85d993a939d380336e1f04"
+  projectId: "dechase-bank"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-function login(){
+async function login(){
+ const user = username.value.trim();
+ const pinValue = pin.value.trim();
 
-  const username = document.getElementById("username").value.trim();
-  const pin = document.getElementById("pin").value.trim();
+ const doc = await db.collection("users").doc(user).get();
 
-  if(!username || !pin){
-    error.innerText = "Enter username and PIN";
-    return;
-  }
+ if(!doc.exists){
+   alert("User not found");
+   return;
+ }
 
-  db.collection("users").doc(username).get().then(doc => {
+ if(doc.data().pin !== pinValue){
+   alert("Incorrect PIN");
+   return;
+ }
 
-    if(!doc.exists){
-      error.innerText = "User not found";
-      return;
-    }
-
-    const user = doc.data();
-
-    if(user.pin !== pin){
-      error.innerText = "Incorrect PIN";
-      return;
-    }
-
-    // save session
-    localStorage.setItem("loggedInUser", username);
-
-    // open dashboard
-    window.location.href = "dashboard.html";
-
-  });
-
+ localStorage.setItem("loggedInUser", user);
+ location.href="dashboard.html";
 }
 </script>
 
