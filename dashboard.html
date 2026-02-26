@@ -20,7 +20,6 @@ body{
   border-radius:20px;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
 }
-
 .balance{font-size:32px;font-weight:bold;}
 
 .card{
@@ -41,7 +40,7 @@ button{
   font-size:15px;
 }
 
-input{
+input, select{
   width:100%;
   padding:10px;
   margin-top:8px;
@@ -63,6 +62,10 @@ small{
   margin-top:3px;
 }
 
+.logout{
+  background:#ff5252;
+}
+
 .frozenBanner{
   background:#e74c3c;
   padding:10px;
@@ -78,7 +81,6 @@ small{
 <div class="container">
 
 <h2 id="welcome">Hello</h2>
-
 <div id="frozenNotice"></div>
 
 <div class="balanceCard">
@@ -86,20 +88,62 @@ small{
   <div class="balance" id="balance">€0</div>
 </div>
 
+<!-- SEND MONEY -->
 <div class="card">
-  <strong>💸 Send Money</strong>
-  <input id="receiver" placeholder="Username">
-  <input id="amount" type="number" placeholder="Amount">
-  <input id="desc" placeholder="Description (optional)">
-  <button onclick="sendMoney()">Send</button>
+<strong>💸 Send Money</strong>
+<input id="receiver" placeholder="Username or Account Number">
+<input id="amount" type="number" placeholder="Amount">
+<input id="desc" placeholder="Description (optional)">
+<button onclick="sendMoney()">Send</button>
 </div>
 
+<!-- PAY BILLS -->
 <div class="card">
-  <strong>📜 Transactions</strong>
-  <div id="transactions"></div>
+<strong>💡 Pay Bills</strong>
+<select id="billType">
+<option>Electricity</option>
+<option>Internet</option>
+<option>Water</option>
+</select>
+<input id="billAmount" type="number" placeholder="Amount">
+<button onclick="payBill()">Pay Bill</button>
 </div>
 
-<button onclick="logout()">Logout</button>
+<!-- REQUEST LOAN -->
+<div class="card">
+<strong>🏦 Request Loan</strong>
+<input id="loanAmount" type="number" placeholder="Loan amount">
+<button onclick="requestLoan()">Request Loan</button>
+</div>
+
+<!-- BUY GIFT CARD -->
+<div class="card">
+<strong>🎁 Buy Gift Card</strong>
+<select id="giftType">
+<option>Amazon</option>
+<option>Apple</option>
+<option>Google Play</option>
+</select>
+<input id="giftAmount" type="number" placeholder="Amount">
+<button onclick="buyGift()">Buy Gift Card</button>
+</div>
+
+<!-- ONLINE SHOPPING -->
+<div class="card">
+<strong>🛒 Online Shopping</strong>
+<input id="store" placeholder="Store name">
+<input id="item" placeholder="Item name">
+<input id="shopAmount" type="number" placeholder="Amount">
+<button onclick="shop()">Pay</button>
+</div>
+
+<!-- TRANSACTIONS -->
+<div class="card">
+<strong>📜 Transactions</strong>
+<div id="transactions"></div>
+</div>
+
+<button class="logout" onclick="logout()">Logout</button>
 
 </div>
 
@@ -120,111 +164,121 @@ let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 username = username.toLowerCase();
 
-let isFrozen = false;
+let isFrozen=false;
 
-/* REALTIME USER DATA */
+/* REALTIME DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
-
  const user = doc.data();
 
- document.getElementById("welcome").innerText =
-   "Hello, " + user.username;
-
- document.getElementById("balance").innerText =
-   "€" + (user.balance||0).toLocaleString();
+ welcome.innerText="Hello, "+user.username;
+ balance.innerText="€"+(user.balance||0).toLocaleString();
 
  isFrozen = user.frozen || false;
 
- document.getElementById("frozenNotice").innerHTML =
-   isFrozen
-   ? '<div class="frozenBanner">🔒 Your account is frozen. Contact admin.</div>'
-   : '';
+ frozenNotice.innerHTML = isFrozen
+ ? '<div class="frozenBanner">🔒 Your account is frozen. Contact admin.</div>'
+ : '';
 
- const txBox = document.getElementById("transactions");
+ const txBox=document.getElementById("transactions");
  txBox.innerHTML="";
 
- (user.transactions||[])
-   .slice().reverse().slice(0,5)
-   .forEach(tx=>{
-     const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
-
-     txBox.innerHTML += `
-     <div class="tx">
-       <span class="${cls}">
-         ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-       </span>
-       <small>${tx.date || ""}</small>
-     </div>`;
-   });
+ (user.transactions||[]).slice().reverse().slice(0,6).forEach(tx=>{
+   const cls = tx.amount < 0 ? "amountMinus":"amountPlus";
+   txBox.innerHTML+=`
+   <div class="tx">
+     <span class="${cls}">
+       ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+     </span>
+     <small>${tx.date || ""}</small>
+   </div>`;
+ });
 });
 
 /* SEND MONEY */
 async function sendMoney(){
+ if(isFrozen) return alert("Account frozen");
 
- if(isFrozen){
-   alert("Your account is frozen.");
-   return;
- }
+ const to=receiver.value.trim().toLowerCase();
+ const amt=Number(amount.value);
+ const descVal=desc.value || "Transfer";
 
- const to = receiver.value.trim().toLowerCase();
- const amt = Number(amount.value);
- const desc = descField();
-
- if(!to || amt<=0) return alert("Enter valid details");
+ if(!to||amt<=0) return alert("Enter valid details");
  if(to===username) return alert("Cannot send to yourself");
 
  const fromRef=db.collection("users").doc(username);
  const toRef=db.collection("users").doc(to);
 
  try{
-
  await db.runTransaction(async t=>{
    const fromDoc=await t.get(fromRef);
    const toDoc=await t.get(toRef);
 
    if(!toDoc.exists) throw "Receiver not found";
+   if(fromDoc.data().balance < amt) throw "Insufficient balance";
 
-   const senderBal = fromDoc.data().balance || 0;
-   if(senderBal < amt) throw "Insufficient balance";
-
-   const now = new Date().toLocaleString();
+   const now=new Date().toLocaleString();
 
    t.update(fromRef,{
-     balance: senderBal - amt,
-     transactions: firebase.firestore.FieldValue.arrayUnion({
+     balance:fromDoc.data().balance-amt,
+     transactions:firebase.firestore.FieldValue.arrayUnion({
        amount:-amt,
-       note:`Sent to ${to} • ${desc}`,
+       note:`Sent to ${to} • ${descVal}`,
        date:now
      })
    });
 
    t.update(toRef,{
      balance:(toDoc.data().balance||0)+amt,
-     transactions: firebase.firestore.FieldValue.arrayUnion({
+     transactions:firebase.firestore.FieldValue.arrayUnion({
        amount:amt,
        note:`Received from ${username}`,
        date:now
      })
    });
-
  });
 
- alert("Transfer successful ✅");
-
- receiver.value="";
- amount.value="";
- document.getElementById("desc").value="";
-
- }catch(err){
-   alert(err);
- }
+ alert("Transfer successful");
+ receiver.value=""; amount.value=""; desc.value="";
+ }catch(e){ alert(e); }
 }
 
-function descField(){
- const d = document.getElementById("desc").value.trim();
- return d ? d : "Transfer";
+/* OTHER FEATURES */
+function payBill(){
+ if(isFrozen) return alert("Account frozen");
+ const amt=Number(billAmount.value);
+ if(amt>0) updateBalance(-amt,"Bill payment • "+billType.value);
+}
+
+function requestLoan(){
+ const amt=Number(loanAmount.value);
+ if(amt>0) updateBalance(amt,"Loan credited");
+}
+
+function buyGift(){
+ const amt=Number(giftAmount.value);
+ if(amt>0) updateBalance(-amt,"Gift card • "+giftType.value);
+}
+
+function shop(){
+ const amt=Number(shopAmount.value);
+ if(amt>0) updateBalance(-amt,"Shopping • "+store.value);
+}
+
+async function updateBalance(amount,note){
+ const ref=db.collection("users").doc(username);
+ const doc=await ref.get();
+ const now=new Date().toLocaleString();
+
+ await ref.update({
+  balance:(doc.data().balance||0)+amount,
+  transactions:firebase.firestore.FieldValue.arrayUnion({
+    amount,
+    note,
+    date:now
+  })
+ });
 }
 
 function logout(){
@@ -232,6 +286,5 @@ function logout(){
  location.href="login.html";
 }
 </script>
-
 </body>
 </html>
