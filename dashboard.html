@@ -8,64 +8,101 @@
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#031427;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background: radial-gradient(circle at top, #0a2540, #031427 70%);
   color:white;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
 
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:22px 18px 40px;
+}
+
+/* BALANCE CARD */
 .balanceCard{
   margin-top:20px;
-  padding:25px;
-  border-radius:20px;
-  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+  padding:26px;
+  border-radius:24px;
+  background: linear-gradient(135deg,#1976d2,#42a5f5);
+  box-shadow:0 12px 35px rgba(0,0,0,0.35);
 }
 
-.balance{font-size:32px;font-weight:bold;}
+.balance{
+  font-size:34px;
+  font-weight:600;
+}
 
+/* GLASS CARDS */
 .card{
-  background:rgba(255,255,255,0.05);
-  border-radius:18px;
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(12px);
+  border-radius:20px;
   padding:18px;
-  margin-top:20px;
+  margin-top:18px;
+  border:1px solid rgba(255,255,255,0.06);
 }
 
-button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  margin-top:10px;
-  background:#1e88e5;
-  color:white;
+.sectionTitle{
+  font-weight:600;
+  font-size:15px;
+  margin-bottom:6px;
 }
 
+/* INPUTS */
 input,select{
   width:100%;
-  padding:10px;
-  margin-top:8px;
+  padding:12px;
+  margin-top:10px;
   border:none;
-  border-radius:8px;
+  border-radius:12px;
+  background:rgba(255,255,255,0.92);
+  font-size:15px;
 }
+
+/* BUTTONS */
+button{
+  width:100%;
+  padding:13px;
+  border:none;
+  border-radius:14px;
+  margin-top:12px;
+  background:linear-gradient(135deg,#1e88e5,#42a5f5);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+  transition:0.15s;
+}
+
+button:active{ transform:scale(.97); }
 
 .tx{
-  padding:10px 0;
-  border-bottom:1px solid rgba(255,255,255,0.1);
+  padding:12px 0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
-.amountPlus{color:#00e676;}
-.amountMinus{color:#ff5252;}
+.amountPlus{ color:#00e676; font-weight:600; }
+.amountMinus{ color:#ff5252; font-weight:600; }
 
-small{opacity:.6;display:block;margin-top:3px;}
+small{
+  opacity:.65;
+  display:block;
+  margin-top:4px;
+  font-size:12px;
+}
 
-.logout{background:#ff5252;}
+.logout{
+  background:linear-gradient(135deg,#ff5252,#ff7675);
+  margin-top:22px;
+}
 
 .frozenBanner{
-  background:#e74c3c;
-  padding:10px;
-  border-radius:8px;
+  background:#ff5252;
+  padding:12px;
+  border-radius:10px;
   margin-top:10px;
   text-align:center;
+  font-weight:600;
 }
 </style>
 </head>
@@ -78,7 +115,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <div class="balanceCard">
   <small>Available Balance</small>
-
   <div style="display:flex;justify-content:space-between;align-items:center;">
     <div class="balance" id="balance">€0</div>
     <span onclick="toggleBalance()" style="font-size:22px;cursor:pointer">👁</span>
@@ -86,12 +122,12 @@ small{opacity:.6;display:block;margin-top:3px;}
 </div>
 
 <div class="card">
-<strong>💳 My Bank Card</strong>
-<div id="cardBox"></div>
+<div class="sectionTitle">💳 My Bank Card</div>
+<div id="cardBox">No card assigned</div>
 </div>
 
 <div class="card">
-<strong>💸 Send Money</strong>
+<div class="sectionTitle">💸 Send Money</div>
 <input id="receiver" placeholder="Username">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
@@ -99,7 +135,7 @@ small{opacity:.6;display:block;margin-top:3px;}
 </div>
 
 <div class="card">
-<strong>💡 Pay Bills</strong>
+<div class="sectionTitle">💡 Pay Bills</div>
 <select id="billType">
 <option>Electricity</option>
 <option>Internet</option>
@@ -110,13 +146,13 @@ small{opacity:.6;display:block;margin-top:3px;}
 </div>
 
 <div class="card">
-<strong>🏦 Request Loan</strong>
+<div class="sectionTitle">🏦 Request Loan</div>
 <input id="loanAmount" type="number" placeholder="Loan amount">
 <button onclick="requestLoan()">Request Loan</button>
 </div>
 
 <div class="card">
-<strong>🎁 Buy Gift Card</strong>
+<div class="sectionTitle">🎁 Buy Gift Card</div>
 <select id="giftType">
 <option>Amazon</option>
 <option>Apple</option>
@@ -127,14 +163,14 @@ small{opacity:.6;display:block;margin-top:3px;}
 </div>
 
 <div class="card">
-<strong>🛒 Online Shopping</strong>
+<div class="sectionTitle">🛒 Online Shopping</div>
 <input id="store" placeholder="Store name">
 <input id="shopAmount" type="number" placeholder="Amount">
 <button onclick="shop()">Pay</button>
 </div>
 
 <div class="card">
-<strong>📜 Transactions</strong>
+<div class="sectionTitle">📜 Transactions</div>
 <div id="transactions"></div>
 </div>
 
@@ -159,11 +195,10 @@ let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 username = username.toLowerCase();
 
-let isFrozen=false;
 let balanceVisible=true;
 let realBalance=0;
+let isFrozen=false;
 
-/* REALTIME USER DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
@@ -180,42 +215,33 @@ db.collection("users").doc(username)
  frozenNotice.innerHTML=isFrozen ?
  '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>' : "";
 
- /* CARD DISPLAY */
  if(user.cardNumber){
    cardBox.innerHTML=`
-   <div style="margin-top:10px">
    <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
    Exp: ${user.expiry || "--/--"}<br>
    CVV: <span id="cvv">•••</span>
    <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
    Status: ${user.cardStatus || "Active"}
-   </div>`;
- } else {
-   cardBox.innerHTML="No card assigned";
+   `;
  }
 
- /* TRANSACTIONS */
  transactions.innerHTML="";
-
- (user.transactions || [])
- .slice()
- .reverse()
- .slice(0,10)
+ (user.transactions||[])
+ .slice().reverse().slice(0,10)
  .forEach(tx=>{
-   const cls = tx.amount < 0 ? "amountMinus" : "amountPlus";
-   const label = tx.note || tx.description || "Transaction";
+   const cls=tx.amount<0?"amountMinus":"amountPlus";
+   const label=tx.note||tx.description||"Transaction";
 
-   transactions.innerHTML += `
+   transactions.innerHTML+=`
    <div class="tx">
      <span class="${cls}">
        ${label} (€${Math.abs(tx.amount).toLocaleString()})
      </span>
-     <small>${tx.date || "recent"}</small>
+     <small>${tx.date||"recent"}</small>
    </div>`;
  });
 });
 
-/* BALANCE TOGGLE */
 function toggleBalance(){
  balanceVisible=!balanceVisible;
  balance.innerText = balanceVisible
@@ -223,13 +249,11 @@ function toggleBalance(){
    : "••••••";
 }
 
-/* TOGGLE CVV */
 function toggleCVV(real){
  const el=document.getElementById("cvv");
  el.innerText = el.innerText==="•••" ? real : "•••";
 }
 
-/* SEND MONEY */
 async function sendMoney(){
  if(isFrozen) return alert("Account frozen");
 
@@ -237,7 +261,7 @@ async function sendMoney(){
  const amt=Number(amount.value);
  const descVal=desc.value || "Transfer";
 
- if(!to || amt<=0) return alert("Enter valid details");
+ if(!to||amt<=0) return alert("Enter valid details");
 
  const fromRef=db.collection("users").doc(username);
  const toRef=db.collection("users").doc(to);
@@ -275,9 +299,7 @@ async function sendMoney(){
  }catch(e){alert(e);}
 }
 
-/* OTHER FEATURES */
 function payBill(){
- if(isFrozen) return alert("Account frozen");
  const amt=Number(billAmount.value);
  if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
 }
