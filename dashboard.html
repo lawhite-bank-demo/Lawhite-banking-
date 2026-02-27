@@ -30,12 +30,6 @@ body{
   margin-top:20px;
 }
 
-.bankInfo{
-  line-height:1.6;
-  font-size:14px;
-  opacity:0.95;
-}
-
 button{
   width:100%;
   padding:12px;
@@ -44,6 +38,7 @@ button{
   margin-top:10px;
   background:#1e88e5;
   color:white;
+  font-weight:bold;
 }
 
 input,select{
@@ -90,28 +85,19 @@ small{opacity:.6;display:block;margin-top:3px;}
   </div>
 </div>
 
-<!-- 🏦 BANK DETAILS -->
-<div class="card">
-<strong>🏦 Account Details</strong>
-<div id="bankDetails" class="bankInfo"></div>
-</div>
-
-<!-- CARD DISPLAY -->
 <div class="card">
 <strong>💳 My Bank Card</strong>
-<div id="cardBox"></div>
+<div id="cardBox">No card assigned</div>
 </div>
 
-<!-- SEND MONEY -->
 <div class="card">
 <strong>💸 Send Money</strong>
-<input id="receiver" placeholder="Username or Account Number">
+<input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
 <button onclick="sendMoney()">Send</button>
 </div>
 
-<!-- PAY BILLS -->
 <div class="card">
 <strong>💡 Pay Bills</strong>
 <select id="billType">
@@ -123,14 +109,12 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="payBill()">Pay Bill</button>
 </div>
 
-<!-- LOAN -->
 <div class="card">
 <strong>🏦 Request Loan</strong>
 <input id="loanAmount" type="number" placeholder="Loan amount">
 <button onclick="requestLoan()">Request Loan</button>
 </div>
 
-<!-- GIFT CARD -->
 <div class="card">
 <strong>🎁 Buy Gift Card</strong>
 <select id="giftType">
@@ -142,7 +126,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="buyGift()">Buy Gift Card</button>
 </div>
 
-<!-- SHOP -->
 <div class="card">
 <strong>🛒 Online Shopping</strong>
 <input id="store" placeholder="Store name">
@@ -150,7 +133,6 @@ small{opacity:.6;display:block;margin-top:3px;}
 <button onclick="shop()">Pay</button>
 </div>
 
-<!-- TRANSACTIONS -->
 <div class="card">
 <strong>📜 Transactions</strong>
 <div id="transactions"></div>
@@ -165,9 +147,9 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  apiKey: "YOUR KEY",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank"
+  projectId: "dechase-bank",
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -181,58 +163,25 @@ let isFrozen=false;
 let balanceVisible=true;
 let realBalance=0;
 
-/* REALTIME USER DATA */
+function nowDate(){
+  return new Date().toLocaleString();
+}
+
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
  const user=doc.data();
 
- welcome.innerText="Hello, "+user.fullName;
+ welcome.innerText="Hello, "+user.username;
 
- realBalance=user.balance||0;
+ realBalance=Number(user.balance)||0;
  renderBalance();
 
  isFrozen=user.frozen||false;
  frozenNotice.innerHTML=isFrozen?
  '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>':"";
-
- /* BANK DETAILS */
- bankDetails.innerHTML = `
-   <b>Account Name:</b> ${user.fullName}<br>
-   <b>Account Number:</b> ${user.accountNumber || "—"}<br>
-   <b>IBAN:</b> ${user.iban || "—"}<br>
-   <b>SWIFT/BIC:</b> ${user.swift || "—"}<br>
-   <b>Address:</b> ${user.address || ""}<br>
-   <b>Country:</b> ${user.country || ""}
- `;
-
- /* CARD */
- if(user.cardNumber){
-   cardBox.innerHTML=`
-   <div style="margin-top:10px">
-   <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
-   Exp: ${user.expiry}<br>
-   CVV: <span id="cvv">•••</span>
-   <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
-   Status: ${user.cardStatus}
-   </div>`;
- }
-
- /* TRANSACTIONS */
- transactions.innerHTML="";
- (user.transactions||[]).slice().reverse().slice(0,6).forEach(tx=>{
-   const cls=tx.amount<0?"amountMinus":"amountPlus";
-   transactions.innerHTML+=`
-   <div class="tx">
-     <span class="${cls}">
-     ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-     </span>
-     <small>${tx.date||""}</small>
-   </div>`;
- });
 });
 
-/* BALANCE TOGGLE */
 function toggleBalance(){
  balanceVisible=!balanceVisible;
  renderBalance();
@@ -243,54 +192,70 @@ function renderBalance(){
    : "••••••";
 }
 
-/* CVV TOGGLE */
-function toggleCVV(real){
- const el=document.getElementById("cvv");
- el.innerText = el.innerText==="•••" ? real : "•••";
+/* 🔹 Detect IBAN */
+function isIBAN(value){
+  return /^[A-Z]{2}\d{2}/i.test(value);
 }
 
-/* SEND MONEY */
+/* 🔹 Send Money */
 async function sendMoney(){
  if(isFrozen) return alert("Account frozen");
 
- const to=receiver.value.trim().toLowerCase();
+ let toInput=receiver.value.trim();
  const amt=Number(amount.value);
  const descVal=desc.value||"Transfer";
 
- if(!to||amt<=0) return alert("Enter valid details");
+ if(!toInput || amt<=0) return alert("Enter valid details");
 
- const fromRef=db.collection("users").doc(username);
- const toRef=db.collection("users").doc(to);
+ let toUserDoc;
 
  try{
+
+ if(isIBAN(toInput)){
+   // search by IBAN
+   const snap = await db.collection("users")
+     .where("iban","==",toInput.replace(/\s/g,''))
+     .get();
+
+   if(snap.empty) throw "IBAN not found";
+
+   toUserDoc = snap.docs[0].id;
+ }else{
+   toUserDoc = toInput.toLowerCase();
+ }
+
+ const fromRef=db.collection("users").doc(username);
+ const toRef=db.collection("users").doc(toUserDoc);
+
  await db.runTransaction(async t=>{
    const f=await t.get(fromRef);
    const r=await t.get(toRef);
-   if(!r.exists) throw "Receiver not found";
-   if(f.data().balance<amt) throw "Insufficient balance";
 
-   const now=new Date().toLocaleString();
+   if(!r.exists) throw "Receiver not found";
+   if((f.data().balance||0)<amt) throw "Insufficient balance";
 
    t.update(fromRef,{
      balance:f.data().balance-amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:-amt,note:`Sent to ${to} • ${descVal}`,date:now})
+       amount:-amt,note:`Sent to ${toUserDoc} • ${descVal}`,date:nowDate()
+     })
    });
 
    t.update(toRef,{
      balance:(r.data().balance||0)+amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:amt,note:`Received from ${username}`,date:now})
+       amount:amt,note:`Received from ${username}`,date:nowDate()
+     })
    });
  });
 
  alert("Transfer successful");
  receiver.value="";amount.value="";desc.value="";
+
  }catch(e){alert(e);}
 }
 
-/* OTHER FEATURES */
-function payBill(){ if(isFrozen) return alert("Account frozen");
+function payBill(){
  const amt=Number(billAmount.value);
  if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
 }
@@ -306,14 +271,15 @@ function shop(){
  const amt=Number(shopAmount.value);
  if(amt>0) updateBalance(-amt,"Shopping • "+store.value);
 }
+
 async function updateBalance(amount,note){
  const ref=db.collection("users").doc(username);
  const doc=await ref.get();
- const now=new Date().toLocaleString();
  await ref.update({
   balance:(doc.data().balance||0)+amount,
   transactions:firebase.firestore.FieldValue.arrayUnion({
-   amount,note,date:now})
+   amount,note,date:nowDate()
+  })
  });
 }
 
