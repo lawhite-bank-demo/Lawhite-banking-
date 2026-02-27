@@ -38,7 +38,6 @@ button{
   margin-top:10px;
   background:#1e88e5;
   color:white;
-  font-weight:bold;
 }
 
 input,select{
@@ -79,20 +78,17 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <div class="balanceCard">
   <small>Available Balance</small>
-  <div style="display:flex;justify-content:space-between;align-items:center">
-    <div class="balance" id="balance">€0</div>
-    <div onclick="toggleBalance()" style="cursor:pointer;font-size:22px">👁</div>
-  </div>
+  <div class="balance" id="balance">€0</div>
 </div>
 
 <div class="card">
 <strong>💳 My Bank Card</strong>
-<div id="cardBox">No card assigned</div>
+<div id="cardBox"></div>
 </div>
 
 <div class="card">
 <strong>💸 Send Money</strong>
-<input id="receiver" placeholder="Username OR IBAN">
+<input id="receiver" placeholder="Username">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
 <button onclick="sendMoney()">Send</button>
@@ -147,9 +143,9 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <script>
 const firebaseConfig = {
-  apiKey: "YOUR KEY",
+  apiKey: "YOUR_KEY",
   authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank",
+  projectId: "dechase-bank"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -157,105 +153,111 @@ const db = firebase.firestore();
 
 let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
-username=username.toLowerCase();
+username = username.toLowerCase();
 
 let isFrozen=false;
-let balanceVisible=true;
-let realBalance=0;
 
-function nowDate(){
-  return new Date().toLocaleString();
-}
-
+/* REALTIME USER DATA */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
  const user=doc.data();
 
- welcome.innerText="Hello, "+user.username;
-
- realBalance=Number(user.balance)||0;
- renderBalance();
+ welcome.innerText="Hello, "+(user.username || username);
+ balance.innerText="€"+(user.balance||0).toLocaleString();
 
  isFrozen=user.frozen||false;
- frozenNotice.innerHTML=isFrozen?
- '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>':"";
+ frozenNotice.innerHTML=isFrozen ?
+ '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>' : "";
+
+ /* CARD DISPLAY */
+ if(user.cardNumber){
+   cardBox.innerHTML=`
+   <div style="margin-top:10px">
+   <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
+   Exp: ${user.expiry}<br>
+   CVV: <span id="cvv">•••</span>
+   <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
+   Status: ${user.cardStatus}
+   </div>`;
+ }
+
+ /* TRANSACTIONS DISPLAY FIX */
+ transactions.innerHTML="";
+
+ (user.transactions || [])
+ .slice()
+ .reverse()
+ .slice(0,10)
+ .forEach(tx=>{
+   const cls = tx.amount < 0 ? "amountMinus" : "amountPlus";
+   const label = tx.note || tx.description || "Transaction";
+
+   transactions.innerHTML += `
+   <div class="tx">
+     <span class="${cls}">
+       ${label} (€${Math.abs(tx.amount).toLocaleString()})
+     </span>
+     <small>${tx.date || "recent"}</small>
+   </div>`;
+ });
 });
 
-function toggleBalance(){
- balanceVisible=!balanceVisible;
- renderBalance();
-}
-function renderBalance(){
- balance.innerText = balanceVisible
-   ? "€"+realBalance.toLocaleString()
-   : "••••••";
+/* TOGGLE CVV */
+function toggleCVV(real){
+ const el=document.getElementById("cvv");
+ el.innerText = el.innerText==="•••" ? real : "•••";
 }
 
-/* 🔹 Detect IBAN */
-function isIBAN(value){
-  return /^[A-Z]{2}\d{2}/i.test(value);
-}
-
-/* 🔹 Send Money */
+/* SEND MONEY */
 async function sendMoney(){
  if(isFrozen) return alert("Account frozen");
 
- let toInput=receiver.value.trim();
+ const to=receiver.value.trim().toLowerCase();
  const amt=Number(amount.value);
- const descVal=desc.value||"Transfer";
+ const descVal=desc.value || "Transfer";
 
- if(!toInput || amt<=0) return alert("Enter valid details");
-
- let toUserDoc;
-
- try{
-
- if(isIBAN(toInput)){
-   // search by IBAN
-   const snap = await db.collection("users")
-     .where("iban","==",toInput.replace(/\s/g,''))
-     .get();
-
-   if(snap.empty) throw "IBAN not found";
-
-   toUserDoc = snap.docs[0].id;
- }else{
-   toUserDoc = toInput.toLowerCase();
- }
+ if(!to || amt<=0) return alert("Enter valid details");
 
  const fromRef=db.collection("users").doc(username);
- const toRef=db.collection("users").doc(toUserDoc);
+ const toRef=db.collection("users").doc(to);
 
+ try{
  await db.runTransaction(async t=>{
    const f=await t.get(fromRef);
    const r=await t.get(toRef);
-
    if(!r.exists) throw "Receiver not found";
-   if((f.data().balance||0)<amt) throw "Insufficient balance";
+   if(f.data().balance<amt) throw "Insufficient balance";
+
+   const now=new Date().toLocaleString();
 
    t.update(fromRef,{
      balance:f.data().balance-amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:-amt,note:`Sent to ${toUserDoc} • ${descVal}`,date:nowDate()
+       amount:-amt,
+       note:`Sent to ${to} • ${descVal}`,
+       date:now
      })
    });
 
    t.update(toRef,{
      balance:(r.data().balance||0)+amt,
      transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:amt,note:`Received from ${username}`,date:nowDate()
+       amount:amt,
+       note:`Received from ${username}`,
+       date:now
      })
    });
  });
 
  alert("Transfer successful");
  receiver.value="";amount.value="";desc.value="";
-
  }catch(e){alert(e);}
 }
 
+/* OTHER FEATURES */
 function payBill(){
+ if(isFrozen) return alert("Account frozen");
  const amt=Number(billAmount.value);
  if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
 }
@@ -275,10 +277,13 @@ function shop(){
 async function updateBalance(amount,note){
  const ref=db.collection("users").doc(username);
  const doc=await ref.get();
+ const now=new Date().toLocaleString();
  await ref.update({
   balance:(doc.data().balance||0)+amount,
   transactions:firebase.firestore.FieldValue.arrayUnion({
-   amount,note,date:nowDate()
+   amount,
+   note,
+   date:now
   })
  });
 }
