@@ -78,7 +78,11 @@ small{opacity:.6;display:block;margin-top:3px;}
 
 <div class="balanceCard">
   <small>Available Balance</small>
-  <div class="balance" id="balance">€0</div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div class="balance" id="balance">€0</div>
+    <span onclick="toggleBalance()" style="font-size:22px;cursor:pointer">👁</span>
+  </div>
 </div>
 
 <div class="card">
@@ -156,6 +160,8 @@ if(!username) location.href="login.html";
 username = username.toLowerCase();
 
 let isFrozen=false;
+let balanceVisible=true;
+let realBalance=0;
 
 /* REALTIME USER DATA */
 db.collection("users").doc(username)
@@ -164,7 +170,11 @@ db.collection("users").doc(username)
  const user=doc.data();
 
  welcome.innerText="Hello, "+(user.username || username);
- balance.innerText="€"+(user.balance||0).toLocaleString();
+
+ realBalance = user.balance || 0;
+ balance.innerText = balanceVisible
+   ? "€"+realBalance.toLocaleString()
+   : "••••••";
 
  isFrozen=user.frozen||false;
  frozenNotice.innerHTML=isFrozen ?
@@ -175,14 +185,16 @@ db.collection("users").doc(username)
    cardBox.innerHTML=`
    <div style="margin-top:10px">
    <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
-   Exp: ${user.expiry}<br>
+   Exp: ${user.expiry || "--/--"}<br>
    CVV: <span id="cvv">•••</span>
    <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
-   Status: ${user.cardStatus}
+   Status: ${user.cardStatus || "Active"}
    </div>`;
+ } else {
+   cardBox.innerHTML="No card assigned";
  }
 
- /* TRANSACTIONS DISPLAY FIX */
+ /* TRANSACTIONS */
  transactions.innerHTML="";
 
  (user.transactions || [])
@@ -202,6 +214,14 @@ db.collection("users").doc(username)
    </div>`;
  });
 });
+
+/* BALANCE TOGGLE */
+function toggleBalance(){
+ balanceVisible=!balanceVisible;
+ balance.innerText = balanceVisible
+   ? "€"+realBalance.toLocaleString()
+   : "••••••";
+}
 
 /* TOGGLE CVV */
 function toggleCVV(real){
@@ -281,9 +301,7 @@ async function updateBalance(amount,note){
  await ref.update({
   balance:(doc.data().balance||0)+amount,
   transactions:firebase.firestore.FieldValue.arrayUnion({
-   amount,
-   note,
-   date:now
+   amount,note,date:now
   })
  });
 }
