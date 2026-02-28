@@ -51,14 +51,26 @@ button{
 .amountPlus{color:#00e676;}
 .amountMinus{color:#ff5252;}
 small{opacity:.6;font-size:12px;}
+
+.frozenBanner{
+  background:#ff5252;
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+  margin-bottom:10px;
+}
 </style></head>
-<body><div class="container"><h2 id="welcome"></h2><!-- ACCOUNT INFO --><div class="card">
+<body><div class="container"><h2 id="welcome"></h2>
+<div id="frozenNotice"></div><!-- ACCOUNT INFO --><div class="card">
 <strong>🏛 Account Information</strong>
 <div id="bankDetails"></div>
 <button class="copyBtn" onclick="copyIBAN()">Copy IBAN</button>
 </div><!-- BALANCE --><div class="balanceCard">
   <small>Available Balance</small>
-  <h1 id="balance">€0</h1>
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1 id="balance">€0</h1>
+    <span onclick="toggleBalance()" style="font-size:22px;cursor:pointer">👁</span>
+  </div>
 </div><!-- TRANSFER --><div class="card">
 <strong>💸 Transfer Money</strong>
 <input id="receiver" placeholder="Username OR IBAN">
@@ -106,40 +118,65 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let username = localStorage.getItem("loggedInUser").toLowerCase();
+let username = localStorage.getItem("loggedInUser");
+if(!username) location.href="login.html";
+username=username.toLowerCase();
+
+let realBalance=0;
+let balanceVisible=true;
 let userIBAN="";
+let isFrozen=false;
 
 /* LOAD USER */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
+ if(!doc.exists) return;
  const user=doc.data();
 
  welcome.innerText="Hello, "+user.username;
- balance.innerText="€"+(user.balance||0).toLocaleString();
+
+ isFrozen=user.frozen||false;
+ frozenNotice.innerHTML=isFrozen?
+ '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>' : "";
+
+ realBalance=user.balance||0;
+ updateBalanceDisplay();
 
  userIBAN=user.iban||"";
 
  bankDetails.innerHTML=`
  Name: ${user.username}<br>
- Bank: ${user.bankName}<br>
- Account Number: ${user.accountNumber}<br>
- IBAN: ${user.iban}<br>
- SWIFT: ${user.swift}
+ Bank: ${user.bankName || "DeChase Bank"}<br>
+ Account Number: ${user.accountNumber || "—"}<br>
+ IBAN: ${user.iban || "—"}<br>
+ SWIFT: ${user.swift || "—"}
  `;
 
  transactions.innerHTML="";
- (user.transactions||[]).slice().reverse().slice(0,6)
+ (user.transactions||[]).slice().reverse().slice(0,8)
  .forEach(tx=>{
    const cls=tx.amount<0?"amountMinus":"amountPlus";
    transactions.innerHTML+=`
    <div class="tx">
-   <span class="${cls}">
-   ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-   </span>
-   <small>${tx.date||""}</small>
+     <span class="${cls}">
+       ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+     </span>
+     <small>${tx.date||""}</small>
    </div>`;
  });
 });
+
+/* TOGGLE BALANCE */
+function toggleBalance(){
+ balanceVisible=!balanceVisible;
+ updateBalanceDisplay();
+}
+
+function updateBalanceDisplay(){
+ balance.innerText = balanceVisible
+   ? "€"+realBalance.toLocaleString()
+   : "••••••";
+}
 
 /* FIND USER BY IBAN */
 async function findUserByIBAN(iban){
@@ -150,9 +187,13 @@ async function findUserByIBAN(iban){
 
 /* TRANSFER */
 async function sendMoney(){
+ if(isFrozen) return alert("Account frozen");
+
  let to=receiver.value.trim();
  const amt=Number(amount.value);
  const descVal=desc.value||"Transfer";
+
+ if(!to || amt<=0) return alert("Enter valid details");
 
  if(to.startsWith("DE")){
    const found=await findUserByIBAN(to);
@@ -161,6 +202,7 @@ async function sendMoney(){
  }
 
  updateBalance(-amt,`Sent to ${to} • ${descVal}`);
+
  db.collection("users").doc(to).update({
    balance:firebase.firestore.FieldValue.increment(amt),
    transactions:firebase.firestore.FieldValue.arrayUnion({
@@ -169,6 +211,7 @@ async function sendMoney(){
      date:new Date().toLocaleString()
    })
  });
+
  alert("Transfer successful");
 }
 
@@ -183,13 +226,22 @@ function updateBalance(amount,note){
  });
 }
 
+/* OTHER FEATURES */
 function payBill(){ updateBalance(-billAmount.value,"Bill • "+billType.value); }
 function requestLoan(){ updateBalance(+loanAmount.value,"Loan credited"); }
 function buyGift(){ updateBalance(-giftAmount.value,"Gift card • "+giftType.value); }
 function shop(){ updateBalance(-shopAmount.value,"Shopping • "+store.value); }
 
-function copyIBAN(){ navigator.clipboard.writeText(userIBAN); alert("IBAN copied"); }
-function logout(){ localStorage.clear(); location.href="login.html"; }
+function copyIBAN(){
+ if(!userIBAN) return alert("No IBAN");
+ navigator.clipboard.writeText(userIBAN);
+ alert("IBAN copied");
+}
+
+function logout(){
+ localStorage.removeItem("loggedInUser");
+ location.href="login.html";
+}
 </script>
 </body>
 </html>
