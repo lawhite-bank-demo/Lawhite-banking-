@@ -1,100 +1,203 @@
-const user = JSON.parse(localStorage.getItem("currentUser"));
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeChase Bank</title>
 
-if(!user){
-  window.location.href = "index.html";
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  background:#031427;
+  color:white;
 }
-const currentUser = JSON.parse(localStorage.getItem("currentUser"));
-
-if(!currentUser){
-  window.location.href = "index.html";
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:20px;
 }
+.card{
+  background:#0a223d;
+  padding:15px;
+  border-radius:15px;
+  margin-bottom:15px;
+}
+.balance{
+  background:linear-gradient(135deg,#2d8cff,#66c2ff);
+  padding:20px;
+  border-radius:15px;
+  font-size:28px;
+  font-weight:bold;
+  text-align:center;
+}
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:8px;
+  border:none;
+  font-size:16px;
+}
+button{
+  background:#2d8cff;
+  color:white;
+  font-weight:bold;
+}
+.green{color:#00ff9d;}
+.red{color:#ff5c5c;}
+</style>
+</head>
+<body>
 
-document.getElementById("welcome").innerText =
-  "Welcome, " + currentUser.username;
+<div class="container">
 
-document.getElementById("balance").innerText =
-  "€" + currentUser.balance.toLocaleString();
+<h2 id="welcome"></h2>
 
-document.getElementById("iban").innerText =
-  "IBAN: " + (currentUser.iban || "Not assigned");
+<div class="card">
+<b>Account Information</b><br>
+Name: <span id="name"></span><br>
+Bank: DeChase Bank<br>
+Account Number: <span id="acc"></span><br>
+IBAN: <span id="iban"></span><br>
+SWIFT: DEUTDEFF
+</div>
 
-loadTransactions();
+<div class="balance" id="balance"></div>
 
-function loadTransactions(){
-  const txContainer = document.getElementById("transactions");
-  txContainer.innerHTML = "";
+<div class="card">
+<b>Transfer Money</b>
+<input id="receiver" placeholder="Username OR IBAN">
+<input id="amount" type="number" placeholder="Amount">
+<input id="desc" placeholder="Description">
+<button onclick="transfer()">Send</button>
+</div>
 
-  if(!currentUser.transactions || currentUser.transactions.length === 0){
-    txContainer.innerHTML = "<p>No transactions yet</p>";
+<div class="card">
+<b>Transactions</b>
+<div id="transactions"></div>
+</div>
+
+<button onclick="logout()" style="background:#ff4d4d;">Logout</button>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, updateDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR KEY",
+  authDomain: "YOUR DOMAIN",
+  projectId: "YOUR ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const username = localStorage.getItem("user");
+if(!username) location.href="index.html";
+
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
+const data = snap.data();
+
+document.getElementById("welcome").innerText = "Hello, " + (data.fullName || data.username);
+document.getElementById("name").innerText = data.fullName || data.username;
+document.getElementById("acc").innerText = data.accountNumber;
+document.getElementById("iban").innerText = data.iban;
+document.getElementById("balance").innerText = "€" + data.balance.toLocaleString();
+
+loadTransactions(data);
+
+function loadTransactions(data){
+  const box = document.getElementById("transactions");
+  box.innerHTML = "";
+
+  if(!data.transactions || data.transactions.length === 0){
+    box.innerHTML = "<p>No transactions yet</p>";
     return;
   }
 
-  currentUser.transactions.forEach(tx => {
-    const div = document.createElement("div");
-    div.className = "tx";
-    div.innerHTML = `
-      <strong>${tx.type}</strong><br>
-      Amount: €${tx.amount}<br>
-      Date: ${tx.date}
+  data.transactions.slice().reverse().forEach(tx => {
+
+    const note = tx.note || tx.description || "Transfer";
+    const amount = tx.amount || 0;
+    const date = tx.date || "";
+    const type = amount > 0 ? "green" : "red";
+    const sign = amount > 0 ? "+" : "";
+
+    box.innerHTML += `
+      <p class="${type}">
+        ${note} (€${Math.abs(amount).toLocaleString()})
+        <br><small>${date}</small>
+      </p>
     `;
-    txContainer.appendChild(div);
   });
 }
 
-function saveUser(){
-  let users = JSON.parse(localStorage.getItem("users")) || [];
+async function transfer(){
+  const receiverInput = document.getElementById("receiver").value.trim();
+  const amount = parseFloat(document.getElementById("amount").value);
+  const desc = document.getElementById("desc").value.trim() || "Transfer";
 
-  const index = users.findIndex(u => u.username === currentUser.username);
-  users[index] = currentUser;
+  if(!receiverInput || !amount) return alert("Fill all fields");
 
-  localStorage.setItem("users", JSON.stringify(users));
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-}
+  let receiverName = null;
+  let receiverData = null;
 
-function sendMoney(){
-  let amount = prompt("Enter amount to send:");
+  const users = await getDocs(collection(db,"users"));
 
-  if(!amount || amount <= 0) return;
+  users.forEach(docSnap=>{
+    const u = docSnap.data();
+    if(docSnap.id === receiverInput || u.iban === receiverInput){
+      receiverName = docSnap.id;
+      receiverData = u;
+    }
+  });
 
-  if(amount > currentUser.balance){
-    alert("Insufficient funds");
-    return;
-  }
+  if(!receiverName) return alert("Receiver not found");
 
-  currentUser.balance -= Number(amount);
+  if(data.balance < amount) return alert("Insufficient funds");
 
-  if(!currentUser.transactions) currentUser.transactions = [];
+  const newSenderBalance = data.balance - amount;
+  const newReceiverBalance = receiverData.balance + amount;
 
-  currentUser.transactions.push({
-    type: "Sent",
+  const date = new Date().toLocaleString();
+
+  const senderTx = {
+    amount: -amount,
+    note: "Sent to " + receiverName + " • " + desc,
+    date: date
+  };
+
+  const receiverTx = {
     amount: amount,
-    date: new Date().toLocaleString()
+    note: "Received from " + username,
+    date: date
+  };
+
+  await updateDoc(userRef,{
+    balance:newSenderBalance,
+    transactions:[...(data.transactions || []), senderTx]
   });
 
-  saveUser();
-  location.reload();
-}
-
-function deposit(){
-  let amount = prompt("Enter deposit amount:");
-
-  if(!amount || amount <= 0) return;
-
-  currentUser.balance += Number(amount);
-
-  if(!currentUser.transactions) currentUser.transactions = [];
-
-  currentUser.transactions.push({
-    type: "Deposit",
-    amount: amount,
-    date: new Date().toLocaleString()
+  await updateDoc(doc(db,"users",receiverName),{
+    balance:newReceiverBalance,
+    transactions:[...(receiverData.transactions || []), receiverTx]
   });
 
-  saveUser();
+  alert("Transfer Successful");
   location.reload();
 }
 
 function logout(){
-  localStorage.removeItem("currentUser");
-  window.location.href = "index.html";
+  localStorage.removeItem("user");
+  location.href="index.html";
 }
+</script>
+
+</body>
+</html>
