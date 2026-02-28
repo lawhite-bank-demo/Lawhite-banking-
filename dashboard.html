@@ -23,15 +23,36 @@ body{
   border-radius:15px;
   margin-bottom:15px;
 }
-.balance{
+.balance-card{
   background:linear-gradient(135deg,#2d8cff,#66c2ff);
   padding:20px;
   border-radius:15px;
-  font-size:28px;
-  font-weight:bold;
   text-align:center;
 }
-input,select,button{
+.balance{
+  font-size:30px;
+  font-weight:bold;
+}
+.eye{
+  cursor:pointer;
+  font-size:14px;
+  opacity:.8;
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+.grid button{
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  background:#123a66;
+  color:white;
+  font-size:13px;
+}
+input,button{
   width:100%;
   padding:12px;
   margin-top:8px;
@@ -39,38 +60,52 @@ input,select,button{
   border:none;
   font-size:16px;
 }
-button{
+button.primary{
   background:#2d8cff;
   color:white;
   font-weight:bold;
 }
 .green{color:#00ff9d;}
 .red{color:#ff5c5c;}
+.small{font-size:12px; opacity:.7;}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-<h2 id="welcome"></h2>
+<h3 id="welcome"></h3>
 
-<div class="card">
-<b>Account Information</b><br>
-Name: <span id="name"></span><br>
-Bank: DeChase Bank<br>
-Account Number: <span id="acc"></span><br>
-IBAN: <span id="iban"></span><br>
-SWIFT: DEUTDEFF
+<div class="balance-card">
+  <div class="balance" id="balance">€0</div>
+  <div class="eye" onclick="toggleBalance()">👁 Hide balance</div>
 </div>
 
-<div class="balance" id="balance"></div>
+<div class="card">
+<b>Account Info</b><br>
+Name: <span id="name"></span><br>
+Account: <span id="acc"></span><br>
+IBAN: <span id="iban"></span>
+</div>
 
 <div class="card">
+<b>Quick Actions</b>
+<div class="grid">
+  <button onclick="showTransfer()">Send</button>
+  <button onclick="payBills()">Pay Bills</button>
+  <button onclick="buyGiftCard()">Gift Cards</button>
+  <button onclick="alert('Card services coming')">Cards</button>
+  <button onclick="alert('Withdraw coming')">Withdraw</button>
+  <button onclick="alert('Deposit coming')">Deposit</button>
+</div>
+</div>
+
+<div class="card" id="transferBox" style="display:none;">
 <b>Transfer Money</b>
 <input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
-<button onclick="transfer()">Send</button>
+<button class="primary" onclick="transfer()">Send</button>
 </div>
 
 <div class="card">
@@ -78,7 +113,7 @@ SWIFT: DEUTDEFF
 <div id="transactions"></div>
 </div>
 
-<button onclick="logout()" style="background:#ff4d4d;">Logout</button>
+<button class="primary" onclick="logout()" style="background:#ff4d4d;">Logout</button>
 
 </div>
 
@@ -104,11 +139,32 @@ const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 const data = snap.data();
 
-document.getElementById("welcome").innerText = "Hello, " + (data.fullName || data.username);
-document.getElementById("name").innerText = data.fullName || data.username;
+document.getElementById("welcome").innerText = "Hello, " + data.fullName;
+document.getElementById("name").innerText = data.fullName;
 document.getElementById("acc").innerText = data.accountNumber;
 document.getElementById("iban").innerText = data.iban;
+
+let hidden = false;
+
+function toggleBalance(){
+  hidden = !hidden;
+  document.getElementById("balance").innerText =
+    hidden ? "••••••" : "€" + data.balance.toLocaleString();
+}
+
 document.getElementById("balance").innerText = "€" + data.balance.toLocaleString();
+
+window.showTransfer = () =>{
+  document.getElementById("transferBox").style.display="block";
+};
+
+window.payBills = () =>{
+  alert("Bill payment feature ready to integrate.");
+};
+
+window.buyGiftCard = () =>{
+  alert("Gift card service ready to integrate.");
+};
 
 loadTransactions(data);
 
@@ -117,86 +173,64 @@ function loadTransactions(data){
   box.innerHTML = "";
 
   if(!data.transactions || data.transactions.length === 0){
-    box.innerHTML = "<p>No transactions yet</p>";
+    box.innerHTML = "<p class='small'>No transactions yet</p>";
     return;
   }
 
-  data.transactions.slice().reverse().forEach(tx => {
-
-    const note = tx.note || tx.description || "Transfer";
-    const amount = tx.amount || 0;
-    const date = tx.date || "";
-    const type = amount > 0 ? "green" : "red";
-    const sign = amount > 0 ? "+" : "";
-
+  data.transactions.slice().reverse().forEach(tx=>{
+    const type = tx.amount > 0 ? "green" : "red";
     box.innerHTML += `
       <p class="${type}">
-        ${note} (€${Math.abs(amount).toLocaleString()})
-        <br><small>${date}</small>
+        ${tx.note || "Transfer"} (€${Math.abs(tx.amount).toLocaleString()})
+        <br><span class="small">${tx.date}</span>
       </p>
     `;
   });
 }
 
-async function transfer(){
-  const receiverInput = document.getElementById("receiver").value.trim();
-  const amount = parseFloat(document.getElementById("amount").value);
+window.transfer = async function(){
+  const receiverInput = receiver.value.trim();
+  const amount = parseFloat(amount.value);
   const desc = document.getElementById("desc").value.trim() || "Transfer";
 
   if(!receiverInput || !amount) return alert("Fill all fields");
 
-  let receiverName = null;
-  let receiverData = null;
-
   const users = await getDocs(collection(db,"users"));
+  let receiverName=null, receiverData=null;
 
-  users.forEach(docSnap=>{
-    const u = docSnap.data();
-    if(docSnap.id === receiverInput || u.iban === receiverInput){
-      receiverName = docSnap.id;
-      receiverData = u;
+  users.forEach(d=>{
+    const u=d.data();
+    if(d.id===receiverInput || u.iban===receiverInput){
+      receiverName=d.id;
+      receiverData=u;
     }
   });
 
   if(!receiverName) return alert("Receiver not found");
-
   if(data.balance < amount) return alert("Insufficient funds");
 
-  const newSenderBalance = data.balance - amount;
-  const newReceiverBalance = receiverData.balance + amount;
-
-  const date = new Date().toLocaleString();
-
-  const senderTx = {
-    amount: -amount,
-    note: "Sent to " + receiverName + " • " + desc,
-    date: date
-  };
-
-  const receiverTx = {
-    amount: amount,
-    note: "Received from " + username,
-    date: date
-  };
+  const date=new Date().toLocaleString();
 
   await updateDoc(userRef,{
-    balance:newSenderBalance,
-    transactions:[...(data.transactions || []), senderTx]
+    balance:data.balance-amount,
+    transactions:[...(data.transactions||[]),
+      {amount:-amount,note:"Sent to "+receiverName,date}]
   });
 
   await updateDoc(doc(db,"users",receiverName),{
-    balance:newReceiverBalance,
-    transactions:[...(receiverData.transactions || []), receiverTx]
+    balance:receiverData.balance+amount,
+    transactions:[...(receiverData.transactions||[]),
+      {amount:amount,note:"Received from "+username,date}]
   });
 
   alert("Transfer Successful");
   location.reload();
-}
+};
 
-function logout(){
+window.logout = function(){
   localStorage.removeItem("user");
   location.href="index.html";
-}
+};
 </script>
 
 </body>
