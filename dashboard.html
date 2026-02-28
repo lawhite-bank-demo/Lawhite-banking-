@@ -12,7 +12,6 @@ body{
   background: radial-gradient(circle at top, #0a2540, #031427 70%);
   color:white;
 }
-
 .container{
   max-width:420px;
   margin:auto;
@@ -21,13 +20,12 @@ body{
 
 /* BALANCE CARD */
 .balanceCard{
-  margin-top:20px;
+  margin-top:18px;
   padding:26px;
   border-radius:24px;
   background: linear-gradient(135deg,#1976d2,#42a5f5);
   box-shadow:0 12px 35px rgba(0,0,0,0.35);
 }
-
 .balance{
   font-size:34px;
   font-weight:600;
@@ -42,7 +40,6 @@ body{
   margin-top:18px;
   border:1px solid rgba(255,255,255,0.06);
 }
-
 .sectionTitle{
   font-weight:600;
   font-size:15px;
@@ -71,16 +68,18 @@ button{
   color:white;
   font-weight:600;
   cursor:pointer;
-  transition:0.15s;
 }
-
 button:active{ transform:scale(.97); }
+
+.copyBtn{
+  margin-top:8px;
+  background:#00c853;
+}
 
 .tx{
   padding:12px 0;
   border-bottom:1px solid rgba(255,255,255,0.08);
 }
-
 .amountPlus{ color:#00e676; font-weight:600; }
 .amountMinus{ color:#ff5252; font-weight:600; }
 
@@ -113,6 +112,14 @@ small{
 <h2 id="welcome">Hello</h2>
 <div id="frozenNotice"></div>
 
+<!-- ACCOUNT INFO -->
+<div class="card">
+<div class="sectionTitle">🏛 Account Information</div>
+<div id="bankDetails"></div>
+<button class="copyBtn" onclick="copyIBAN()">Copy IBAN</button>
+</div>
+
+<!-- BALANCE -->
 <div class="balanceCard">
   <small>Available Balance</small>
   <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -121,11 +128,13 @@ small{
   </div>
 </div>
 
+<!-- CARD -->
 <div class="card">
 <div class="sectionTitle">💳 My Bank Card</div>
 <div id="cardBox">No card assigned</div>
 </div>
 
+<!-- SEND MONEY -->
 <div class="card">
 <div class="sectionTitle">💸 Send Money</div>
 <input id="receiver" placeholder="Username">
@@ -134,41 +143,7 @@ small{
 <button onclick="sendMoney()">Send</button>
 </div>
 
-<div class="card">
-<div class="sectionTitle">💡 Pay Bills</div>
-<select id="billType">
-<option>Electricity</option>
-<option>Internet</option>
-<option>Water</option>
-</select>
-<input id="billAmount" type="number" placeholder="Amount">
-<button onclick="payBill()">Pay Bill</button>
-</div>
-
-<div class="card">
-<div class="sectionTitle">🏦 Request Loan</div>
-<input id="loanAmount" type="number" placeholder="Loan amount">
-<button onclick="requestLoan()">Request Loan</button>
-</div>
-
-<div class="card">
-<div class="sectionTitle">🎁 Buy Gift Card</div>
-<select id="giftType">
-<option>Amazon</option>
-<option>Apple</option>
-<option>Google Play</option>
-</select>
-<input id="giftAmount" type="number" placeholder="Amount">
-<button onclick="buyGift()">Buy Gift Card</button>
-</div>
-
-<div class="card">
-<div class="sectionTitle">🛒 Online Shopping</div>
-<input id="store" placeholder="Store name">
-<input id="shopAmount" type="number" placeholder="Amount">
-<button onclick="shop()">Pay</button>
-</div>
-
+<!-- TRANSACTIONS -->
 <div class="card">
 <div class="sectionTitle">📜 Transactions</div>
 <div id="transactions"></div>
@@ -187,7 +162,6 @@ const firebaseConfig = {
   authDomain: "dechase-bank.firebaseapp.com",
   projectId: "dechase-bank"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -195,49 +169,53 @@ let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
 username = username.toLowerCase();
 
-let balanceVisible=true;
 let realBalance=0;
-let isFrozen=false;
+let balanceVisible=true;
+let userIBAN="";
 
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  if(!doc.exists) return;
  const user=doc.data();
 
- welcome.innerText="Hello, "+(user.username || username);
+ welcome.innerText="Hello, "+(user.username||username);
 
- realBalance = user.balance || 0;
- balance.innerText = balanceVisible
-   ? "€"+realBalance.toLocaleString()
-   : "••••••";
+ /* ACCOUNT INFO */
+ userIBAN = user.iban || "";
+ bankDetails.innerHTML = `
+ <strong>Account Name:</strong> ${user.username || username}<br>
+ <strong>Bank:</strong> ${user.bankName || "DeChase Bank"}<br>
+ <strong>Account Number:</strong> ${user.accountNumber || "—"}<br>
+ <strong>IBAN:</strong> ${user.iban || "—"}<br>
+ <strong>SWIFT/BIC:</strong> ${user.swift || "—"}<br>
+ <strong>Country:</strong> ${user.country || "Germany"}
+ `;
 
- isFrozen=user.frozen||false;
- frozenNotice.innerHTML=isFrozen ?
- '<div class="frozenBanner">🔒 Account frozen. Contact admin.</div>' : "";
+ /* BALANCE */
+ realBalance=user.balance||0;
+ balance.innerText = balanceVisible ?
+   "€"+realBalance.toLocaleString() : "••••••";
 
+ /* CARD */
  if(user.cardNumber){
    cardBox.innerHTML=`
    <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
    Exp: ${user.expiry || "--/--"}<br>
-   CVV: <span id="cvv">•••</span>
-   <span onclick="toggleCVV('${user.cvv}')" style="cursor:pointer">👁</span><br>
    Status: ${user.cardStatus || "Active"}
    `;
  }
 
+ /* TRANSACTIONS */
  transactions.innerHTML="";
- (user.transactions||[])
- .slice().reverse().slice(0,10)
+ (user.transactions||[]).slice().reverse().slice(0,6)
  .forEach(tx=>{
    const cls=tx.amount<0?"amountMinus":"amountPlus";
-   const label=tx.note||tx.description||"Transaction";
-
    transactions.innerHTML+=`
    <div class="tx">
      <span class="${cls}">
-       ${label} (€${Math.abs(tx.amount).toLocaleString()})
+       ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
      </span>
-     <small>${tx.date||"recent"}</small>
+     <small>${tx.date||""}</small>
    </div>`;
  });
 });
@@ -249,83 +227,10 @@ function toggleBalance(){
    : "••••••";
 }
 
-function toggleCVV(real){
- const el=document.getElementById("cvv");
- el.innerText = el.innerText==="•••" ? real : "•••";
-}
-
-async function sendMoney(){
- if(isFrozen) return alert("Account frozen");
-
- const to=receiver.value.trim().toLowerCase();
- const amt=Number(amount.value);
- const descVal=desc.value || "Transfer";
-
- if(!to||amt<=0) return alert("Enter valid details");
-
- const fromRef=db.collection("users").doc(username);
- const toRef=db.collection("users").doc(to);
-
- try{
- await db.runTransaction(async t=>{
-   const f=await t.get(fromRef);
-   const r=await t.get(toRef);
-   if(!r.exists) throw "Receiver not found";
-   if(f.data().balance<amt) throw "Insufficient balance";
-
-   const now=new Date().toLocaleString();
-
-   t.update(fromRef,{
-     balance:f.data().balance-amt,
-     transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:-amt,
-       note:`Sent to ${to} • ${descVal}`,
-       date:now
-     })
-   });
-
-   t.update(toRef,{
-     balance:(r.data().balance||0)+amt,
-     transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:amt,
-       note:`Received from ${username}`,
-       date:now
-     })
-   });
- });
-
- alert("Transfer successful");
- receiver.value="";amount.value="";desc.value="";
- }catch(e){alert(e);}
-}
-
-function payBill(){
- const amt=Number(billAmount.value);
- if(amt>0) updateBalance(-amt,"Bill • "+billType.value);
-}
-function requestLoan(){
- const amt=Number(loanAmount.value);
- if(amt>0) updateBalance(amt,"Loan credited");
-}
-function buyGift(){
- const amt=Number(giftAmount.value);
- if(amt>0) updateBalance(-amt,"Gift card • "+giftType.value);
-}
-function shop(){
- const amt=Number(shopAmount.value);
- if(amt>0) updateBalance(-amt,"Shopping • "+store.value);
-}
-
-async function updateBalance(amount,note){
- const ref=db.collection("users").doc(username);
- const doc=await ref.get();
- const now=new Date().toLocaleString();
- await ref.update({
-  balance:(doc.data().balance||0)+amount,
-  transactions:firebase.firestore.FieldValue.arrayUnion({
-   amount,note,date:now
-  })
- });
+function copyIBAN(){
+ if(!userIBAN) return alert("IBAN not available");
+ navigator.clipboard.writeText(userIBAN);
+ alert("IBAN copied");
 }
 
 function logout(){
