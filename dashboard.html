@@ -12,52 +12,33 @@ body{
   background: radial-gradient(circle at top, #0a2540, #031427 70%);
   color:white;
 }
-.container{
-  max-width:420px;
-  margin:auto;
-  padding:22px 18px 40px;
-}
+.container{max-width:420px;margin:auto;padding:22px 18px 40px;}
 
-/* BALANCE CARD */
 .balanceCard{
   margin-top:18px;
   padding:26px;
   border-radius:24px;
   background: linear-gradient(135deg,#1976d2,#42a5f5);
-  box-shadow:0 12px 35px rgba(0,0,0,0.35);
 }
-.balance{
-  font-size:34px;
-  font-weight:600;
-}
+.balance{font-size:34px;font-weight:600;}
 
-/* GLASS CARDS */
 .card{
   background:rgba(255,255,255,0.06);
   backdrop-filter:blur(12px);
   border-radius:20px;
   padding:18px;
   margin-top:18px;
-  border:1px solid rgba(255,255,255,0.06);
-}
-.sectionTitle{
-  font-weight:600;
-  font-size:15px;
-  margin-bottom:6px;
 }
 
-/* INPUTS */
-input,select{
+input{
   width:100%;
   padding:12px;
   margin-top:10px;
   border:none;
   border-radius:12px;
-  background:rgba(255,255,255,0.92);
-  font-size:15px;
+  background:white;
 }
 
-/* BUTTONS */
 button{
   width:100%;
   padding:13px;
@@ -67,54 +48,26 @@ button{
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
   color:white;
   font-weight:600;
-  cursor:pointer;
-}
-button:active{ transform:scale(.97); }
-
-.copyBtn{
-  margin-top:8px;
-  background:#00c853;
 }
 
-.tx{
-  padding:12px 0;
-  border-bottom:1px solid rgba(255,255,255,0.08);
-}
-.amountPlus{ color:#00e676; font-weight:600; }
-.amountMinus{ color:#ff5252; font-weight:600; }
+.copyBtn{background:#00c853;}
+.logout{background:#ff5252;margin-top:22px;}
 
-small{
-  opacity:.65;
-  display:block;
-  margin-top:4px;
-  font-size:12px;
-}
-
-.logout{
-  background:linear-gradient(135deg,#ff5252,#ff7675);
-  margin-top:22px;
-}
-
-.frozenBanner{
-  background:#ff5252;
-  padding:12px;
-  border-radius:10px;
-  margin-top:10px;
-  text-align:center;
-  font-weight:600;
-}
+.tx{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);}
+.amountPlus{color:#00e676;}
+.amountMinus{color:#ff5252;}
+small{opacity:.6;font-size:12px;}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-<h2 id="welcome">Hello</h2>
-<div id="frozenNotice"></div>
+<h2 id="welcome"></h2>
 
 <!-- ACCOUNT INFO -->
 <div class="card">
-<div class="sectionTitle">🏛 Account Information</div>
+<strong>🏛 Account Information</strong>
 <div id="bankDetails"></div>
 <button class="copyBtn" onclick="copyIBAN()">Copy IBAN</button>
 </div>
@@ -122,22 +75,13 @@ small{
 <!-- BALANCE -->
 <div class="balanceCard">
   <small>Available Balance</small>
-  <div style="display:flex;justify-content:space-between;align-items:center;">
-    <div class="balance" id="balance">€0</div>
-    <span onclick="toggleBalance()" style="font-size:22px;cursor:pointer">👁</span>
-  </div>
+  <div class="balance" id="balance">€0</div>
 </div>
 
-<!-- CARD -->
+<!-- TRANSFER -->
 <div class="card">
-<div class="sectionTitle">💳 My Bank Card</div>
-<div id="cardBox">No card assigned</div>
-</div>
-
-<!-- SEND MONEY -->
-<div class="card">
-<div class="sectionTitle">💸 Send Money</div>
-<input id="receiver" placeholder="Username">
+<strong>💸 Transfer Money</strong>
+<input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
 <button onclick="sendMoney()">Send</button>
@@ -145,7 +89,7 @@ small{
 
 <!-- TRANSACTIONS -->
 <div class="card">
-<div class="sectionTitle">📜 Transactions</div>
+<strong>📜 Transactions</strong>
 <div id="transactions"></div>
 </div>
 
@@ -167,70 +111,110 @@ const db = firebase.firestore();
 
 let username = localStorage.getItem("loggedInUser");
 if(!username) location.href="login.html";
-username = username.toLowerCase();
+username=username.toLowerCase();
 
-let realBalance=0;
-let balanceVisible=true;
 let userIBAN="";
+let balanceValue=0;
 
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
- if(!doc.exists) return;
  const user=doc.data();
+ welcome.innerText="Hello, "+user.username;
+ balanceValue=user.balance||0;
+ balance.innerText="€"+balanceValue.toLocaleString();
 
- welcome.innerText="Hello, "+(user.username||username);
+ userIBAN=user.iban||"";
 
- /* ACCOUNT INFO */
- userIBAN = user.iban || "";
- bankDetails.innerHTML = `
- <strong>Account Name:</strong> ${user.username || username}<br>
+ bankDetails.innerHTML=`
+ <strong>Name:</strong> ${user.username}<br>
  <strong>Bank:</strong> ${user.bankName || "DeChase Bank"}<br>
  <strong>Account Number:</strong> ${user.accountNumber || "—"}<br>
  <strong>IBAN:</strong> ${user.iban || "—"}<br>
- <strong>SWIFT/BIC:</strong> ${user.swift || "—"}<br>
- <strong>Country:</strong> ${user.country || "Germany"}
+ <strong>SWIFT:</strong> ${user.swift || "—"}
  `;
 
- /* BALANCE */
- realBalance=user.balance||0;
- balance.innerText = balanceVisible ?
-   "€"+realBalance.toLocaleString() : "••••••";
-
- /* CARD */
- if(user.cardNumber){
-   cardBox.innerHTML=`
-   <strong>•••• •••• •••• ${user.cardNumber.slice(-4)}</strong><br>
-   Exp: ${user.expiry || "--/--"}<br>
-   Status: ${user.cardStatus || "Active"}
-   `;
- }
-
- /* TRANSACTIONS */
  transactions.innerHTML="";
  (user.transactions||[]).slice().reverse().slice(0,6)
  .forEach(tx=>{
    const cls=tx.amount<0?"amountMinus":"amountPlus";
    transactions.innerHTML+=`
    <div class="tx">
-     <span class="${cls}">
-       ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-     </span>
-     <small>${tx.date||""}</small>
+   <span class="${cls}">
+   ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+   </span>
+   <small>${tx.date||""}</small>
    </div>`;
  });
 });
 
-function toggleBalance(){
- balanceVisible=!balanceVisible;
- balance.innerText = balanceVisible
-   ? "€"+realBalance.toLocaleString()
-   : "••••••";
-}
-
+/* COPY IBAN */
 function copyIBAN(){
- if(!userIBAN) return alert("IBAN not available");
  navigator.clipboard.writeText(userIBAN);
  alert("IBAN copied");
+}
+
+/* FIND USER BY IBAN */
+async function findUserByIBAN(iban){
+ const snap = await db.collection("users")
+   .where("iban","==",iban)
+   .get();
+
+ if(snap.empty) return null;
+ return snap.docs[0].id;
+}
+
+/* SEND MONEY */
+async function sendMoney(){
+ const input = receiver.value.trim();
+ const amt = Number(amount.value);
+ const descVal = desc.value || "Transfer";
+
+ if(!input || amt<=0) return alert("Enter valid details");
+
+ let recipient = input.toLowerCase();
+
+ // if IBAN entered
+ if(input.startsWith("DE") || input.length > 15){
+   const found = await findUserByIBAN(input);
+   if(!found) return alert("IBAN not found");
+   recipient = found;
+ }
+
+ const fromRef=db.collection("users").doc(username);
+ const toRef=db.collection("users").doc(recipient);
+
+ try{
+ await db.runTransaction(async t=>{
+   const f=await t.get(fromRef);
+   const r=await t.get(toRef);
+
+   if(!r.exists) throw "Receiver not found";
+   if(f.data().balance < amt) throw "Insufficient balance";
+
+   const now=new Date().toLocaleString();
+
+   t.update(fromRef,{
+     balance:f.data().balance-amt,
+     transactions:firebase.firestore.FieldValue.arrayUnion({
+       amount:-amt,
+       note:`Sent to ${recipient} • ${descVal}`,
+       date:now
+     })
+   });
+
+   t.update(toRef,{
+     balance:(r.data().balance||0)+amt,
+     transactions:firebase.firestore.FieldValue.arrayUnion({
+       amount:amt,
+       note:`Received from ${username}`,
+       date:now
+     })
+   });
+ });
+
+ alert("Transfer successful");
+ receiver.value="";amount.value="";desc.value="";
+ }catch(e){alert(e);}
 }
 
 function logout(){
