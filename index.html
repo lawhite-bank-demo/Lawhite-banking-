@@ -2,12 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
 <meta name="theme-color" content="#0b1220">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
 <style>
 body {
@@ -35,15 +33,9 @@ body {
   margin-bottom: 15px;
 }
 
-h1 {
-  margin: 10px 0 5px;
-  color: #111;
-}
+h1 { margin: 10px 0 5px; color: #111; }
 
-.subtitle {
-  color: #666;
-  margin-bottom: 25px;
-}
+.subtitle { color: #666; margin-bottom: 25px; }
 
 input {
   width: 100%;
@@ -65,9 +57,7 @@ button {
   cursor: pointer;
 }
 
-button:active {
-  transform: scale(0.98);
-}
+button:active { transform: scale(0.98); }
 </style>
 </head>
 
@@ -78,37 +68,61 @@ button:active {
   <h1>DeChase Bank</h1>
   <div class="subtitle">Secure Online Banking</div>
 
-  <input id="username" type="text" placeholder="Username">
+  <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
 
   <button onclick="login()">Login</button>
 </div>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
 <script>
-function login() {
+const firebaseConfig = {
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank"
+};
 
-  const username = document.getElementById("username").value.toLowerCase();
-  const pin = document.getElementById("pin").value;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-  const users = JSON.parse(localStorage.getItem("users")) || [];
+// auto redirect if logged in
+if(localStorage.getItem("user")){
+  window.location.href = "dashboard.html";
+}
 
-  const user = users.find(u =>
-    u.username === username && u.pin === pin
-  );
+async function login(){
 
-  if(user){
+  const username = document.getElementById("username").value.trim();
+  const pin = document.getElementById("pin").value.trim();
 
-    localStorage.setItem("loggedInUser", JSON.stringify(user));
-
-    if(user.username === "admin"){
-      window.location.href = "admin.html";
-    } else {
-      window.location.href = "Dashboard.html";
-    }
-
-  } else {
-    alert("Invalid username or PIN");
+  if(!username || !pin){
+    alert("Enter username and PIN");
+    return;
   }
+
+  const docRef = db.collection("users").doc(username);
+  const docSnap = await docRef.get();
+
+  if(!docSnap.exists){
+    alert("Invalid username or PIN");
+    return;
+  }
+
+  const data = docSnap.data();
+
+  if(data.pin !== pin){
+    alert("Invalid username or PIN");
+    return;
+  }
+
+  // ✅ save session for dashboard
+  localStorage.setItem("user", username);
+
+  // go to dashboard
+  window.location.href = "dashboard.html";
 }
 </script>
 
