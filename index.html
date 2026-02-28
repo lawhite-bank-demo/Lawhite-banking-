@@ -5,68 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
-<meta name="theme-color" content="#0b1220">
-
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(180deg, #0b1220, #102a54);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(180deg,#0b1220,#102a54);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-
-.card {
-  background: #ffffff;
-  width: 90%;
-  max-width: 380px;
-  padding: 30px 20px;
-  border-radius: 20px;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+.card{
+  background:#fff;
+  width:90%;
+  max-width:380px;
+  padding:30px 20px;
+  border-radius:20px;
+  text-align:center;
 }
-
-.logo {
-  width: 90px;
-  margin-bottom: 15px;
+input{
+  width:100%;
+  padding:15px;
+  margin-bottom:15px;
+  border-radius:12px;
+  border:1px solid #ccc;
 }
-
-h1 { margin: 10px 0 5px; color: #111; }
-
-.subtitle { color: #666; margin-bottom: 25px; }
-
-input {
-  width: 100%;
-  padding: 15px;
-  margin-bottom: 15px;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  font-size: 16px;
+button{
+  width:100%;
+  padding:15px;
+  border-radius:12px;
+  border:none;
+  background:#1f3b63;
+  color:white;
+  font-size:18px;
 }
-
-button {
-  width: 100%;
-  padding: 15px;
-  border-radius: 12px;
-  border: none;
-  background: #1f3b63;
-  color: white;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-button:active { transform: scale(0.98); }
 </style>
 </head>
-
 <body>
 
 <div class="card">
-  <img src="icon.png" class="logo" alt="Bank Logo">
-  <h1>DeChase Bank</h1>
-  <div class="subtitle">Secure Online Banking</div>
+  <h2>DeChase Bank</h2>
+  <p>Secure Online Banking</p>
 
   <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
@@ -74,7 +53,6 @@ button:active { transform: scale(0.98); }
   <button onclick="login()">Login</button>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
@@ -90,12 +68,12 @@ const db = firebase.firestore();
 
 // auto redirect if logged in
 if(localStorage.getItem("user")){
-  window.location.href = "dashboard.html";
+  location.href="dashboard.html";
 }
 
 async function login(){
 
-  const username = document.getElementById("username").value.trim();
+  const username = document.getElementById("username").value.trim().toLowerCase();
   const pin = document.getElementById("pin").value.trim();
 
   if(!username || !pin){
@@ -103,26 +81,23 @@ async function login(){
     return;
   }
 
-  const docRef = db.collection("users").doc(username);
-  const docSnap = await docRef.get();
+  const doc = await db.collection("users").doc(username).get();
 
-  if(!docSnap.exists){
-    alert("Invalid username or PIN");
+  if(!doc.exists){
+    alert("User not found");
     return;
   }
 
-  const data = docSnap.data();
-
-  if(data.pin !== pin){
-    alert("Invalid username or PIN");
+  if(doc.data().pin !== pin){
+    alert("Incorrect PIN");
     return;
   }
 
-  // ✅ save session for dashboard
+  // save login session
   localStorage.setItem("user", username);
 
   // go to dashboard
-  window.location.href = "dashboard.html";
+  location.href="dashboard.html";
 }
 </script>
 
