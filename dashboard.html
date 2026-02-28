@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Finance</title>
-
-<style>
+<title>DeChase Finance</title><style>
 body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
@@ -13,14 +10,6 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:22px 18px 40px;}
-
-.balanceCard{
-  margin-top:18px;
-  padding:26px;
-  border-radius:24px;
-  background: linear-gradient(135deg,#1976d2,#42a5f5);
-}
-.balance{font-size:34px;font-weight:600;}
 
 .card{
   background:rgba(255,255,255,0.06);
@@ -30,13 +19,18 @@ body{
   margin-top:18px;
 }
 
-input{
+.balanceCard{
+  padding:26px;
+  border-radius:24px;
+  background: linear-gradient(135deg,#1976d2,#42a5f5);
+}
+
+input,select{
   width:100%;
   padding:12px;
   margin-top:10px;
   border:none;
   border-radius:12px;
-  background:white;
 }
 
 button{
@@ -50,57 +44,60 @@ button{
   font-weight:600;
 }
 
+.logout{background:#ff5252;}
 .copyBtn{background:#00c853;}
-.logout{background:#ff5252;margin-top:22px;}
 
 .tx{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);}
 .amountPlus{color:#00e676;}
 .amountMinus{color:#ff5252;}
 small{opacity:.6;font-size:12px;}
-</style>
-</head>
-<body>
-
-<div class="container">
-
-<h2 id="welcome"></h2>
-
-<!-- ACCOUNT INFO -->
-<div class="card">
+</style></head>
+<body><div class="container"><h2 id="welcome"></h2><!-- ACCOUNT INFO --><div class="card">
 <strong>🏛 Account Information</strong>
 <div id="bankDetails"></div>
 <button class="copyBtn" onclick="copyIBAN()">Copy IBAN</button>
-</div>
-
-<!-- BALANCE -->
-<div class="balanceCard">
+</div><!-- BALANCE --><div class="balanceCard">
   <small>Available Balance</small>
-  <div class="balance" id="balance">€0</div>
-</div>
-
-<!-- TRANSFER -->
-<div class="card">
+  <h1 id="balance">€0</h1>
+</div><!-- TRANSFER --><div class="card">
 <strong>💸 Transfer Money</strong>
 <input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
 <button onclick="sendMoney()">Send</button>
-</div>
-
-<!-- TRANSACTIONS -->
-<div class="card">
+</div><!-- PAY BILLS --><div class="card">
+<strong>💡 Pay Bills</strong>
+<select id="billType">
+<option>Electricity</option>
+<option>Internet</option>
+<option>Water</option>
+</select>
+<input id="billAmount" type="number" placeholder="Amount">
+<button onclick="payBill()">Pay Bill</button>
+</div><!-- LOAN --><div class="card">
+<strong>🏦 Request Loan</strong>
+<input id="loanAmount" type="number" placeholder="Loan amount">
+<button onclick="requestLoan()">Request Loan</button>
+</div><!-- GIFT CARD --><div class="card">
+<strong>🎁 Buy Gift Card</strong>
+<select id="giftType">
+<option>Amazon</option>
+<option>Apple</option>
+<option>Google Play</option>
+</select>
+<input id="giftAmount" type="number" placeholder="Amount">
+<button onclick="buyGift()">Buy Gift Card</button>
+</div><!-- SHOP --><div class="card">
+<strong>🛒 Online Shopping</strong>
+<input id="store" placeholder="Store name">
+<input id="shopAmount" type="number" placeholder="Amount">
+<button onclick="shop()">Pay</button>
+</div><!-- TRANSACTIONS --><div class="card">
 <strong>📜 Transactions</strong>
 <div id="transactions"></div>
-</div>
+</div><button class="logout" onclick="logout()">Logout</button>
 
-<button class="logout" onclick="logout()">Logout</button>
-
-</div>
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-<script>
+</div><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script><script>
 const firebaseConfig = {
   apiKey: "YOUR_KEY",
   authDomain: "dechase-bank.firebaseapp.com",
@@ -109,28 +106,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let username = localStorage.getItem("loggedInUser");
-if(!username) location.href="login.html";
-username=username.toLowerCase();
-
+let username = localStorage.getItem("loggedInUser").toLowerCase();
 let userIBAN="";
-let balanceValue=0;
 
+/* LOAD USER */
 db.collection("users").doc(username)
 .onSnapshot(doc=>{
  const user=doc.data();
+
  welcome.innerText="Hello, "+user.username;
- balanceValue=user.balance||0;
- balance.innerText="€"+balanceValue.toLocaleString();
+ balance.innerText="€"+(user.balance||0).toLocaleString();
 
  userIBAN=user.iban||"";
 
  bankDetails.innerHTML=`
- <strong>Name:</strong> ${user.username}<br>
- <strong>Bank:</strong> ${user.bankName || "DeChase Bank"}<br>
- <strong>Account Number:</strong> ${user.accountNumber || "—"}<br>
- <strong>IBAN:</strong> ${user.iban || "—"}<br>
- <strong>SWIFT:</strong> ${user.swift || "—"}
+ Name: ${user.username}<br>
+ Bank: ${user.bankName}<br>
+ Account Number: ${user.accountNumber}<br>
+ IBAN: ${user.iban}<br>
+ SWIFT: ${user.swift}
  `;
 
  transactions.innerHTML="";
@@ -147,80 +141,54 @@ db.collection("users").doc(username)
  });
 });
 
-/* COPY IBAN */
-function copyIBAN(){
- navigator.clipboard.writeText(userIBAN);
- alert("IBAN copied");
-}
-
 /* FIND USER BY IBAN */
 async function findUserByIBAN(iban){
- const snap = await db.collection("users")
-   .where("iban","==",iban)
-   .get();
-
+ const snap=await db.collection("users").where("iban","==",iban).get();
  if(snap.empty) return null;
  return snap.docs[0].id;
 }
 
-/* SEND MONEY */
+/* TRANSFER */
 async function sendMoney(){
- const input = receiver.value.trim();
- const amt = Number(amount.value);
- const descVal = desc.value || "Transfer";
+ let to=receiver.value.trim();
+ const amt=Number(amount.value);
+ const descVal=desc.value||"Transfer";
 
- if(!input || amt<=0) return alert("Enter valid details");
-
- let recipient = input.toLowerCase();
-
- // if IBAN entered
- if(input.startsWith("DE") || input.length > 15){
-   const found = await findUserByIBAN(input);
+ if(to.startsWith("DE")){
+   const found=await findUserByIBAN(to);
    if(!found) return alert("IBAN not found");
-   recipient = found;
+   to=found;
  }
 
- const fromRef=db.collection("users").doc(username);
- const toRef=db.collection("users").doc(recipient);
-
- try{
- await db.runTransaction(async t=>{
-   const f=await t.get(fromRef);
-   const r=await t.get(toRef);
-
-   if(!r.exists) throw "Receiver not found";
-   if(f.data().balance < amt) throw "Insufficient balance";
-
-   const now=new Date().toLocaleString();
-
-   t.update(fromRef,{
-     balance:f.data().balance-amt,
-     transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:-amt,
-       note:`Sent to ${recipient} • ${descVal}`,
-       date:now
-     })
-   });
-
-   t.update(toRef,{
-     balance:(r.data().balance||0)+amt,
-     transactions:firebase.firestore.FieldValue.arrayUnion({
-       amount:amt,
-       note:`Received from ${username}`,
-       date:now
-     })
-   });
+ updateBalance(-amt,`Sent to ${to} • ${descVal}`);
+ db.collection("users").doc(to).update({
+   balance:firebase.firestore.FieldValue.increment(amt),
+   transactions:firebase.firestore.FieldValue.arrayUnion({
+     amount:amt,
+     note:`Received from ${username}`,
+     date:new Date().toLocaleString()
+   })
  });
-
  alert("Transfer successful");
- receiver.value="";amount.value="";desc.value="";
- }catch(e){alert(e);}
 }
 
-function logout(){
- localStorage.removeItem("loggedInUser");
- location.href="login.html";
+/* BALANCE UPDATE */
+function updateBalance(amount,note){
+ const ref=db.collection("users").doc(username);
+ ref.update({
+  balance:firebase.firestore.FieldValue.increment(amount),
+  transactions:firebase.firestore.FieldValue.arrayUnion({
+    amount,note,date:new Date().toLocaleString()
+  })
+ });
 }
-</script>
-</body>
+
+function payBill(){ updateBalance(-billAmount.value,"Bill • "+billType.value); }
+function requestLoan(){ updateBalance(+loanAmount.value,"Loan credited"); }
+function buyGift(){ updateBalance(-giftAmount.value,"Gift card • "+giftType.value); }
+function shop(){ updateBalance(-shopAmount.value,"Shopping • "+store.value); }
+
+function copyIBAN(){ navigator.clipboard.writeText(userIBAN); alert("IBAN copied"); }
+function logout(){ localStorage.clear(); location.href="login.html"; }
+</script></body>
 </html>
