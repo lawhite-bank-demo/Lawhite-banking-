@@ -15,6 +15,7 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
+
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -22,16 +23,18 @@ body{
   padding:16px;
   margin-bottom:15px;
 }
+
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
   padding:22px;
   text-align:center;
 }
+
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
 
-input,textarea,select{
+input, textarea, select{
   width:100%;
   padding:12px;
   margin-top:8px;
@@ -39,6 +42,7 @@ input,textarea,select{
   border:none;
   font-size:15px;
 }
+
 button{
   width:100%;
   padding:12px;
@@ -49,8 +53,11 @@ button{
   color:white;
   font-weight:600;
 }
+
 .small{font-size:12px;opacity:.7;}
 .reply{color:#6ed0ff;margin-top:4px;}
+.success{color:#00ffb2;}
+.error{color:#ff6b6b;}
 </style>
 </head>
 <body>
@@ -93,6 +100,18 @@ IBAN: <span id="iban"></span>
 <button onclick="sendSupport()">Send Message</button>
 
 <div id="supportHistory" class="small"></div>
+</div>
+
+<div class="card">
+<b>Security — Change PIN</b>
+
+<input id="oldPin" type="password" placeholder="Current PIN">
+<input id="newPin" type="password" placeholder="New PIN">
+<input id="confirmPin" type="password" placeholder="Confirm New PIN">
+
+<button onclick="changePin()">Update PIN</button>
+
+<div id="pinMsg" class="small"></div>
 </div>
 
 <button onclick="logout()">Logout</button>
@@ -146,7 +165,7 @@ function renderBalance(){
 window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-/* TRANSFER */
+/* TRANSFER WITH PIN */
 let transferData=null;
 
 window.askPin=()=>{
@@ -240,6 +259,44 @@ async function loadSupportHistory(){
  });
 }
 loadSupportHistory();
+
+/* CHANGE PIN */
+window.changePin = async () => {
+
+ const oldPin = oldPin.value;
+ const newPin = newPin.value;
+ const confirmPin = confirmPin.value;
+ const msg = document.getElementById("pinMsg");
+
+ msg.innerText="";
+
+ if(oldPin !== data.pin){
+   msg.innerText="Current PIN incorrect";
+   msg.className="small error";
+   return;
+ }
+
+ if(newPin.length < 4){
+   msg.innerText="PIN must be at least 4 digits";
+   msg.className="small error";
+   return;
+ }
+
+ if(newPin !== confirmPin){
+   msg.innerText="New PINs do not match";
+   msg.className="small error";
+   return;
+ }
+
+ await updateDoc(doc(db,"users",username),{ pin:newPin });
+
+ msg.innerText="PIN updated successfully";
+ msg.className="small success";
+
+ document.getElementById("oldPin").value="";
+ document.getElementById("newPin").value="";
+ document.getElementById("confirmPin").value="";
+};
 
 window.logout=()=>{
  localStorage.removeItem("user");
