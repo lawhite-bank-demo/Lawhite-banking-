@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transfer Receipt</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:#021427;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+}
+.card{
+  background:#0a223d;
+  padding:25px;
+  border-radius:18px;
+  width:90%;
+  max-width:350px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+.amount{
+  font-size:36px;
+  font-weight:700;
+  color:#00ffb2;
+  margin:15px 0;
+}
+.row{
+  margin:8px 0;
+  opacity:.85;
+}
+button{
+  margin-top:20px;
+  padding:12px;
+  width:100%;
+  border:none;
+  border-radius:10px;
+  background:#2d8cff;
+  color:white;
+  font-weight:600;
+}
+.success{
+  font-size:40px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="success">✔</div>
+  <h2>Transfer Successful</h2>
+
+  <div class="amount" id="amount"></div>
+
+  <div class="row">To: <b id="receiver"></b></div>
+  <div class="row">Date: <span id="date"></span></div>
+  <div class="row">Reference: <span id="ref"></span></div>
+  <div class="row">Status: Completed</div>
+
+  <button onclick="goBack()">Back to Dashboard</button>
+</div>
+
+<script>
+const receipt = JSON.parse(localStorage.getItem("receipt"));
+
+if(receipt){
+  document.getElementById("amount").innerText = "€" + receipt.amount;
+  document.getElementById("receiver").innerText = receipt.receiver;
+  document.getElementById("date").innerText = receipt.date;
+  document.getElementById("ref").innerText = receipt.ref;
+}
+
+function goBack(){
+  window.location.href = "dashboard.html";
+}
+</script>
+
+</body>
+</html>
