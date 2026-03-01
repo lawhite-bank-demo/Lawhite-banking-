@@ -14,43 +14,78 @@ body{
   background:linear-gradient(160deg,#020617,#031427,#021a35);
   color:white;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
+.container{max-width:420px;margin:auto;padding:20px}
+
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
   border-radius:18px;
   padding:16px;
   margin-bottom:15px;
+  border:1px solid rgba(255,255,255,0.05);
 }
+
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
   padding:22px;
   text-align:center;
 }
+
 .balance{font-size:34px;font-weight:700;}
-.eye{margin-top:6px;font-size:14px;cursor:pointer;}
-button{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
+.eye{margin-top:6px;font-size:14px;cursor:pointer}
+
+.bank-card{
+  background:linear-gradient(135deg,#0d2b55,#081a35);
+  border-radius:18px;
+  padding:18px;
+  margin-top:12px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+.grid button{
+  background:#0f2f55;
   border:none;
-  border-radius:10px;
-  background:#2d8cff;
+  border-radius:12px;
+  padding:12px;
   color:white;
   font-weight:600;
 }
+
 input,textarea,select{
   width:100%;
   padding:12px;
   margin-top:8px;
   border-radius:10px;
   border:none;
+  font-size:15px;
 }
-.small{font-size:12px;opacity:.7;}
-.success{color:#00ffb2;}
-.error{color:#ff6b6b;}
-.frozen{color:#ffcc66;font-weight:600;}
+
+button.primary{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:10px;
+  background:#2d8cff;
+  color:white;
+  font-weight:600;
+}
+
+.tx{margin-top:10px}
+.green{color:#00ffb2}
+.red{color:#ff6b6b}
+
+.badge{
+  margin-top:6px;
+  font-size:13px;
+  color:#ffcc66;
+}
 </style>
 </head>
 <body>
@@ -61,50 +96,58 @@ input,textarea,select{
 
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
-  <div class="eye" id="eyeToggle">👁 Hide balance</div>
+  <div class="eye" id="eyeToggle" onclick="toggleBalance()">👁 Hide balance</div>
+</div>
+
+<div class="bank-card">
+  <div>DeChase Bank</div>
+  <div id="cardName"></div>
 </div>
 
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name"></span><br>
 Account: <span id="acc"></span><br>
-IBAN: <span id="iban"></span><br>
-<span id="freezeStatus"></span>
+IBAN: <span id="iban"></span>
+<div id="frozenBadge" class="badge"></div>
 </div>
 
 <div class="card">
+<b>Quick Actions</b>
+<div class="grid">
+  <button onclick="showTransfer()">Send</button>
+  <button onclick="alert('Pay Bills coming')">Pay Bills</button>
+  <button onclick="alert('Gift Cards ready')">Gift Cards</button>
+  <button onclick="alert('Card services soon')">Cards</button>
+  <button onclick="alert('Withdraw coming')">Withdraw</button>
+  <button onclick="alert('Deposit coming')">Deposit</button>
+</div>
+</div>
+
+<div class="card" id="transferBox" style="display:none;">
 <b>Send Money</b>
 <input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <input id="desc" placeholder="Description">
-<button onclick="askPin()">Send</button>
+<button class="primary" onclick="askPin()">Send</button>
 </div>
 
 <div class="card">
-<b>Support Center</b>
+<b>Support</b>
 <select id="subject">
 <option>Account Issue</option>
 <option>Transfer Problem</option>
 <option>Card Help</option>
 <option>Other</option>
 </select>
-<textarea id="message" placeholder="Describe your issue"></textarea>
-<button onclick="sendSupport()">Send Message</button>
-<div id="supportHistory" class="small"></div>
-</div>
-
-<div class="card">
-<b>Security — Change PIN</b>
-<input id="oldPin" type="password" placeholder="Current PIN">
-<input id="newPin" type="password" placeholder="New PIN">
-<input id="confirmPin" type="password" placeholder="Confirm New PIN">
-<button onclick="changePin()">Update PIN</button>
-<div id="pinMsg" class="small"></div>
+<textarea id="message" placeholder="Describe issue"></textarea>
+<button class="primary" onclick="sendSupport()">Send Message</button>
+<div id="supportHistory"></div>
 </div>
 
 <div class="card">
 <b>Security</b>
-<button onclick="toggleFreezeRemember()">Freeze / Unfreeze Account</button>
+<button class="primary" onclick="toggleFreeze()">Freeze / Unfreeze Account</button>
 </div>
 
 <div class="card">
@@ -112,29 +155,28 @@ IBAN: <span id="iban"></span><br>
 <div id="transactions"></div>
 </div>
 
-<button onclick="logout()" style="background:#ff4d4d;">Logout</button>
+<button class="primary" onclick="logout()" style="background:#ff4d4d">Logout</button>
 
 </div>
 
 <!-- PIN MODAL -->
 <div id="pinModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;">
-  <div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
-    <h3>Enter Transaction PIN</h3>
-    <input id="pinInput" type="password" placeholder="PIN">
-    <button onclick="confirmTransfer()">Confirm</button>
-    <button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
-  </div>
+<div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
+<h3>Enter PIN</h3>
+<input id="pinInput" type="password">
+<button onclick="confirmTransfer()">Confirm</button>
+<button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
+</div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, collection, addDoc, getDocs, updateDoc }
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, addDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const app = initializeApp({
-  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
-  authDomain:"dechase-bank.firebaseapp.com",
-  projectId:"dechase-bank"
+ apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+ authDomain:"dechase-bank.firebaseapp.com",
+ projectId:"dechase-bank"
 });
 const db=getFirestore(app);
 
@@ -142,139 +184,96 @@ const username=localStorage.getItem("user");
 if(!username) location.href="index.html";
 
 const snap=await getDoc(doc(db,"users",username));
-const data=snap.data()||{};
+const data=snap.data();
 
-/* LOAD PROFILE */
-document.getElementById("welcome").innerText="Hello, "+(data.fullName||"User");
-document.getElementById("name").innerText=data.fullName||"-";
-document.getElementById("acc").innerText=data.accountNumber||"-";
-document.getElementById("iban").innerText=data.iban||"-";
+welcome.innerText="Hello, "+data.fullName;
+name.innerText=data.fullName;
+acc.innerText=data.accountNumber;
+iban.innerText=data.iban;
+cardName.innerText=data.fullName;
 
-/* BALANCE */
-const balanceValue=Number(data.balance||0);
+if(data.frozen) frozenBadge.innerText="⚠ Account Frozen";
+
 let hidden=false;
 function renderBalance(){
- document.getElementById("balance").innerText=
- hidden?"••••••":"€"+balanceValue.toLocaleString();
- document.getElementById("eyeToggle").innerText=
- hidden?"👁 Show balance":"👁 Hide balance";
+ balance.innerText=hidden?"••••••":"€"+Number(data.balance).toLocaleString();
+ eyeToggle.innerText=hidden?"👁 Show balance":"👁 Hide balance";
 }
-document.getElementById("eyeToggle").onclick=()=>{hidden=!hidden;renderBalance();}
+window.toggleBalance=()=>{hidden=!hidden;renderBalance();}
 renderBalance();
 
-/* FREEZE */
-function updateFreezeUI(){
- const f=data.frozen;
- document.getElementById("freezeStatus").innerHTML =
- f ? '<span class="frozen">⚠ Account Frozen</span>' : '';
-}
-updateFreezeUI();
+window.showTransfer=()=> transferBox.style.display="block";
 
-window.toggleFreezeRemember=async()=>{
+/* TRANSFER */
+let transferData=null;
+window.askPin=()=>{
+ if(data.frozen) return alert("Account frozen");
+ transferData={
+   to:receiver.value,
+   amt:parseFloat(amount.value),
+   note:desc.value || "Transfer"
+ };
+ pinModal.style.display="flex";
+};
+
+window.closePin=()=> pinModal.style.display="none";
+
+window.confirmTransfer=async()=>{
+ if(pinInput.value!==data.pin) return alert("Wrong PIN");
+ const users=await getDocs(collection(db,"users"));
+ let rec=null, recData=null;
+ users.forEach(d=>{
+  if(d.id===transferData.to || d.data().iban===transferData.to){
+    rec=d.id; recData=d.data();
+  }
+ });
+ if(!rec) return alert("Receiver not found");
+ if(data.balance<transferData.amt) return alert("Insufficient");
+
+ const date=new Date().toLocaleString();
+ const ref="DCB"+Math.floor(Math.random()*999999);
+
+ await updateDoc(doc(db,"users",username),{
+  balance:data.balance-transferData.amt,
+  transactions:[...(data.transactions||[]),
+  {amount:-transferData.amt,note:"Sent to "+rec,date,ref}]
+ });
+
+ await updateDoc(doc(db,"users",rec),{
+  balance:Number(recData.balance)+transferData.amt,
+  transactions:[...(recData.transactions||[]),
+  {amount:transferData.amt,note:"Received from "+username,date,ref}]
+ });
+
+ localStorage.setItem("receipt",JSON.stringify({amount:transferData.amt,receiver:rec,date,ref}));
+ location.href="receipt.html";
+};
+
+/* FREEZE */
+window.toggleFreeze=async()=>{
  await updateDoc(doc(db,"users",username),{frozen:!data.frozen});
  location.reload();
 };
 
-/* TRANSACTIONS */
-const txBox=document.getElementById("transactions");
-if(data.transactions){
- data.transactions.slice().reverse().forEach(tx=>{
-   const amt=Number(tx.amount||0);
-   const color=amt>0?"#00ffb2":"#ff6b6b";
-   txBox.innerHTML+=`
-   <p style="color:${color}">
-   ${tx.note||"Transfer"} (€${Math.abs(amt).toLocaleString()})<br>
-   <span class="small">${tx.date||""}</span>
-   </p>`;
- });
-}else txBox.innerHTML="<p class='small'>No transactions</p>";
-
-/* TRANSFER */
-let transferData=null;
-
-window.askPin=()=>{
- if(data.frozen) return alert("Account frozen");
- const receiverInput=receiver.value.trim();
- const amt=parseFloat(amount.value);
- if(!receiverInput||!amt) return alert("Fill all fields");
- transferData={receiverInput,amt,desc:desc.value||"Transfer"};
- pinModal.style.display="flex";
-};
-
-window.closePin=()=>{pinModal.style.display="none";pinInput.value="";};
-
-window.confirmTransfer=async()=>{
- if(pinInput.value!==data.pin) return alert("Incorrect PIN");
- closePin();
-
- const {receiverInput,amt,desc}=transferData;
- const users=await getDocs(collection(db,"users"));
- let receiverName=null,receiverData=null;
-
- users.forEach(d=>{
-   const u=d.data();
-   if(d.id===receiverInput||u.iban===receiverInput){
-     receiverName=d.id;receiverData=u;
-   }
- });
-
- if(!receiverName) return alert("Receiver not found");
- if(balanceValue<amt) return alert("Insufficient funds");
-
- const date=new Date().toLocaleString();
- const ref="DCB"+Math.floor(Math.random()*900000+100000);
-
- await updateDoc(doc(db,"users",username),{
-  balance:balanceValue-amt,
-  transactions:[...(data.transactions||[]),
-  {amount:-amt,note:"Sent to "+receiverName,date,ref}]
- });
-
- await updateDoc(doc(db,"users",receiverName),{
-  balance:Number(receiverData.balance||0)+amt,
-  transactions:[...(receiverData.transactions||[]),
-  {amount:amt,note:"Received from "+username,date,ref}]
- });
-
- localStorage.setItem("receipt",JSON.stringify({amount:amt,receiver:receiverName,date,ref}));
- window.location.href="receipt.html";
-};
-
 /* SUPPORT */
 window.sendSupport=async()=>{
- const msg=message.value.trim();
- if(!msg) return alert("Enter message");
+ if(!message.value) return;
  await addDoc(collection(db,"support_messages"),{
-   user:username,subject:subject.value,message:msg,status:"open",
-   date:new Date().toLocaleString()
+  user:username,subject:subject.value,message:message.value,date:new Date().toLocaleString()
  });
  message.value="";
- loadSupportHistory();
+ alert("Message sent");
 };
 
-async function loadSupportHistory(){
- const snap=await getDocs(collection(db,"support_messages"));
- supportHistory.innerHTML="";
- snap.forEach(doc=>{
-   const d=doc.data();
-   if(d.user===username){
-     supportHistory.innerHTML+=`
-     <p>📩 <b>${d.subject}</b><br>${d.date}</p>`;
-   }
+/* TX */
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
+  transactions.innerHTML+=`<div class="tx ${tx.amount>0?'green':'red'}">
+  ${tx.note} (€${Math.abs(tx.amount)})
+  </div>`;
  });
 }
-loadSupportHistory();
 
-/* CHANGE PIN */
-window.changePin=async()=>{
- if(oldPin.value!==data.pin) return pinMsg.innerText="Wrong PIN";
- if(newPin.value.length<4) return pinMsg.innerText="PIN too short";
- if(newPin.value!==confirmPin.value) return pinMsg.innerText="PIN mismatch";
- await updateDoc(doc(db,"users",username),{pin:newPin.value});
- pinMsg.innerText="PIN updated";
-};
-
-/* LOGOUT */
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
