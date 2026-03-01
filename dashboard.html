@@ -81,29 +81,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ✅ check login session
+// ✅ CHECK LOGIN SESSION
 const username = localStorage.getItem("user");
 if(!username){
  location.href="index.html";
 }
 
-// load user safely
+// ✅ LOAD USER DATA SAFELY
 async function loadUser(){
-
  try{
 
-   const userRef = doc(db,"users",username);
-   const snap = await getDoc(userRef);
+   const snap = await getDoc(doc(db,"users",username));
 
    if(!snap.exists()){
-     alert("User data not found in database");
+     alert("User data not found");
      return;
    }
 
    const data = snap.data();
-   console.log("Loaded:", data);
 
-   // display info
+   // ===== DISPLAY USER INFO =====
    document.getElementById("welcome").innerText =
      "Hello, " + (data.fullName || username);
 
@@ -119,6 +116,7 @@ async function loadUser(){
    document.getElementById("swift").innerText =
      data.swift || "-";
 
+   // ===== BALANCE =====
    let balanceValue = Number(data.balance ?? 0);
    let hidden = false;
 
@@ -141,16 +139,16 @@ async function loadUser(){
 
    renderBalance();
 
-   // transactions
+   // ===== TRANSACTIONS =====
    const box = document.getElementById("transactions");
    box.innerHTML = "";
 
-   if(data.transactions && data.transactions.length){
+   if(Array.isArray(data.transactions) && data.transactions.length){
      data.transactions.slice().reverse().forEach(tx=>{
        const color = tx.amount > 0 ? "#00ffb2" : "#ff6b6b";
        box.innerHTML += `
          <div style="margin-top:10px;color:${color}">
-           ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+           ${tx.note || "Transaction"} (€${Math.abs(tx.amount || 0).toLocaleString()})
            <div style="font-size:12px;opacity:.7">${tx.date || ""}</div>
          </div>
        `;
@@ -159,14 +157,12 @@ async function loadUser(){
      box.innerHTML = "<p>No transactions yet</p>";
    }
 
-   // hide loading
    document.getElementById("loading").style.display="none";
 
  }catch(err){
    alert("Network error. Check internet.");
    console.log(err);
  }
-
 }
 
 loadUser();
