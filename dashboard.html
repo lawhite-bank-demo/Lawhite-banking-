@@ -32,8 +32,15 @@ body{
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
+
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
 
 input, textarea, select{
   width:100%;
@@ -55,19 +62,10 @@ button{
   font-weight:600;
 }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-}
-
-.small{font-size:12px;opacity:.7;}
-.success{color:#00ffb2;}
-.error{color:#ff6b6b;}
 .frozen{color:#ffcc66;font-weight:600;}
-.tx{margin-top:10px;}
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
+.small{font-size:12px;opacity:.7;}
 </style>
 </head>
 <body>
@@ -97,7 +95,7 @@ IBAN: <span id="iban"></span><br>
   <button onclick="alert('Coming soon')">Withdraw</button>
   <button onclick="alert('Coming soon')">Deposit</button>
   <button onclick="alert('Coming soon')">Cards</button>
-  <button onclick="showTransfer()">Send</button>
+  <button onclick="toggleTransfer()">Send</button>
 </div>
 </div>
 
@@ -174,57 +172,78 @@ const db = getFirestore(app);
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-const snap = await getDoc(doc(db,"users",username));
-const data = snap.data();
-
-welcome.innerText="Hello, "+data.fullName;
-name.innerText=data.fullName;
-acc.innerText=data.accountNumber;
-iban.innerText=data.iban;
-
-if(data.frozen){
- frozenNotice.innerText="⚠ Account Frozen";
-}
-
-let balanceValue = Number(data.balance||0);
+let userData;
+let balanceValue=0;
 let hidden=false;
 
+/* LOAD USER DATA */
+async function loadUser(){
+ const snap = await getDoc(doc(db,"users",username));
+ if(!snap.exists()) return alert("User not found");
+
+ userData = snap.data();
+
+ welcome.innerText="Hello, "+userData.fullName;
+ name.innerText=userData.fullName;
+ acc.innerText=userData.accountNumber;
+ iban.innerText=userData.iban;
+
+ if(userData.frozen){
+   frozenNotice.innerText="⚠ Account Frozen";
+ }
+
+ balanceValue = Number(userData.balance||0);
+ renderBalance();
+ loadTransactions();
+}
+
+await loadUser();
+
+/* BALANCE */
 function renderBalance(){
  balance.innerText = hidden?"••••••":"€"+balanceValue.toLocaleString();
  eyeToggle.innerText = hidden?"👁 Show balance":"👁 Hide balance";
 }
 window.toggleBalance=()=>{hidden=!hidden;renderBalance();}
-renderBalance();
 
-window.showTransfer=()=>transferBox.style.display="block";
+/* SHOW TRANSFER */
+window.toggleTransfer=()=>{
+ transferBox.style.display =
+ transferBox.style.display==="none"?"block":"none";
+}
 
 /* TRANSFER */
 let transferData=null;
 
 window.askPin=()=>{
- if(data.frozen) return alert("Account frozen");
+ if(userData.frozen) return alert("Account frozen");
  const r=receiver.value.trim();
  const amt=parseFloat(amount.value);
  const desc=document.getElementById("desc").value||"Transfer";
+
  if(!r||!amt) return alert("Fill all fields");
+
  transferData={r,amt,desc};
  pinModal.style.display="flex";
 }
 
-window.closePin=()=>{pinModal.style.display="none"; pinInput.value=""}
+window.closePin=()=>{
+ pinModal.style.display="none";
+ pinInput.value="";
+}
 
 window.confirmTransfer=async()=>{
- if(pinInput.value!==data.pin) return alert("Incorrect PIN");
+ if(pinInput.value!==userData.pin) return alert("Incorrect PIN");
  closePin();
 
  const users=await getDocs(collection(db,"users"));
- let receiverName=null,receiverData=null;
+ let receiverName=null, receiverData=null;
 
  users.forEach(d=>{
-  const u=d.data();
-  if(d.id===transferData.r || u.iban===transferData.r){
-    receiverName=d.id; receiverData=u;
-  }
+   const u=d.data();
+   if(d.id===transferData.r || u.iban===transferData.r){
+     receiverName=d.id; receiverData=u;
+   }
  });
 
  if(!receiverName) return alert("Receiver not found");
@@ -234,74 +253,72 @@ window.confirmTransfer=async()=>{
 
  await updateDoc(doc(db,"users",username),{
   balance:balanceValue-transferData.amt,
-  transactions:[...(data.transactions||[]),
-  {amount:-transferData.amt,note:"Sent to "+receiverName,date}]
+  transactions:[...(userData.transactions||[]),
+   {amount:-transferData.amt,note:"Sent to "+receiverName,date}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
   balance:Number(receiverData.balance||0)+transferData.amt,
   transactions:[...(receiverData.transactions||[]),
-  {amount:transferData.amt,note:"Received from "+username,date}]
+   {amount:transferData.amt,note:"Received from "+username,date}]
  });
 
  alert("Transfer Successful");
  location.reload();
 };
 
+/* TRANSACTIONS */
+function loadTransactions(){
+ const box=document.getElementById("transactions");
+ box.innerHTML="";
+ if(!userData.transactions) return;
+
+ userData.transactions.slice().reverse().forEach(tx=>{
+  const amt=Number(tx.amount);
+  const color=amt>0?"green":"red";
+
+  box.innerHTML+=`
+   <div class="${color}">
+   ${tx.note} (€${Math.abs(amt).toLocaleString()})
+   </div>`;
+ });
+}
+
 /* SUPPORT */
 window.sendSupport=async()=>{
  if(!message.value.trim()) return alert("Enter message");
- await addDoc(collection(db,"support_messages"),{
-  user:username,subject:subject.value,message:message.value,
-  status:"open",date:new Date().toLocaleString()
- });
- message.value="";
- alert("Sent");
- loadSupport();
-};
 
-async function loadSupport(){
- const snap=await getDocs(collection(db,"support_messages"));
- supportHistory.innerHTML="";
- snap.forEach(d=>{
-  const m=d.data();
-  if(m.user===username){
-   supportHistory.innerHTML+=`<p>📩 ${m.subject}<br>${m.date}</p>`;
-  }
+ await addDoc(collection(db,"support_messages"),{
+  user:username,
+  subject:subject.value,
+  message:message.value,
+  status:"open",
+  date:new Date().toLocaleString()
  });
+
+ message.value="";
+ alert("Message sent");
 }
-loadSupport();
 
 /* CHANGE PIN */
 window.changePin=async()=>{
- if(oldPin.value!==data.pin) return pinMsg.innerText="Wrong PIN";
+ if(oldPin.value!==userData.pin) return pinMsg.innerText="Wrong PIN";
  if(newPin.value.length<4) return pinMsg.innerText="Min 4 digits";
  if(newPin.value!==confirmPin.value) return pinMsg.innerText="PIN mismatch";
+
  await updateDoc(doc(db,"users",username),{pin:newPin.value});
  pinMsg.innerText="PIN updated";
 }
 
 /* FREEZE */
 window.toggleFreeze=async()=>{
- const newState=!data.frozen;
+ const newState=!userData.frozen;
  await updateDoc(doc(db,"users",username),{frozen:newState});
  alert(newState?"Account Frozen":"Account Unfrozen");
  location.reload();
 }
 
-/* TRANSACTIONS */
-const box=document.getElementById("transactions");
-if(data.transactions){
- data.transactions.slice().reverse().forEach(tx=>{
-  const amt=Number(tx.amount);
-  const color=amt>0?"green":"red";
-  box.innerHTML+=`
-   <div class="tx ${color}">
-   ${tx.note} (€${Math.abs(amt).toLocaleString()})
-   </div>`;
- });
-}
-
+/* LOGOUT */
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
