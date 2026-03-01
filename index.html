@@ -22,6 +22,7 @@ body{
   padding:30px 20px;
   border-radius:20px;
   text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
 }
 input{
   width:100%;
@@ -29,6 +30,7 @@ input{
   margin-bottom:15px;
   border-radius:12px;
   border:1px solid #ccc;
+  font-size:16px;
 }
 button{
   width:100%;
@@ -38,6 +40,14 @@ button{
   background:#1f3b63;
   color:white;
   font-size:18px;
+  cursor:pointer;
+}
+button:disabled{
+  background:#999;
+}
+.small{
+  font-size:13px;
+  color:#666;
 }
 </style>
 </head>
@@ -45,12 +55,12 @@ button{
 
 <div class="card">
   <h2>DeChase Bank</h2>
-  <p>Secure Online Banking</p>
+  <p class="small">Secure Online Banking</p>
 
   <input id="username" placeholder="Username">
   <input id="pin" type="password" placeholder="PIN">
 
-  <button onclick="login()">Login</button>
+  <button id="loginBtn" onclick="login()">Login</button>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -66,38 +76,62 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// auto redirect if logged in
+
+// ✅ Auto redirect if already logged in
 if(localStorage.getItem("user")){
   location.href="dashboard.html";
 }
 
+
+// ✅ LOGIN FUNCTION
 async function login(){
 
-  const username = document.getElementById("username").value.trim().toLowerCase();
-  const pin = document.getElementById("pin").value.trim();
+  const btn = document.getElementById("loginBtn");
+  const usernameInput = document.getElementById("username");
+  const pinInput = document.getElementById("pin");
+
+  const username = usernameInput.value.trim().toLowerCase();
+  const pin = pinInput.value.trim();
 
   if(!username || !pin){
     alert("Enter username and PIN");
     return;
   }
 
-  const doc = await db.collection("users").doc(username).get();
+  btn.disabled = true;
+  btn.innerText = "Checking...";
 
-  if(!doc.exists){
-    alert("User not found");
-    return;
+  try{
+
+    const doc = await db.collection("users").doc(username).get();
+
+    if(!doc.exists){
+      alert("User not found");
+      btn.disabled = false;
+      btn.innerText = "Login";
+      return;
+    }
+
+    if(doc.data().pin !== pin){
+      alert("Incorrect PIN");
+      btn.disabled = false;
+      btn.innerText = "Login";
+      return;
+    }
+
+    // ✅ save session
+    localStorage.setItem("user", username);
+
+    // small delay prevents blank dashboard load
+    setTimeout(()=>{
+      location.href="dashboard.html";
+    }, 300);
+
+  }catch(error){
+    alert("Network error. Check internet.");
+    btn.disabled = false;
+    btn.innerText = "Login";
   }
-
-  if(doc.data().pin !== pin){
-    alert("Incorrect PIN");
-    return;
-  }
-
-  // save login session
-  localStorage.setItem("user", username);
-
-  // go to dashboard
-  location.href="dashboard.html";
 }
 </script>
 
