@@ -94,13 +94,14 @@ if(!username) location.href="index.html";
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 const data = snap.data();
-
+console.log(data);
+alert(JSON.stringify(data));
 /* DISPLAY INFO */
 welcome.innerText = "Hello, " + data.fullName;
-name.innerText = data.fullName;
-acc.innerText = data.accountNumber;
-iban.innerText = data.iban;
-swift.innerText = data.swift || "-";
+  name.innerText = data.fullName || "";
+acc.innerText = data.accountNumber || "";
+iban.innerText = data.iban || "";
+swift.innerText = data.swift || "";
 balance.innerText = "€" + Number(data.balance || 0).toLocaleString();
 
 /* TRANSACTIONS */
