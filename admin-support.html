@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support Admin</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+body{
+  margin:0;
+  font-family:'Inter',sans-serif;
+  background:#021427;
+  color:white;
+}
+.container{
+  max-width:600px;
+  margin:auto;
+  padding:20px;
+}
+.ticket{
+  background:#0a223d;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+}
+textarea{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+}
+button{
+  margin-top:8px;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  background:#2d8cff;
+  color:white;
+  font-weight:600;
+  width:100%;
+}
+.status{
+  font-size:12px;
+  opacity:.7;
+  margin-top:5px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Support Messages</h2>
+<div id="tickets"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, updateDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain: "dechase-bank.firebaseapp.com",
+  projectId: "dechase-bank"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const box = document.getElementById("tickets");
+
+async function loadTickets(){
+  const snap = await getDocs(collection(db,"support_messages"));
+  box.innerHTML = "";
+
+  snap.forEach(docSnap=>{
+    const d = docSnap.data();
+    const id = docSnap.id;
+
+    box.innerHTML += `
+      <div class="ticket">
+        <b>User:</b> ${d.user}<br>
+        <b>Subject:</b> ${d.subject}<br>
+        <b>Message:</b><br>${d.message}<br>
+        <div class="status">Date: ${d.date}</div>
+        <div class="status">Status: ${d.status}</div>
+
+        ${d.reply ? `<p><b>Reply:</b> ${d.reply}</p>` : ""}
+
+        <textarea id="reply-${id}" placeholder="Type reply..."></textarea>
+        <button onclick="sendReply('${id}')">Send Reply</button>
+        <button onclick="markResolved('${id}')">Mark Resolved</button>
+      </div>
+    `;
+  });
+}
+
+window.sendReply = async function(id){
+  const text = document.getElementById("reply-"+id).value.trim();
+  if(!text) return alert("Enter reply");
+
+  await updateDoc(doc(db,"support_messages",id),{
+    reply: text,
+    replyDate: new Date().toLocaleString(),
+    status: "replied"
+  });
+
+  alert("Reply sent");
+  loadTickets();
+}
+
+window.markResolved = async function(id){
+  await updateDoc(doc(db,"support_messages",id),{
+    status:"resolved"
+  });
+  loadTickets();
+}
+
+loadTickets();
+</script>
+
+</body>
+</html>
