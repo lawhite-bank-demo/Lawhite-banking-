@@ -5,33 +5,109 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#031427;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(160deg,#020617,#031427,#021a35);
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
-.card{background:#0a223d;padding:15px;border-radius:15px;margin-bottom:15px;}
+
+/* PREMIUM GLASS CARD */
+.card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(18px);
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:15px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+
+/* BALANCE */
 .balance-card{
-  background:linear-gradient(135deg,#2d8cff,#66c2ff);
-  padding:20px;border-radius:15px;text-align:center;
+  background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
+  border-radius:20px;
+  padding:22px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.35);
 }
-.balance{font-size:30px;font-weight:bold;}
-.eye{cursor:pointer;font-size:14px;opacity:.8;}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+.balance{font-size:34px;font-weight:700;}
+.eye{margin-top:6px;font-size:14px;opacity:.9;cursor:pointer;}
+
+/* DEBIT CARD */
+.bank-card{
+  background:linear-gradient(135deg,#0d2b55,#081a35);
+  border-radius:18px;
+  padding:18px;
+  margin-top:14px;
+  box-shadow:0 10px 25px rgba(0,0,0,.4);
+}
+.bank-card-number{
+  font-size:18px;
+  letter-spacing:2px;
+  margin-top:18px;
+}
+.bank-card-name{margin-top:12px;font-size:14px;opacity:.85;}
+.bank-card-bank{font-size:13px;opacity:.7;}
+
+/* QUICK ACTIONS */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:12px;
+}
 .grid button{
-  padding:12px;border-radius:10px;border:none;
-  background:#123a66;color:white;font-size:13px;
+  background:#0f2f55;
+  border:none;
+  border-radius:14px;
+  padding:14px 8px;
+  color:white;
+  font-size:13px;
+  font-weight:600;
 }
-input,button{
-  width:100%;padding:12px;margin-top:8px;
-  border-radius:8px;border:none;font-size:16px;
+.grid button:active{
+  transform:scale(.95);
+  background:#174a82;
 }
-button.primary{background:#2d8cff;color:white;font-weight:bold;}
-.green{color:#00ff9d;}
-.red{color:#ff5c5c;}
+
+/* INPUT */
+input{
+  width:100%;
+  padding:13px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
+  font-size:15px;
+}
+
+/* BUTTON */
+button.primary{
+  width:100%;
+  padding:14px;
+  margin-top:10px;
+  border-radius:12px;
+  border:none;
+  background:linear-gradient(135deg,#2d8cff,#5bbcff);
+  color:white;
+  font-weight:600;
+  font-size:16px;
+}
+
+/* TRANSACTIONS */
+.tx{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:12px;
+}
+.tx-title{font-size:14px;}
+.tx-date{font-size:11px;opacity:.6;}
+.green{color:#00ffb2;}
+.red{color:#ff6b6b;}
 .small{font-size:12px;opacity:.7;}
 </style>
 </head>
@@ -44,6 +120,13 @@ button.primary{background:#2d8cff;color:white;font-weight:bold;}
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
   <div class="eye" onclick="toggleBalance()">👁 Hide balance</div>
+</div>
+
+<!-- Premium Card -->
+<div class="bank-card">
+  <div class="bank-card-bank">DeChase Bank</div>
+  <div class="bank-card-number">•••• •••• •••• 0001</div>
+  <div class="bank-card-name" id="cardName"></div>
 </div>
 
 <div class="card">
@@ -82,12 +165,10 @@ IBAN: <span id="iban"></span>
 
 </div>
 
-<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, updateDoc, collection, getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -104,89 +185,74 @@ if(!username) location.href="index.html";
 const snap = await getDoc(doc(db,"users",username));
 const data = snap.data() || {};
 
-document.getElementById("welcome").innerText =
-  "Hello, " + (data.fullName || "User");
-
-document.getElementById("name").innerText =
-  data.fullName || "-";
-
-document.getElementById("acc").innerText =
-  data.accountNumber || "-";
-
-document.getElementById("iban").innerText =
-  data.iban || "-";
+document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "User");
+document.getElementById("name").innerText = data.fullName || "-";
+document.getElementById("acc").innerText = data.accountNumber || "-";
+document.getElementById("iban").innerText = data.iban || "-";
+document.getElementById("cardName").innerText = data.fullName || "";
 
 const balanceValue = Number(data.balance || 0);
 
 let hidden=false;
-
 function renderBalance(){
   document.getElementById("balance").innerText =
     hidden ? "••••••" : "€" + balanceValue.toLocaleString();
 }
-
-window.toggleBalance = function(){
-  hidden=!hidden;
-  renderBalance();
-};
-
+window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-window.showTransfer = ()=> {
-  document.getElementById("transferBox").style.display="block";
-};
+window.showTransfer=()=>{document.getElementById("transferBox").style.display="block";};
+window.payBills=()=>alert("Bill payment ready");
+window.buyGiftCard=()=>alert("Gift card ready");
 
-window.payBills = ()=> alert("Bill payment ready");
-window.buyGiftCard = ()=> alert("Gift card ready");
-
-// load transactions
 const box=document.getElementById("transactions");
-if(!data.transactions || data.transactions.length===0){
+if(!data.transactions||data.transactions.length===0){
   box.innerHTML="<p class='small'>No transactions yet</p>";
 }else{
   data.transactions.slice().reverse().forEach(tx=>{
-    const amount = Number(tx.amount||0);
-    const color = amount>0?"green":"red";
-    box.innerHTML += `
-      <p class="${color}">
-        ${tx.note || tx.description || "Transfer"}
-        (€${Math.abs(amount).toLocaleString()})
-        <br><span class="small">${tx.date || ""}</span>
-      </p>`;
+    const amount=Number(tx.amount||0);
+    const color=amount>0?"green":"red";
+    const note=tx.note||tx.description||"Transfer";
+    box.innerHTML+=`
+      <div class="tx ${color}">
+        <div>
+          <div class="tx-title">${note}</div>
+          <div class="tx-date">${tx.date||""}</div>
+        </div>
+        <div>€${Math.abs(amount).toLocaleString()}</div>
+      </div>`;
   });
 }
 
-window.transfer = async function(){
-  const receiverInput = receiver.value.trim();
-  const amt = parseFloat(document.getElementById("amount").value);
-  const desc = document.getElementById("desc").value.trim() || "Transfer";
+window.transfer=async function(){
+  const receiverInput=receiver.value.trim();
+  const amt=parseFloat(document.getElementById("amount").value);
+  const desc=document.getElementById("desc").value.trim()||"Transfer";
+  if(!receiverInput||!amt)return alert("Fill all fields");
 
-  if(!receiverInput || !amt) return alert("Fill all fields");
-
-  const users = await getDocs(collection(db,"users"));
-  let receiverName=null, receiverData=null;
+  const users=await getDocs(collection(db,"users"));
+  let receiverName=null,receiverData=null;
 
   users.forEach(d=>{
     const u=d.data();
-    if(d.id===receiverInput || u.iban===receiverInput){
-      receiverName=d.id;
-      receiverData=u;
+    if(d.id===receiverInput||u.iban===receiverInput){
+      receiverName=d.id;receiverData=u;
     }
   });
 
-  if(!receiverName) return alert("Receiver not found");
-  if(balanceValue < amt) return alert("Insufficient funds");
+  if(!receiverName)return alert("Receiver not found");
+  if(balanceValue<amt)return alert("Insufficient funds");
 
   const date=new Date().toLocaleString();
 
   await updateDoc(doc(db,"users",username),{
-    balance: balanceValue - amt,
+    balance:balanceValue-amt,
     transactions:[...(data.transactions||[]),
       {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date}]
   });
 
   await updateDoc(doc(db,"users",receiverName),{
-    balance: Number(receiverData.balance||0)+amt,
+    balance:Number(receiverData.balance||0)+amt,
     transactions:[...(receiverData.transactions||[]),
       {amount:amt,note:"Received from "+username,date}]
   });
@@ -195,10 +261,7 @@ window.transfer = async function(){
   location.reload();
 };
 
-window.logout = function(){
-  localStorage.removeItem("user");
-  location.href="index.html";
-};
+window.logout=()=>{localStorage.removeItem("user");location.href="index.html";};
 </script>
 
 </body>
