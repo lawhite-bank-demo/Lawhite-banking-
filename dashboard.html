@@ -145,11 +145,11 @@ const snap = await getDoc(userRef);
 const data = snap.data();
 
 /* DISPLAY USER INFO */
-welcome.innerText="Hello, "+data.fullName;
-name.innerText=data.fullName;
-acc.innerText=data.accountNumber;
-iban.innerText=data.iban;
-swift.innerText=data.swift || "-";
+welcome.innerText = "Hello, " + (data.fullName || username);
+name.innerText = data.fullName || "-";
+acc.innerText = data.accountNumber || "-";
+iban.innerText = data.iban || "-";
+swift.innerText = data.swift || "-";
 
 if(data.frozen){
  frozenNotice.innerText="⚠ Account Frozen";
