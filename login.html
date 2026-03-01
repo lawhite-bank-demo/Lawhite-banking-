@@ -18,7 +18,6 @@ body{
   justify-content:center;
   color:white;
 }
-
 body::before{
   content:"";
   position:absolute;
@@ -30,73 +29,35 @@ body::before{
   top:-120px;
   left:-120px;
 }
-
-.container{
-  width:350px;
-  text-align:center;
-}
-
+.container{width:350px;text-align:center;}
 .logo-circle{
-  width:70px;
-  height:70px;
-  border-radius:50%;
+  width:70px;height:70px;border-radius:50%;
   background:linear-gradient(135deg,#1e88e5,#42a5f5);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:34px;
-  font-weight:700;
-  margin:auto;
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;font-weight:700;margin:auto;
   box-shadow:0 8px 25px rgba(0,0,0,0.4);
 }
-
-.bank-name{
-  font-size:22px;
-  font-weight:600;
-  margin-top:10px;
-}
-
-.tagline{
-  font-size:13px;
-  opacity:.7;
-  margin-bottom:25px;
-}
-
+.bank-name{font-size:22px;font-weight:600;margin-top:10px;}
+.tagline{font-size:13px;opacity:.7;margin-bottom:25px;}
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(14px);
-  padding:28px;
-  border-radius:18px;
+  padding:28px;border-radius:18px;
   box-shadow:0 15px 35px rgba(0,0,0,0.35);
 }
-
 input{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  border:none;
-  border-radius:10px;
-  font-size:15px;
+  width:100%;padding:14px;margin-top:12px;
+  border:none;border-radius:10px;font-size:15px;
 }
-
 button{
-  width:100%;
-  padding:14px;
-  margin-top:18px;
-  border:none;
-  border-radius:10px;
-  font-size:16px;
-  font-weight:600;
+  width:100%;padding:14px;margin-top:18px;
+  border:none;border-radius:10px;
+  font-size:16px;font-weight:600;
   background:linear-gradient(135deg,#00c853,#00e676);
-  color:white;
-  cursor:pointer;
+  color:white;cursor:pointer;
 }
-
-.footer{
-  margin-top:15px;
-  font-size:12px;
-  opacity:.6;
-}
+button:disabled{opacity:.6;}
+.footer{margin-top:15px;font-size:12px;opacity:.6;}
 </style>
 </head>
 <body>
@@ -111,12 +72,10 @@ button{
       <h2>Login</h2>
       <input id="username" placeholder="Username">
       <input id="pin" type="password" placeholder="PIN">
-      <button onclick="login()">Login</button>
+      <button id="loginBtn" onclick="login()">Login</button>
   </div>
 
-  <div class="footer">
-    © 2026 DeChase Bank
-  </div>
+  <div class="footer">© 2026 DeChase Bank</div>
 
 </div>
 
@@ -133,8 +92,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// ✅ AUTO LOGIN if session exists
+if(localStorage.getItem("user")){
+  location.href="dashboard.html";
+}
+
 async function login(){
 
+ const btn = document.getElementById("loginBtn");
  const user = document.getElementById("username").value.trim().toLowerCase();
  const pinValue = document.getElementById("pin").value.trim();
 
@@ -143,22 +108,40 @@ async function login(){
    return;
  }
 
- const doc = await db.collection("users").doc(user).get();
+ btn.disabled = true;
+ btn.innerText = "Checking...";
 
- if(!doc.exists){
-   alert("User not found");
-   return;
+ try{
+
+   const doc = await db.collection("users").doc(user).get();
+
+   if(!doc.exists){
+     alert("User not found");
+     btn.disabled=false;
+     btn.innerText="Login";
+     return;
+   }
+
+   if(doc.data().pin !== pinValue){
+     alert("Incorrect PIN");
+     btn.disabled=false;
+     btn.innerText="Login";
+     return;
+   }
+
+   // ✅ SESSION (dashboard uses this)
+   localStorage.setItem("user", user);
+
+   // small delay prevents blank dashboard
+   setTimeout(()=>{
+     location.href="dashboard.html";
+   },300);
+
+ }catch(err){
+   alert("Network error. Check internet.");
+   btn.disabled=false;
+   btn.innerText="Login";
  }
-
- if(doc.data().pin !== pinValue){
-   alert("Incorrect PIN");
-   return;
- }
-
- // ✅ THIS is what dashboard reads
- localStorage.setItem("user", user);
-
- location.href = "dashboard.html";
 }
 </script>
 
