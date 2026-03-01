@@ -15,7 +15,6 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
-
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -24,7 +23,6 @@ body{
   margin-bottom:15px;
   border:1px solid rgba(255,255,255,0.06);
 }
-
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
@@ -32,25 +30,9 @@ body{
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
-
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-}
-
-input, textarea, select{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:10px;
-  border:none;
-  font-size:15px;
-}
-
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 button{
   width:100%;
   padding:12px;
@@ -61,11 +43,11 @@ button{
   color:white;
   font-weight:600;
 }
-
-.frozen{color:#ffcc66;font-weight:600;}
+.small{font-size:12px;opacity:.7;}
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
-.small{font-size:12px;opacity:.7;}
+.frozen{color:#ffcc66;font-weight:600;}
+.tx{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -76,7 +58,7 @@ button{
 
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
-  <div class="eye" id="eyeToggle" onclick="toggleBalance()">👁 Hide balance</div>
+  <div class="eye" id="eyeToggle">👁 Hide balance</div>
 </div>
 
 <div class="card">
@@ -84,6 +66,7 @@ button{
 Name: <span id="name"></span><br>
 Account: <span id="acc"></span><br>
 IBAN: <span id="iban"></span><br>
+SWIFT: <span id="swift"></span>
 <div id="frozenNotice" class="frozen"></div>
 </div>
 
@@ -95,7 +78,7 @@ IBAN: <span id="iban"></span><br>
   <button onclick="alert('Coming soon')">Withdraw</button>
   <button onclick="alert('Coming soon')">Deposit</button>
   <button onclick="alert('Coming soon')">Cards</button>
-  <button onclick="toggleTransfer()">Send</button>
+  <button onclick="showTransfer()">Send</button>
 </div>
 </div>
 
@@ -103,35 +86,7 @@ IBAN: <span id="iban"></span><br>
 <b>Send Money</b>
 <input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
-<input id="desc" placeholder="Description">
 <button onclick="askPin()">Send</button>
-</div>
-
-<div class="card">
-<b>Support Center</b>
-<select id="subject">
-  <option>Account Issue</option>
-  <option>Transfer Problem</option>
-  <option>Card Help</option>
-  <option>Other</option>
-</select>
-<textarea id="message" placeholder="Describe issue"></textarea>
-<button onclick="sendSupport()">Send Message</button>
-<div id="supportHistory" class="small"></div>
-</div>
-
-<div class="card">
-<b>Security — Change PIN</b>
-<input id="oldPin" type="password" placeholder="Current PIN">
-<input id="newPin" type="password" placeholder="New PIN">
-<input id="confirmPin" type="password" placeholder="Confirm New PIN">
-<button onclick="changePin()">Update PIN</button>
-<div id="pinMsg" class="small"></div>
-</div>
-
-<div class="card">
-<b>Security</b>
-<button onclick="toggleFreeze()">Freeze / Unfreeze Account</button>
 </div>
 
 <div class="card">
@@ -149,16 +104,12 @@ IBAN: <span id="iban"></span><br>
    <h3>Enter PIN</h3>
    <input id="pinInput" type="password">
    <button onclick="confirmTransfer()">Confirm</button>
-   <button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, updateDoc,
-  collection, addDoc, getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -172,78 +123,55 @@ const db = getFirestore(app);
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-let userData;
-let balanceValue=0;
-let hidden=false;
-
 /* LOAD USER DATA */
-async function loadUser(){
- const snap = await getDoc(doc(db,"users",username));
- if(!snap.exists()) return alert("User not found");
+const snap = await getDoc(doc(db,"users",username));
+const data = snap.data();
 
- userData = snap.data();
+welcome.innerText="Hello, "+data.fullName;
+name.innerText=data.fullName;
+acc.innerText=data.accountNumber;
+iban.innerText=data.iban;
+swift.innerText=data.swift || "-";
 
- welcome.innerText="Hello, "+userData.fullName;
- name.innerText=userData.fullName;
- acc.innerText=userData.accountNumber;
- iban.innerText=userData.iban;
-
- if(userData.frozen){
-   frozenNotice.innerText="⚠ Account Frozen";
- }
-
- balanceValue = Number(userData.balance||0);
- renderBalance();
- loadTransactions();
+if(data.frozen){
+ frozenNotice.innerText="⚠ Account Frozen";
 }
 
-await loadUser();
+let balanceValue = Number(data.balance || 0);
+let hidden=false;
 
-/* BALANCE */
 function renderBalance(){
  balance.innerText = hidden?"••••••":"€"+balanceValue.toLocaleString();
  eyeToggle.innerText = hidden?"👁 Show balance":"👁 Hide balance";
 }
-window.toggleBalance=()=>{hidden=!hidden;renderBalance();}
+eyeToggle.onclick=()=>{hidden=!hidden;renderBalance();}
+renderBalance();
 
-/* SHOW TRANSFER */
-window.toggleTransfer=()=>{
- transferBox.style.display =
- transferBox.style.display==="none"?"block":"none";
-}
+window.showTransfer=()=>transferBox.style.display="block";
 
 /* TRANSFER */
 let transferData=null;
 
 window.askPin=()=>{
- if(userData.frozen) return alert("Account frozen");
+ if(data.frozen) return alert("Account frozen");
  const r=receiver.value.trim();
  const amt=parseFloat(amount.value);
- const desc=document.getElementById("desc").value||"Transfer";
-
  if(!r||!amt) return alert("Fill all fields");
-
- transferData={r,amt,desc};
+ transferData={r,amt};
  pinModal.style.display="flex";
 }
 
-window.closePin=()=>{
- pinModal.style.display="none";
- pinInput.value="";
-}
-
 window.confirmTransfer=async()=>{
- if(pinInput.value!==userData.pin) return alert("Incorrect PIN");
- closePin();
+ if(pinInput.value!==data.pin) return alert("Incorrect PIN");
 
  const users=await getDocs(collection(db,"users"));
- let receiverName=null, receiverData=null;
+ let receiverName=null,receiverData=null;
 
  users.forEach(d=>{
-   const u=d.data();
-   if(d.id===transferData.r || u.iban===transferData.r){
-     receiverName=d.id; receiverData=u;
-   }
+  const u=d.data();
+  if(d.id===transferData.r || u.iban===transferData.r){
+    receiverName=d.id; receiverData=u;
+  }
  });
 
  if(!receiverName) return alert("Receiver not found");
@@ -253,14 +181,14 @@ window.confirmTransfer=async()=>{
 
  await updateDoc(doc(db,"users",username),{
   balance:balanceValue-transferData.amt,
-  transactions:[...(userData.transactions||[]),
-   {amount:-transferData.amt,note:"Sent to "+receiverName,date}]
+  transactions:[...(data.transactions||[]),
+  {amount:-transferData.amt,note:"Sent to "+receiverName,date}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
   balance:Number(receiverData.balance||0)+transferData.amt,
   transactions:[...(receiverData.transactions||[]),
-   {amount:transferData.amt,note:"Received from "+username,date}]
+  {amount:transferData.amt,note:"Received from "+username,date}]
  });
 
  alert("Transfer Successful");
@@ -268,57 +196,15 @@ window.confirmTransfer=async()=>{
 };
 
 /* TRANSACTIONS */
-function loadTransactions(){
- const box=document.getElementById("transactions");
- box.innerHTML="";
- if(!userData.transactions) return;
-
- userData.transactions.slice().reverse().forEach(tx=>{
+const box=document.getElementById("transactions");
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
   const amt=Number(tx.amount);
   const color=amt>0?"green":"red";
-
-  box.innerHTML+=`
-   <div class="${color}">
-   ${tx.note} (€${Math.abs(amt).toLocaleString()})
-   </div>`;
+  box.innerHTML+=`<div class="tx ${color}">${tx.note} (€${Math.abs(amt).toLocaleString()})</div>`;
  });
 }
 
-/* SUPPORT */
-window.sendSupport=async()=>{
- if(!message.value.trim()) return alert("Enter message");
-
- await addDoc(collection(db,"support_messages"),{
-  user:username,
-  subject:subject.value,
-  message:message.value,
-  status:"open",
-  date:new Date().toLocaleString()
- });
-
- message.value="";
- alert("Message sent");
-}
-
-/* CHANGE PIN */
-window.changePin=async()=>{
- if(oldPin.value!==userData.pin) return pinMsg.innerText="Wrong PIN";
- if(newPin.value.length<4) return pinMsg.innerText="Min 4 digits";
- if(newPin.value!==confirmPin.value) return pinMsg.innerText="PIN mismatch";
-
- await updateDoc(doc(db,"users",username),{pin:newPin.value});
- pinMsg.innerText="PIN updated";
-}
-
-/* FREEZE */
-window.toggleFreeze=async()=>{
- const newState=!userData.frozen;
- await updateDoc(doc(db,"users",username),{frozen:newState});
- alert(newState?"Account Frozen":"Account Unfrozen");
- location.reload();
-}
-
-/* LOGOUT */
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
