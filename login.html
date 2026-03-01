@@ -19,7 +19,6 @@ body{
   color:white;
 }
 
-/* floating background glow */
 body::before{
   content:"";
   position:absolute;
@@ -35,12 +34,6 @@ body::before{
 .container{
   width:350px;
   text-align:center;
-  animation:fadeIn .8s ease;
-}
-
-/* LOGO */
-.logo{
-  margin-bottom:25px;
 }
 
 .logo-circle{
@@ -61,16 +54,14 @@ body::before{
   font-size:22px;
   font-weight:600;
   margin-top:10px;
-  letter-spacing:1px;
 }
 
 .tagline{
   font-size:13px;
   opacity:.7;
-  margin-top:4px;
+  margin-bottom:25px;
 }
 
-/* LOGIN CARD */
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(14px);
@@ -86,7 +77,6 @@ input{
   border:none;
   border-radius:10px;
   font-size:15px;
-  outline:none;
 }
 
 button{
@@ -100,12 +90,6 @@ button{
   background:linear-gradient(135deg,#00c853,#00e676);
   color:white;
   cursor:pointer;
-  transition:.3s;
-}
-
-button:hover{
-  transform:translateY(-2px);
-  box-shadow:0 10px 20px rgba(0,0,0,0.3);
 }
 
 .footer{
@@ -113,22 +97,15 @@ button:hover{
   font-size:12px;
   opacity:.6;
 }
-
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(20px)}
-  to{opacity:1; transform:translateY(0)}
-}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-  <div class="logo">
-      <div class="logo-circle">D</div>
-      <div class="bank-name">DeChase</div>
-      <div class="tagline">Secure Digital Banking</div>
-  </div>
+  <div class="logo-circle">D</div>
+  <div class="bank-name">DeChase</div>
+  <div class="tagline">Secure Digital Banking</div>
 
   <div class="card">
       <h2>Login</h2>
@@ -157,8 +134,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 async function login(){
- const user = username.value.trim();
- const pinValue = pin.value.trim();
+
+ const user = document.getElementById("username").value.trim().toLowerCase();
+ const pinValue = document.getElementById("pin").value.trim();
+
+ if(!user || !pinValue){
+   alert("Enter username and PIN");
+   return;
+ }
 
  const doc = await db.collection("users").doc(user).get();
 
@@ -172,8 +155,10 @@ async function login(){
    return;
  }
 
- localStorage.setItem("loggedInUser", user);
- location.href="dashboard.html";
+ // ✅ THIS is what dashboard reads
+ localStorage.setItem("user", user);
+
+ location.href = "dashboard.html";
 }
 </script>
 
