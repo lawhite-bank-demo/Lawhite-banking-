@@ -36,16 +36,18 @@ body{
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
 
-input,button{
+.grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+}
+
+button{
   width:100%;
   padding:12px;
   margin-top:8px;
   border:none;
   border-radius:10px;
-  font-size:15px;
-}
-
-button{
   background:#2d8cff;
   color:white;
   font-weight:600;
@@ -64,11 +66,13 @@ button{
 
 <h3 id="welcome"></h3>
 
+<!-- BALANCE -->
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
-  <div class="eye" id="toggleEye">👁 Hide balance</div>
+  <div class="eye" id="eyeToggle">👁 Hide balance</div>
 </div>
 
+<!-- ACCOUNT INFO -->
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name"></span><br>
@@ -78,13 +82,29 @@ SWIFT: <span id="swift"></span>
 <div id="frozenNotice" class="frozen"></div>
 </div>
 
+<!-- QUICK ACTIONS -->
 <div class="card">
+<b>Quick Actions</b>
+<div class="grid">
+  <button onclick="showTransfer()">Send</button>
+  <button onclick="payBill()">Pay Bills</button>
+  <button onclick="buyGift()">Gift Cards</button>
+  <button onclick="alert('Withdraw coming')">Withdraw</button>
+  <button onclick="alert('Deposit coming')">Deposit</button>
+  <button onclick="toggleFreeze()">Freeze</button>
+</div>
+</div>
+
+<!-- TRANSFER -->
+<div class="card" id="transferBox" style="display:none;">
 <b>Send Money</b>
 <input id="receiver" placeholder="Username OR IBAN">
 <input id="amount" type="number" placeholder="Amount">
-<button onclick="transfer()">Send</button>
+<input id="desc" placeholder="Description">
+<button onclick="askPin()">Send</button>
 </div>
 
+<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
@@ -94,14 +114,20 @@ SWIFT: <span id="swift"></span>
 
 </div>
 
+<!-- PIN MODAL -->
+<div id="pinModal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;">
+ <div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
+   <h3>Enter PIN</h3>
+   <input id="pinInput" type="password">
+   <button onclick="confirmTransfer()">Confirm</button>
+   <button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
+ </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, updateDoc,
-  collection, getDocs
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig = {
  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
  authDomain:"dechase-bank.firebaseapp.com",
@@ -111,108 +137,117 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* SESSION */
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-/* LOAD USER */
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
-
-if(!snap.exists()){
- alert("User data missing");
- location.href="index.html";
-}
-
 const data = snap.data();
 
-/* DISPLAY INFO */
-welcome.innerText = "Hello, " + (data.fullName || username);
-name.innerText = data.fullName || "-";
-acc.innerText = data.accountNumber || "-";
-iban.innerText = data.iban || "-";
-swift.innerText = data.swift || "-";
+/* DISPLAY USER INFO */
+welcome.innerText="Hello, "+data.fullName;
+name.innerText=data.fullName;
+acc.innerText=data.accountNumber;
+iban.innerText=data.iban;
+swift.innerText=data.swift || "-";
 
-/* FROZEN NOTICE */
 if(data.frozen){
  frozenNotice.innerText="⚠ Account Frozen";
 }
 
-/* BALANCE WITH HIDE FEATURE */
+let balanceValue = Number(data.balance || 0);
 let hidden=false;
-const balanceValue = Number(data.balance || 0);
 
 function renderBalance(){
- balance.innerText = hidden ? "••••••" : "€" + balanceValue.toLocaleString();
- toggleEye.innerText = hidden ? "👁 Show balance" : "👁 Hide balance";
+ balance.innerText = hidden?"••••••":"€"+balanceValue.toLocaleString();
+ eyeToggle.innerText = hidden?"👁 Show balance":"👁 Hide balance";
 }
-
-toggleEye.onclick = ()=>{
- hidden = !hidden;
- renderBalance();
-};
-
+eyeToggle.onclick=()=>{hidden=!hidden;renderBalance();}
 renderBalance();
 
-/* TRANSACTIONS */
-if(data.transactions){
- data.transactions.slice().reverse().forEach(tx=>{
-  const amt = Number(tx.amount);
-  const color = amt > 0 ? "green":"red";
+window.showTransfer=()=>transferBox.style.display="block";
 
-  transactions.innerHTML += `
-  <div class="tx ${color}">
-    ${tx.note} (€${Math.abs(amt).toLocaleString()})
-    <div class="small">${tx.date || ""}</div>
-  </div>`;
- });
+/* PIN TRANSFER */
+let transferData=null;
+
+window.askPin=()=>{
+ if(data.frozen) return alert("Account frozen");
+ const r=receiver.value.trim();
+ const amt=parseFloat(amount.value);
+ const descVal=desc.value||"Transfer";
+ if(!r||!amt) return alert("Fill all fields");
+ transferData={r,amt,descVal};
+ pinModal.style.display="flex";
 }
 
-/* TRANSFER */
-async function transfer(){
+window.closePin=()=>{pinModal.style.display="none"; pinInput.value=""}
 
- if(data.frozen) return alert("Account frozen");
+window.confirmTransfer=async()=>{
+ if(pinInput.value!==data.pin) return alert("Incorrect PIN");
+ closePin();
 
- const receiverInput = receiver.value.trim();
- const amt = parseFloat(amount.value);
+ const users=await getDocs(collection(db,"users"));
+ let receiverName=null,receiverData=null;
 
- if(!receiverInput || !amt) return alert("Enter details");
-
- let receiverName=null;
- let receiverData=null;
-
- const users = await getDocs(collection(db,"users"));
-
- users.forEach(docSnap=>{
-   const u = docSnap.data();
-   if(docSnap.id === receiverInput || u.iban === receiverInput){
-     receiverName = docSnap.id;
-     receiverData = u;
-   }
+ users.forEach(d=>{
+  const u=d.data();
+  if(d.id===transferData.r || u.iban===transferData.r){
+    receiverName=d.id; receiverData=u;
+  }
  });
 
  if(!receiverName) return alert("Receiver not found");
- if(balanceValue < amt) return alert("Insufficient funds");
+ if(balanceValue<transferData.amt) return alert("Insufficient funds");
 
- const date = new Date().toLocaleString();
+ const date=new Date().toLocaleString();
 
  await updateDoc(userRef,{
-   balance: balanceValue - amt,
-   transactions:[...(data.transactions||[]),
-   {amount:-amt, note:"Sent to "+receiverName, date}]
+  balance:balanceValue-transferData.amt,
+  transactions:[...(data.transactions||[]),
+  {amount:-transferData.amt,note:"Sent to "+receiverName+" • "+transferData.descVal,date}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
-   balance:(receiverData.balance||0)+amt,
-   transactions:[...(receiverData.transactions||[]),
-   {amount:amt, note:"Received from "+username, date}]
+  balance:Number(receiverData.balance||0)+transferData.amt,
+  transactions:[...(receiverData.transactions||[]),
+  {amount:transferData.amt,note:"Received from "+username,date}]
  });
 
- alert("Transfer successful");
+ alert("Transfer Successful");
+ location.reload();
+};
+
+/* PAY BILLS */
+window.payBill=()=>{
+ alert("Bill payment recorded");
+}
+
+/* GIFT CARDS */
+window.buyGift=()=>{
+ alert("Gift card purchase recorded");
+}
+
+/* FREEZE ACCOUNT */
+window.toggleFreeze=async()=>{
+ const newState=!data.frozen;
+ await updateDoc(userRef,{frozen:newState});
+ alert(newState?"Account Frozen":"Account Unfrozen");
  location.reload();
 }
 
-/* LOGOUT */
+/* TRANSACTIONS */
+const box=document.getElementById("transactions");
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
+  const color=tx.amount>0?"green":"red";
+  box.innerHTML+=`
+   <div class="tx ${color}">
+   ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
+   <div class="small">${tx.date||""}</div>
+   </div>`;
+ });
+}
+
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
