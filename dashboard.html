@@ -15,7 +15,6 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
-
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -24,71 +23,18 @@ body{
   margin-bottom:15px;
   border:1px solid rgba(255,255,255,0.06);
 }
-
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
   padding:22px;
   text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.35);
 }
 .balance{font-size:34px;font-weight:700;}
-.eye{margin-top:6px;font-size:14px;opacity:.9;cursor:pointer;}
-
-.bank-card{
-  background:linear-gradient(135deg,#0d2b55,#081a35);
-  border-radius:18px;
-  padding:18px;
-  margin-top:14px;
-  box-shadow:0 10px 25px rgba(0,0,0,.4);
-}
-.bank-card-number{font-size:18px;letter-spacing:2px;margin-top:18px;}
-.bank-card-name{margin-top:12px;font-size:14px;opacity:.85;}
-.bank-card-bank{font-size:13px;opacity:.7;}
-
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin-top:12px;
-}
-.grid button{
-  background:#0f2f55;
-  border:none;
-  border-radius:14px;
-  padding:14px 8px;
-  color:white;
-  font-size:13px;
-  font-weight:600;
-}
-
-input, select, textarea{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:10px;
-  border:none;
-  font-size:15px;
-}
-
-textarea{resize:none;height:80px;}
-
-button.primary{
-  width:100%;
-  padding:14px;
-  margin-top:10px;
-  border-radius:12px;
-  border:none;
-  background:linear-gradient(135deg,#2d8cff,#5bbcff);
-  color:white;
-  font-weight:600;
-}
-
-.tx{margin-top:12px;}
-.tx-date{font-size:11px;opacity:.6;}
-.green{color:#00ffb2;}
-.red{color:#ff6b6b;}
+.eye{margin-top:6px;font-size:14px;cursor:pointer;}
 .small{font-size:12px;opacity:.7;}
+.reply{color:#6ed0ff;margin-top:4px;}
+.waiting{color:#ffcc66;}
+.resolved{color:#00ffb2;}
 </style>
 </head>
 <body>
@@ -102,12 +48,6 @@ button.primary{
   <div class="eye" id="eyeToggle" onclick="toggleBalance()">👁 Hide balance</div>
 </div>
 
-<div class="bank-card">
-  <div class="bank-card-bank">DeChase Bank</div>
-  <div class="bank-card-number">•••• •••• •••• 0001</div>
-  <div class="bank-card-name" id="cardName"></div>
-</div>
-
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name"></span><br>
@@ -116,19 +56,7 @@ IBAN: <span id="iban"></span>
 </div>
 
 <div class="card">
-<b>Quick Actions</b>
-<div class="grid">
-  <button onclick="showTransfer()">Send</button>
-  <button onclick="showSupport()">Support</button>
-  <button onclick="buyGiftCard()">Gift Cards</button>
-  <button onclick="alert('Card services coming')">Cards</button>
-  <button onclick="alert('Withdraw coming')">Withdraw</button>
-  <button onclick="alert('Deposit coming')">Deposit</button>
-</div>
-</div>
-
-<div class="card" id="supportBox" style="display:none;">
-<b>Contact Support</b>
+<b>Support Center</b>
 
 <select id="subject">
   <option>Account Issue</option>
@@ -138,33 +66,20 @@ IBAN: <span id="iban"></span>
 </select>
 
 <textarea id="message" placeholder="Describe your issue"></textarea>
-
-<button class="primary" onclick="sendSupport()">Send Message</button>
+<button onclick="sendSupport()">Send Message</button>
 
 <div id="supportHistory" class="small"></div>
 </div>
 
-<div class="card" id="transferBox" style="display:none;">
-<b>Transfer Money</b>
-<input id="receiver" placeholder="Username OR IBAN">
-<input id="amount" type="number" placeholder="Amount">
-<input id="desc" placeholder="Description">
-<button class="primary" onclick="transfer()">Send</button>
-</div>
-
-<div class="card">
-<b>Transactions</b>
-<div id="transactions"></div>
-</div>
-
-<button class="primary" onclick="logout()" style="background:#ff4d4d;">Logout</button>
+<button onclick="logout()">Logout</button>
 
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, updateDoc, collection, addDoc, getDocs
+  getFirestore, doc, getDoc, collection,
+  addDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -186,48 +101,21 @@ document.getElementById("welcome").innerText="Hello, "+(data.fullName||"User");
 document.getElementById("name").innerText=data.fullName||"-";
 document.getElementById("acc").innerText=data.accountNumber||"-";
 document.getElementById("iban").innerText=data.iban||"-";
-document.getElementById("cardName").innerText=data.fullName||"";
 
-const balanceValue = Number(data.balance || 0);
+const balanceValue=Number(data.balance||0);
 
-/* ✅ PREMIUM BALANCE TOGGLE */
-let hidden = localStorage.getItem("hideBalance") === "true";
-
+/* balance toggle */
+let hidden=false;
 function renderBalance(){
-  document.getElementById("balance").innerText =
-    hidden ? "••••••" : "€" + balanceValue.toLocaleString();
-
-  document.getElementById("eyeToggle").innerText =
-    hidden ? "👁 Show balance" : "👁 Hide balance";
+ document.getElementById("balance").innerText=
+ hidden?"••••••":"€"+balanceValue.toLocaleString();
+ document.getElementById("eyeToggle").innerText=
+ hidden?"👁 Show balance":"👁 Hide balance";
 }
-
-window.toggleBalance = () => {
-  hidden = !hidden;
-  localStorage.setItem("hideBalance", hidden);
-  renderBalance();
-};
-
+window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-window.showTransfer=()=>{transferBox.style.display="block";supportBox.style.display="none";}
-window.showSupport=()=>{supportBox.style.display="block";transferBox.style.display="none";}
-window.buyGiftCard=()=>alert("Gift card ready");
-
-/* Transactions */
-const txBox=document.getElementById("transactions");
-if(data.transactions){
- data.transactions.slice().reverse().forEach(tx=>{
-  const amt=Number(tx.amount||0);
-  const color=amt>0?"green":"red";
-  txBox.innerHTML+=`
-  <div class="tx ${color}">
-   ${tx.note||"Transfer"} (€${Math.abs(amt).toLocaleString()})
-   <div class="tx-date">${tx.date||""}</div>
-  </div>`;
- });
-}
-
-/* SUPPORT SYSTEM */
+/* SEND SUPPORT MESSAGE */
 window.sendSupport = async ()=>{
  const subject=document.getElementById("subject").value;
  const message=document.getElementById("message").value.trim();
@@ -241,19 +129,37 @@ window.sendSupport = async ()=>{
    date:new Date().toLocaleString()
  });
 
- alert("Message sent. Support will respond shortly.");
+ alert("Message sent");
  document.getElementById("message").value="";
  loadSupportHistory();
 };
 
+/* LOAD SUPPORT HISTORY WITH REPLIES */
 async function loadSupportHistory(){
  const snap=await getDocs(collection(db,"support_messages"));
  const box=document.getElementById("supportHistory");
  box.innerHTML="";
+
  snap.forEach(doc=>{
    const d=doc.data();
    if(d.user===username){
-     box.innerHTML+=`<p>📩 ${d.subject}<br>${d.date}</p>`;
+
+     let statusClass="waiting";
+     if(d.status==="replied") statusClass="reply";
+     if(d.status==="resolved") statusClass="resolved";
+
+     box.innerHTML+=`
+       <p>
+       📩 <b>${d.subject}</b><br>
+       ${d.date}<br>
+       <span class="${statusClass}">
+         ${d.status==="open"?"⏳ Awaiting response":
+           d.status==="replied"?"✅ Replied":
+           "✔ Resolved"}
+       </span>
+       ${d.reply?`<div class="reply">Support: ${d.reply}</div>`:""}
+       </p>
+     `;
    }
  });
 }
