@@ -84,9 +84,7 @@ button.primary{
   font-weight:600;
 }
 
-.tx{
-  margin-top:12px;
-}
+.tx{margin-top:12px;}
 .tx-date{font-size:11px;opacity:.6;}
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
@@ -101,7 +99,7 @@ button.primary{
 
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
-  <div class="eye" onclick="toggleBalance()">👁 Hide balance</div>
+  <div class="eye" id="eyeToggle" onclick="toggleBalance()">👁 Hide balance</div>
 </div>
 
 <div class="bank-card">
@@ -190,19 +188,32 @@ document.getElementById("acc").innerText=data.accountNumber||"-";
 document.getElementById("iban").innerText=data.iban||"-";
 document.getElementById("cardName").innerText=data.fullName||"";
 
-const balanceValue=Number(data.balance||0);
-let hidden=false;
+const balanceValue = Number(data.balance || 0);
+
+/* ✅ PREMIUM BALANCE TOGGLE */
+let hidden = localStorage.getItem("hideBalance") === "true";
+
 function renderBalance(){
- document.getElementById("balance").innerText=
- hidden?"••••••":"€"+balanceValue.toLocaleString();
+  document.getElementById("balance").innerText =
+    hidden ? "••••••" : "€" + balanceValue.toLocaleString();
+
+  document.getElementById("eyeToggle").innerText =
+    hidden ? "👁 Show balance" : "👁 Hide balance";
 }
-window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
+
+window.toggleBalance = () => {
+  hidden = !hidden;
+  localStorage.setItem("hideBalance", hidden);
+  renderBalance();
+};
+
 renderBalance();
 
 window.showTransfer=()=>{transferBox.style.display="block";supportBox.style.display="none";}
 window.showSupport=()=>{supportBox.style.display="block";transferBox.style.display="none";}
 window.buyGiftCard=()=>alert("Gift card ready");
 
+/* Transactions */
 const txBox=document.getElementById("transactions");
 if(data.transactions){
  data.transactions.slice().reverse().forEach(tx=>{
@@ -216,7 +227,7 @@ if(data.transactions){
  });
 }
 
-// SUPPORT SYSTEM
+/* SUPPORT SYSTEM */
 window.sendSupport = async ()=>{
  const subject=document.getElementById("subject").value;
  const message=document.getElementById("message").value.trim();
