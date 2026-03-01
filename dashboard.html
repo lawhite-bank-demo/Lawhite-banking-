@@ -16,7 +16,6 @@ body{
 }
 .container{max-width:420px;margin:auto;padding:20px;}
 
-/* PREMIUM GLASS CARD */
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -26,7 +25,6 @@ body{
   border:1px solid rgba(255,255,255,0.06);
 }
 
-/* BALANCE */
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
@@ -37,7 +35,6 @@ body{
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;opacity:.9;cursor:pointer;}
 
-/* DEBIT CARD */
 .bank-card{
   background:linear-gradient(135deg,#0d2b55,#081a35);
   border-radius:18px;
@@ -45,15 +42,10 @@ body{
   margin-top:14px;
   box-shadow:0 10px 25px rgba(0,0,0,.4);
 }
-.bank-card-number{
-  font-size:18px;
-  letter-spacing:2px;
-  margin-top:18px;
-}
+.bank-card-number{font-size:18px;letter-spacing:2px;margin-top:18px;}
 .bank-card-name{margin-top:12px;font-size:14px;opacity:.85;}
 .bank-card-bank{font-size:13px;opacity:.7;}
 
-/* QUICK ACTIONS */
 .grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -69,22 +61,18 @@ body{
   font-size:13px;
   font-weight:600;
 }
-.grid button:active{
-  transform:scale(.95);
-  background:#174a82;
-}
 
-/* INPUT */
-input{
+input, select, textarea{
   width:100%;
-  padding:13px;
+  padding:12px;
   margin-top:8px;
   border-radius:10px;
   border:none;
   font-size:15px;
 }
 
-/* BUTTON */
+textarea{resize:none;height:80px;}
+
 button.primary{
   width:100%;
   padding:14px;
@@ -94,17 +82,11 @@ button.primary{
   background:linear-gradient(135deg,#2d8cff,#5bbcff);
   color:white;
   font-weight:600;
-  font-size:16px;
 }
 
-/* TRANSACTIONS */
 .tx{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
   margin-top:12px;
 }
-.tx-title{font-size:14px;}
 .tx-date{font-size:11px;opacity:.6;}
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
@@ -122,7 +104,6 @@ button.primary{
   <div class="eye" onclick="toggleBalance()">👁 Hide balance</div>
 </div>
 
-<!-- Premium Card -->
 <div class="bank-card">
   <div class="bank-card-bank">DeChase Bank</div>
   <div class="bank-card-number">•••• •••• •••• 0001</div>
@@ -140,12 +121,29 @@ IBAN: <span id="iban"></span>
 <b>Quick Actions</b>
 <div class="grid">
   <button onclick="showTransfer()">Send</button>
-  <button onclick="payBills()">Pay Bills</button>
+  <button onclick="showSupport()">Support</button>
   <button onclick="buyGiftCard()">Gift Cards</button>
   <button onclick="alert('Card services coming')">Cards</button>
   <button onclick="alert('Withdraw coming')">Withdraw</button>
   <button onclick="alert('Deposit coming')">Deposit</button>
 </div>
+</div>
+
+<div class="card" id="supportBox" style="display:none;">
+<b>Contact Support</b>
+
+<select id="subject">
+  <option>Account Issue</option>
+  <option>Transfer Problem</option>
+  <option>Card Help</option>
+  <option>Other</option>
+</select>
+
+<textarea id="message" placeholder="Describe your issue"></textarea>
+
+<button class="primary" onclick="sendSupport()">Send Message</button>
+
+<div id="supportHistory" class="small"></div>
 </div>
 
 <div class="card" id="transferBox" style="display:none;">
@@ -167,8 +165,9 @@ IBAN: <span id="iban"></span>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc, collection, getDocs }
-from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getFirestore, doc, getDoc, updateDoc, collection, addDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -185,83 +184,74 @@ if(!username) location.href="index.html";
 const snap = await getDoc(doc(db,"users",username));
 const data = snap.data() || {};
 
-document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "User");
-document.getElementById("name").innerText = data.fullName || "-";
-document.getElementById("acc").innerText = data.accountNumber || "-";
-document.getElementById("iban").innerText = data.iban || "-";
-document.getElementById("cardName").innerText = data.fullName || "";
+document.getElementById("welcome").innerText="Hello, "+(data.fullName||"User");
+document.getElementById("name").innerText=data.fullName||"-";
+document.getElementById("acc").innerText=data.accountNumber||"-";
+document.getElementById("iban").innerText=data.iban||"-";
+document.getElementById("cardName").innerText=data.fullName||"";
 
-const balanceValue = Number(data.balance || 0);
-
+const balanceValue=Number(data.balance||0);
 let hidden=false;
 function renderBalance(){
-  document.getElementById("balance").innerText =
-    hidden ? "••••••" : "€" + balanceValue.toLocaleString();
+ document.getElementById("balance").innerText=
+ hidden?"••••••":"€"+balanceValue.toLocaleString();
 }
 window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-window.showTransfer=()=>{document.getElementById("transferBox").style.display="block";};
-window.payBills=()=>alert("Bill payment ready");
+window.showTransfer=()=>{transferBox.style.display="block";supportBox.style.display="none";}
+window.showSupport=()=>{supportBox.style.display="block";transferBox.style.display="none";}
 window.buyGiftCard=()=>alert("Gift card ready");
 
-const box=document.getElementById("transactions");
-if(!data.transactions||data.transactions.length===0){
-  box.innerHTML="<p class='small'>No transactions yet</p>";
-}else{
-  data.transactions.slice().reverse().forEach(tx=>{
-    const amount=Number(tx.amount||0);
-    const color=amount>0?"green":"red";
-    const note=tx.note||tx.description||"Transfer";
-    box.innerHTML+=`
-      <div class="tx ${color}">
-        <div>
-          <div class="tx-title">${note}</div>
-          <div class="tx-date">${tx.date||""}</div>
-        </div>
-        <div>€${Math.abs(amount).toLocaleString()}</div>
-      </div>`;
-  });
+const txBox=document.getElementById("transactions");
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
+  const amt=Number(tx.amount||0);
+  const color=amt>0?"green":"red";
+  txBox.innerHTML+=`
+  <div class="tx ${color}">
+   ${tx.note||"Transfer"} (€${Math.abs(amt).toLocaleString()})
+   <div class="tx-date">${tx.date||""}</div>
+  </div>`;
+ });
 }
 
-window.transfer=async function(){
-  const receiverInput=receiver.value.trim();
-  const amt=parseFloat(document.getElementById("amount").value);
-  const desc=document.getElementById("desc").value.trim()||"Transfer";
-  if(!receiverInput||!amt)return alert("Fill all fields");
+// SUPPORT SYSTEM
+window.sendSupport = async ()=>{
+ const subject=document.getElementById("subject").value;
+ const message=document.getElementById("message").value.trim();
+ if(!message) return alert("Enter message");
 
-  const users=await getDocs(collection(db,"users"));
-  let receiverName=null,receiverData=null;
+ await addDoc(collection(db,"support_messages"),{
+   user: username,
+   subject,
+   message,
+   status:"open",
+   date:new Date().toLocaleString()
+ });
 
-  users.forEach(d=>{
-    const u=d.data();
-    if(d.id===receiverInput||u.iban===receiverInput){
-      receiverName=d.id;receiverData=u;
-    }
-  });
-
-  if(!receiverName)return alert("Receiver not found");
-  if(balanceValue<amt)return alert("Insufficient funds");
-
-  const date=new Date().toLocaleString();
-
-  await updateDoc(doc(db,"users",username),{
-    balance:balanceValue-amt,
-    transactions:[...(data.transactions||[]),
-      {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date}]
-  });
-
-  await updateDoc(doc(db,"users",receiverName),{
-    balance:Number(receiverData.balance||0)+amt,
-    transactions:[...(receiverData.transactions||[]),
-      {amount:amt,note:"Received from "+username,date}]
-  });
-
-  alert("Transfer Successful");
-  location.reload();
+ alert("Message sent. Support will respond shortly.");
+ document.getElementById("message").value="";
+ loadSupportHistory();
 };
 
-window.logout=()=>{localStorage.removeItem("user");location.href="index.html";};
+async function loadSupportHistory(){
+ const snap=await getDocs(collection(db,"support_messages"));
+ const box=document.getElementById("supportHistory");
+ box.innerHTML="";
+ snap.forEach(doc=>{
+   const d=doc.data();
+   if(d.user===username){
+     box.innerHTML+=`<p>📩 ${d.subject}<br>${d.date}</p>`;
+   }
+ });
+}
+loadSupportHistory();
+
+window.logout=()=>{
+ localStorage.removeItem("user");
+ location.href="index.html";
+};
 </script>
 
 </body>
