@@ -15,7 +15,6 @@ body{
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
-
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -23,26 +22,14 @@ body{
   padding:16px;
   margin-bottom:15px;
 }
-
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
   padding:22px;
   text-align:center;
 }
-
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
-
-input, textarea, select{
-  width:100%;
-  padding:12px;
-  margin-top:8px;
-  border-radius:10px;
-  border:none;
-  font-size:15px;
-}
-
 button{
   width:100%;
   padding:12px;
@@ -53,11 +40,17 @@ button{
   color:white;
   font-weight:600;
 }
-
+input,textarea,select{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
+}
 .small{font-size:12px;opacity:.7;}
-.reply{color:#6ed0ff;margin-top:4px;}
 .success{color:#00ffb2;}
 .error{color:#ff6b6b;}
+.frozen{color:#ffcc66;font-weight:600;}
 </style>
 </head>
 <body>
@@ -68,14 +61,15 @@ button{
 
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
-  <div class="eye" id="eyeToggle" onclick="toggleBalance()">👁 Hide balance</div>
+  <div class="eye" id="eyeToggle">👁 Hide balance</div>
 </div>
 
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name"></span><br>
 Account: <span id="acc"></span><br>
-IBAN: <span id="iban"></span>
+IBAN: <span id="iban"></span><br>
+<span id="freezeStatus"></span>
 </div>
 
 <div class="card">
@@ -88,33 +82,37 @@ IBAN: <span id="iban"></span>
 
 <div class="card">
 <b>Support Center</b>
-
 <select id="subject">
-  <option>Account Issue</option>
-  <option>Transfer Problem</option>
-  <option>Card Help</option>
-  <option>Other</option>
+<option>Account Issue</option>
+<option>Transfer Problem</option>
+<option>Card Help</option>
+<option>Other</option>
 </select>
-
 <textarea id="message" placeholder="Describe your issue"></textarea>
 <button onclick="sendSupport()">Send Message</button>
-
 <div id="supportHistory" class="small"></div>
 </div>
 
 <div class="card">
 <b>Security — Change PIN</b>
-
 <input id="oldPin" type="password" placeholder="Current PIN">
 <input id="newPin" type="password" placeholder="New PIN">
 <input id="confirmPin" type="password" placeholder="Confirm New PIN">
-
 <button onclick="changePin()">Update PIN</button>
-
 <div id="pinMsg" class="small"></div>
 </div>
 
-<button onclick="logout()">Logout</button>
+<div class="card">
+<b>Security</b>
+<button onclick="toggleFreezeRemember()">Freeze / Unfreeze Account</button>
+</div>
+
+<div class="card">
+<b>Transactions</b>
+<div id="transactions"></div>
+</div>
+
+<button onclick="logout()" style="background:#ff4d4d;">Logout</button>
 
 </div>
 
@@ -130,70 +128,93 @@ IBAN: <span id="iban"></span>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore, doc, getDoc, collection,
-  addDoc, getDocs, updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, collection, addDoc, getDocs, updateDoc }
+from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
-  authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank"
-};
+const app = initializeApp({
+  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+  authDomain:"dechase-bank.firebaseapp.com",
+  projectId:"dechase-bank"
+});
+const db=getFirestore(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-const username = localStorage.getItem("user");
+const username=localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-const snap = await getDoc(doc(db,"users",username));
-const data = snap.data() || {};
+const snap=await getDoc(doc(db,"users",username));
+const data=snap.data()||{};
 
-welcome.innerText="Hello, "+(data.fullName||"User");
-name.innerText=data.fullName||"-";
-acc.innerText=data.accountNumber||"-";
-iban.innerText=data.iban||"-";
+/* LOAD PROFILE */
+document.getElementById("welcome").innerText="Hello, "+(data.fullName||"User");
+document.getElementById("name").innerText=data.fullName||"-";
+document.getElementById("acc").innerText=data.accountNumber||"-";
+document.getElementById("iban").innerText=data.iban||"-";
 
+/* BALANCE */
 const balanceValue=Number(data.balance||0);
-
 let hidden=false;
 function renderBalance(){
- balance.innerText = hidden?"••••••":"€"+balanceValue.toLocaleString();
- eyeToggle.innerText = hidden?"👁 Show balance":"👁 Hide balance";
+ document.getElementById("balance").innerText=
+ hidden?"••••••":"€"+balanceValue.toLocaleString();
+ document.getElementById("eyeToggle").innerText=
+ hidden?"👁 Show balance":"👁 Hide balance";
 }
-window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
+document.getElementById("eyeToggle").onclick=()=>{hidden=!hidden;renderBalance();}
 renderBalance();
 
-/* TRANSFER WITH PIN */
+/* FREEZE */
+function updateFreezeUI(){
+ const f=data.frozen;
+ document.getElementById("freezeStatus").innerHTML =
+ f ? '<span class="frozen">⚠ Account Frozen</span>' : '';
+}
+updateFreezeUI();
+
+window.toggleFreezeRemember=async()=>{
+ await updateDoc(doc(db,"users",username),{frozen:!data.frozen});
+ location.reload();
+};
+
+/* TRANSACTIONS */
+const txBox=document.getElementById("transactions");
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
+   const amt=Number(tx.amount||0);
+   const color=amt>0?"#00ffb2":"#ff6b6b";
+   txBox.innerHTML+=`
+   <p style="color:${color}">
+   ${tx.note||"Transfer"} (€${Math.abs(amt).toLocaleString()})<br>
+   <span class="small">${tx.date||""}</span>
+   </p>`;
+ });
+}else txBox.innerHTML="<p class='small'>No transactions</p>";
+
+/* TRANSFER */
 let transferData=null;
 
 window.askPin=()=>{
+ if(data.frozen) return alert("Account frozen");
  const receiverInput=receiver.value.trim();
  const amt=parseFloat(amount.value);
- const desc=document.getElementById("desc").value||"Transfer";
  if(!receiverInput||!amt) return alert("Fill all fields");
- transferData={receiverInput,amt,desc};
+ transferData={receiverInput,amt,desc:desc.value||"Transfer"};
  pinModal.style.display="flex";
 };
 
-window.closePin=()=>{
- pinModal.style.display="none";
- pinInput.value="";
-};
+window.closePin=()=>{pinModal.style.display="none";pinInput.value="";};
 
 window.confirmTransfer=async()=>{
- if(pinInput.value !== data.pin) return alert("Incorrect PIN");
+ if(pinInput.value!==data.pin) return alert("Incorrect PIN");
  closePin();
 
  const {receiverInput,amt,desc}=transferData;
  const users=await getDocs(collection(db,"users"));
+ let receiverName=null,receiverData=null;
 
- let receiverName=null, receiverData=null;
  users.forEach(d=>{
    const u=d.data();
-   if(d.id===receiverInput || u.iban===receiverInput){
-     receiverName=d.id; receiverData=u;
+   if(d.id===receiverInput||u.iban===receiverInput){
+     receiverName=d.id;receiverData=u;
    }
  });
 
@@ -206,40 +227,28 @@ window.confirmTransfer=async()=>{
  await updateDoc(doc(db,"users",username),{
   balance:balanceValue-amt,
   transactions:[...(data.transactions||[]),
-   {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date,ref}]
+  {amount:-amt,note:"Sent to "+receiverName,date,ref}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
   balance:Number(receiverData.balance||0)+amt,
   transactions:[...(receiverData.transactions||[]),
-   {amount:amt,note:"Received from "+username,date,ref}]
+  {amount:amt,note:"Received from "+username,date,ref}]
  });
 
- localStorage.setItem("receipt",JSON.stringify({
-   amount: amt.toLocaleString(),
-   receiver: receiverName,
-   date,
-   ref
- }));
-
+ localStorage.setItem("receipt",JSON.stringify({amount:amt,receiver:receiverName,date,ref}));
  window.location.href="receipt.html";
 };
 
 /* SUPPORT */
 window.sendSupport=async()=>{
- const msg=document.getElementById("message").value.trim();
+ const msg=message.value.trim();
  if(!msg) return alert("Enter message");
-
  await addDoc(collection(db,"support_messages"),{
-   user:username,
-   subject:subject.value,
-   message:msg,
-   status:"open",
+   user:username,subject:subject.value,message:msg,status:"open",
    date:new Date().toLocaleString()
  });
-
- alert("Message sent");
- document.getElementById("message").value="";
+ message.value="";
  loadSupportHistory();
 };
 
@@ -250,59 +259,26 @@ async function loadSupportHistory(){
    const d=doc.data();
    if(d.user===username){
      supportHistory.innerHTML+=`
-       <p>
-       📩 <b>${d.subject}</b><br>
-       ${d.date}<br>
-       ${d.reply?`<div class="reply">Support: ${d.reply}</div>`:"⏳ Awaiting response"}
-       </p>`;
+     <p>📩 <b>${d.subject}</b><br>${d.date}</p>`;
    }
  });
 }
 loadSupportHistory();
 
 /* CHANGE PIN */
-window.changePin = async () => {
-
- const oldPin = oldPin.value;
- const newPin = newPin.value;
- const confirmPin = confirmPin.value;
- const msg = document.getElementById("pinMsg");
-
- msg.innerText="";
-
- if(oldPin !== data.pin){
-   msg.innerText="Current PIN incorrect";
-   msg.className="small error";
-   return;
- }
-
- if(newPin.length < 4){
-   msg.innerText="PIN must be at least 4 digits";
-   msg.className="small error";
-   return;
- }
-
- if(newPin !== confirmPin){
-   msg.innerText="New PINs do not match";
-   msg.className="small error";
-   return;
- }
-
- await updateDoc(doc(db,"users",username),{ pin:newPin });
-
- msg.innerText="PIN updated successfully";
- msg.className="small success";
-
- document.getElementById("oldPin").value="";
- document.getElementById("newPin").value="";
- document.getElementById("confirmPin").value="";
+window.changePin=async()=>{
+ if(oldPin.value!==data.pin) return pinMsg.innerText="Wrong PIN";
+ if(newPin.value.length<4) return pinMsg.innerText="PIN too short";
+ if(newPin.value!==confirmPin.value) return pinMsg.innerText="PIN mismatch";
+ await updateDoc(doc(db,"users",username),{pin:newPin.value});
+ pinMsg.innerText="PIN updated";
 };
 
+/* LOGOUT */
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
 };
 </script>
-
 </body>
 </html>
