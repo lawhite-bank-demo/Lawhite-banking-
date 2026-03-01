@@ -51,8 +51,6 @@ button{
 }
 .small{font-size:12px;opacity:.7;}
 .reply{color:#6ed0ff;margin-top:4px;}
-.waiting{color:#ffcc66;}
-.resolved{color:#00ffb2;}
 </style>
 </head>
 <body>
@@ -73,7 +71,6 @@ Account: <span id="acc"></span><br>
 IBAN: <span id="iban"></span>
 </div>
 
-<!-- TRANSFER -->
 <div class="card">
 <b>Send Money</b>
 <input id="receiver" placeholder="Username OR IBAN">
@@ -82,7 +79,6 @@ IBAN: <span id="iban"></span>
 <button onclick="askPin()">Send</button>
 </div>
 
-<!-- SUPPORT -->
 <div class="card">
 <b>Support Center</b>
 
@@ -104,14 +100,7 @@ IBAN: <span id="iban"></span>
 </div>
 
 <!-- PIN MODAL -->
-<div id="pinModal" style="
-position:fixed;
-top:0;left:0;right:0;bottom:0;
-background:rgba(0,0,0,0.6);
-display:none;
-align-items:center;
-justify-content:center;
-z-index:999;">
+<div id="pinModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;">
   <div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
     <h3>Enter Transaction PIN</h3>
     <input id="pinInput" type="password" placeholder="PIN">
@@ -142,25 +131,22 @@ if(!username) location.href="index.html";
 const snap = await getDoc(doc(db,"users",username));
 const data = snap.data() || {};
 
-document.getElementById("welcome").innerText="Hello, "+(data.fullName||"User");
-document.getElementById("name").innerText=data.fullName||"-";
-document.getElementById("acc").innerText=data.accountNumber||"-";
-document.getElementById("iban").innerText=data.iban||"-";
+welcome.innerText="Hello, "+(data.fullName||"User");
+name.innerText=data.fullName||"-";
+acc.innerText=data.accountNumber||"-";
+iban.innerText=data.iban||"-";
 
 const balanceValue=Number(data.balance||0);
 
-/* balance toggle */
 let hidden=false;
 function renderBalance(){
- document.getElementById("balance").innerText=
- hidden?"••••••":"€"+balanceValue.toLocaleString();
- document.getElementById("eyeToggle").innerText=
- hidden?"👁 Show balance":"👁 Hide balance";
+ balance.innerText = hidden?"••••••":"€"+balanceValue.toLocaleString();
+ eyeToggle.innerText = hidden?"👁 Show balance":"👁 Hide balance";
 }
 window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-/* ===== TRANSFER WITH PIN ===== */
+/* TRANSFER */
 let transferData=null;
 
 window.askPin=()=>{
@@ -169,17 +155,16 @@ window.askPin=()=>{
  const desc=document.getElementById("desc").value||"Transfer";
  if(!receiverInput||!amt) return alert("Fill all fields");
  transferData={receiverInput,amt,desc};
- document.getElementById("pinModal").style.display="flex";
+ pinModal.style.display="flex";
 };
 
 window.closePin=()=>{
- document.getElementById("pinModal").style.display="none";
+ pinModal.style.display="none";
  pinInput.value="";
 };
 
 window.confirmTransfer=async()=>{
- const entered=pinInput.value;
- if(entered!==data.pin) return alert("Incorrect PIN");
+ if(pinInput.value !== data.pin) return alert("Incorrect PIN");
  closePin();
 
  const {receiverInput,amt,desc}=transferData;
@@ -197,47 +182,55 @@ window.confirmTransfer=async()=>{
  if(balanceValue<amt) return alert("Insufficient funds");
 
  const date=new Date().toLocaleString();
+ const ref="DCB"+Math.floor(Math.random()*900000+100000);
 
  await updateDoc(doc(db,"users",username),{
   balance:balanceValue-amt,
   transactions:[...(data.transactions||[]),
-   {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date}]
+   {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date,ref}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
   balance:Number(receiverData.balance||0)+amt,
   transactions:[...(receiverData.transactions||[]),
-   {amount:amt,note:"Received from "+username,date}]
+   {amount:amt,note:"Received from "+username,date,ref}]
  });
 
- alert("Transfer Successful");
- location.reload();
+ localStorage.setItem("receipt",JSON.stringify({
+   amount: amt.toLocaleString(),
+   receiver: receiverName,
+   date,
+   ref
+ }));
+
+ window.location.href="receipt.html";
 };
 
 /* SUPPORT */
 window.sendSupport=async()=>{
- const subject=document.getElementById("subject").value;
- const message=document.getElementById("message").value.trim();
- if(!message) return alert("Enter message");
+ const msg=document.getElementById("message").value.trim();
+ if(!msg) return alert("Enter message");
 
  await addDoc(collection(db,"support_messages"),{
-   user:username,subject,message,status:"open",
+   user:username,
+   subject:subject.value,
+   message:msg,
+   status:"open",
    date:new Date().toLocaleString()
  });
 
  alert("Message sent");
- message.value="";
+ document.getElementById("message").value="";
  loadSupportHistory();
 };
 
 async function loadSupportHistory(){
  const snap=await getDocs(collection(db,"support_messages"));
- const box=document.getElementById("supportHistory");
- box.innerHTML="";
+ supportHistory.innerHTML="";
  snap.forEach(doc=>{
    const d=doc.data();
    if(d.user===username){
-     box.innerHTML+=`
+     supportHistory.innerHTML+=`
        <p>
        📩 <b>${d.subject}</b><br>
        ${d.date}<br>
