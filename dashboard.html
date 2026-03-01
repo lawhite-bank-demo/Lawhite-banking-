@@ -21,7 +21,6 @@ body{
   border-radius:18px;
   padding:16px;
   margin-bottom:15px;
-  border:1px solid rgba(255,255,255,0.06);
 }
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
@@ -31,6 +30,25 @@ body{
 }
 .balance{font-size:34px;font-weight:700;}
 .eye{margin-top:6px;font-size:14px;cursor:pointer;}
+
+input,textarea,select{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border-radius:10px;
+  border:none;
+  font-size:15px;
+}
+button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
+  background:#2d8cff;
+  color:white;
+  font-weight:600;
+}
 .small{font-size:12px;opacity:.7;}
 .reply{color:#6ed0ff;margin-top:4px;}
 .waiting{color:#ffcc66;}
@@ -55,6 +73,16 @@ Account: <span id="acc"></span><br>
 IBAN: <span id="iban"></span>
 </div>
 
+<!-- TRANSFER -->
+<div class="card">
+<b>Send Money</b>
+<input id="receiver" placeholder="Username OR IBAN">
+<input id="amount" type="number" placeholder="Amount">
+<input id="desc" placeholder="Description">
+<button onclick="askPin()">Send</button>
+</div>
+
+<!-- SUPPORT -->
 <div class="card">
 <b>Support Center</b>
 
@@ -75,11 +103,28 @@ IBAN: <span id="iban"></span>
 
 </div>
 
+<!-- PIN MODAL -->
+<div id="pinModal" style="
+position:fixed;
+top:0;left:0;right:0;bottom:0;
+background:rgba(0,0,0,0.6);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:999;">
+  <div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
+    <h3>Enter Transaction PIN</h3>
+    <input id="pinInput" type="password" placeholder="PIN">
+    <button onclick="confirmTransfer()">Confirm</button>
+    <button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore, doc, getDoc, collection,
-  addDoc, getDocs
+  addDoc, getDocs, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -115,51 +160,89 @@ function renderBalance(){
 window.toggleBalance=()=>{hidden=!hidden;renderBalance();};
 renderBalance();
 
-/* SEND SUPPORT MESSAGE */
-window.sendSupport = async ()=>{
+/* ===== TRANSFER WITH PIN ===== */
+let transferData=null;
+
+window.askPin=()=>{
+ const receiverInput=receiver.value.trim();
+ const amt=parseFloat(amount.value);
+ const desc=document.getElementById("desc").value||"Transfer";
+ if(!receiverInput||!amt) return alert("Fill all fields");
+ transferData={receiverInput,amt,desc};
+ document.getElementById("pinModal").style.display="flex";
+};
+
+window.closePin=()=>{
+ document.getElementById("pinModal").style.display="none";
+ pinInput.value="";
+};
+
+window.confirmTransfer=async()=>{
+ const entered=pinInput.value;
+ if(entered!==data.pin) return alert("Incorrect PIN");
+ closePin();
+
+ const {receiverInput,amt,desc}=transferData;
+ const users=await getDocs(collection(db,"users"));
+
+ let receiverName=null, receiverData=null;
+ users.forEach(d=>{
+   const u=d.data();
+   if(d.id===receiverInput || u.iban===receiverInput){
+     receiverName=d.id; receiverData=u;
+   }
+ });
+
+ if(!receiverName) return alert("Receiver not found");
+ if(balanceValue<amt) return alert("Insufficient funds");
+
+ const date=new Date().toLocaleString();
+
+ await updateDoc(doc(db,"users",username),{
+  balance:balanceValue-amt,
+  transactions:[...(data.transactions||[]),
+   {amount:-amt,note:"Sent to "+receiverName+" • "+desc,date}]
+ });
+
+ await updateDoc(doc(db,"users",receiverName),{
+  balance:Number(receiverData.balance||0)+amt,
+  transactions:[...(receiverData.transactions||[]),
+   {amount:amt,note:"Received from "+username,date}]
+ });
+
+ alert("Transfer Successful");
+ location.reload();
+};
+
+/* SUPPORT */
+window.sendSupport=async()=>{
  const subject=document.getElementById("subject").value;
  const message=document.getElementById("message").value.trim();
  if(!message) return alert("Enter message");
 
  await addDoc(collection(db,"support_messages"),{
-   user: username,
-   subject,
-   message,
-   status:"open",
+   user:username,subject,message,status:"open",
    date:new Date().toLocaleString()
  });
 
  alert("Message sent");
- document.getElementById("message").value="";
+ message.value="";
  loadSupportHistory();
 };
 
-/* LOAD SUPPORT HISTORY WITH REPLIES */
 async function loadSupportHistory(){
  const snap=await getDocs(collection(db,"support_messages"));
  const box=document.getElementById("supportHistory");
  box.innerHTML="";
-
  snap.forEach(doc=>{
    const d=doc.data();
    if(d.user===username){
-
-     let statusClass="waiting";
-     if(d.status==="replied") statusClass="reply";
-     if(d.status==="resolved") statusClass="resolved";
-
      box.innerHTML+=`
        <p>
        📩 <b>${d.subject}</b><br>
        ${d.date}<br>
-       <span class="${statusClass}">
-         ${d.status==="open"?"⏳ Awaiting response":
-           d.status==="replied"?"✅ Replied":
-           "✔ Resolved"}
-       </span>
-       ${d.reply?`<div class="reply">Support: ${d.reply}</div>`:""}
-       </p>
-     `;
+       ${d.reply?`<div class="reply">Support: ${d.reply}</div>`:"⏳ Awaiting response"}
+       </p>`;
    }
  });
 }
