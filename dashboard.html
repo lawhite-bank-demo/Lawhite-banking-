@@ -5,56 +5,78 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 body{
   margin:0;
-  font-family:Arial;
-  background:#031427;
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(160deg,#020617,#031427,#021a35);
   color:white;
 }
 .container{max-width:420px;margin:auto;padding:20px;}
+
 .card{
-  background:#0a223d;
-  padding:15px;
-  border-radius:15px;
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(18px);
+  border-radius:18px;
+  padding:16px;
   margin-bottom:15px;
+  border:1px solid rgba(255,255,255,0.06);
 }
-.balance{
-  background:linear-gradient(135deg,#2d8cff,#66c2ff);
-  padding:20px;
-  border-radius:15px;
-  font-size:28px;
-  font-weight:bold;
+
+.balance-card{
+  background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
+  border-radius:20px;
+  padding:22px;
   text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
+
+.balance{font-size:34px;font-weight:700;}
+.eye{margin-top:6px;font-size:14px;cursor:pointer;}
+
 input,button{
   width:100%;
   padding:12px;
   margin-top:8px;
-  border-radius:8px;
   border:none;
-  font-size:16px;
+  border-radius:10px;
+  font-size:15px;
 }
-button{background:#2d8cff;color:white;font-weight:bold;}
-.green{color:#00ff9d;}
-.red{color:#ff5c5c;}
+
+button{
+  background:#2d8cff;
+  color:white;
+  font-weight:600;
+}
+
+.green{color:#00ffb2;}
+.red{color:#ff6b6b;}
+.frozen{color:#ffcc66;font-weight:600;}
+.tx{margin-top:10px;}
+.small{font-size:12px;opacity:.7;}
 </style>
 </head>
 <body>
 
 <div class="container">
 
-<h2 id="welcome"></h2>
+<h3 id="welcome"></h3>
 
-<div class="card">
-<b>Account Information</b><br>
-Name: <span id="name"></span><br>
-Account Number: <span id="acc"></span><br>
-IBAN: <span id="iban"></span><br>
-SWIFT: <span id="swift"></span>
+<div class="balance-card">
+  <div class="balance" id="balance">€0</div>
+  <div class="eye" id="toggleEye">👁 Hide balance</div>
 </div>
 
-<div class="balance" id="balance"></div>
+<div class="card">
+<b>Account Info</b><br>
+Name: <span id="name"></span><br>
+Account: <span id="acc"></span><br>
+IBAN: <span id="iban"></span><br>
+SWIFT: <span id="swift"></span>
+<div id="frozenNotice" class="frozen"></div>
+</div>
 
 <div class="card">
 <b>Send Money</b>
@@ -79,6 +101,7 @@ import {
   collection, getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* FIREBASE */
 const firebaseConfig = {
  apiKey:"AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
  authDomain:"dechase-bank.firebaseapp.com",
@@ -88,98 +111,108 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// session check
+/* SESSION */
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-// load user data
+/* LOAD USER */
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 
 if(!snap.exists()){
-  alert("User data not found");
-  location.href="index.html";
+ alert("User data missing");
+ location.href="index.html";
 }
 
 const data = snap.data();
 
-// display account info
-document.getElementById("welcome").innerText =
-  "Hello, " + (data.fullName || username);
+/* DISPLAY INFO */
+welcome.innerText = "Hello, " + (data.fullName || username);
+name.innerText = data.fullName || "-";
+acc.innerText = data.accountNumber || "-";
+iban.innerText = data.iban || "-";
+swift.innerText = data.swift || "-";
 
-document.getElementById("name").innerText =
-  data.fullName || "-";
-
-document.getElementById("acc").innerText =
-  data.accountNumber || "-";
-
-document.getElementById("iban").innerText =
-  data.iban || "-";
-
-document.getElementById("swift").innerText =
-  data.swift || "-";
-
-document.getElementById("balance").innerText =
-  "€" + Number(data.balance || 0).toLocaleString();
-
-// load transactions
-const txBox = document.getElementById("transactions");
-
-if(!data.transactions || data.transactions.length === 0){
-  txBox.innerHTML = "<p>No transactions yet</p>";
-}else{
-  data.transactions.slice().reverse().forEach(tx=>{
-    const color = tx.amount > 0 ? "green":"red";
-    txBox.innerHTML += `
-      <p class="${color}">
-        ${tx.note || "Transfer"} (€${Math.abs(tx.amount).toLocaleString()})
-        <br><small>${tx.date || ""}</small>
-      </p>`;
-  });
+/* FROZEN NOTICE */
+if(data.frozen){
+ frozenNotice.innerText="⚠ Account Frozen";
 }
 
-// transfer money
+/* BALANCE WITH HIDE FEATURE */
+let hidden=false;
+const balanceValue = Number(data.balance || 0);
+
+function renderBalance(){
+ balance.innerText = hidden ? "••••••" : "€" + balanceValue.toLocaleString();
+ toggleEye.innerText = hidden ? "👁 Show balance" : "👁 Hide balance";
+}
+
+toggleEye.onclick = ()=>{
+ hidden = !hidden;
+ renderBalance();
+};
+
+renderBalance();
+
+/* TRANSACTIONS */
+if(data.transactions){
+ data.transactions.slice().reverse().forEach(tx=>{
+  const amt = Number(tx.amount);
+  const color = amt > 0 ? "green":"red";
+
+  transactions.innerHTML += `
+  <div class="tx ${color}">
+    ${tx.note} (€${Math.abs(amt).toLocaleString()})
+    <div class="small">${tx.date || ""}</div>
+  </div>`;
+ });
+}
+
+/* TRANSFER */
 async function transfer(){
- const r = document.getElementById("receiver").value.trim();
- const amt = parseFloat(document.getElementById("amount").value);
 
- if(!r || !amt) return alert("Fill all fields");
+ if(data.frozen) return alert("Account frozen");
 
- let receiverName=null, receiverData=null;
+ const receiverInput = receiver.value.trim();
+ const amt = parseFloat(amount.value);
+
+ if(!receiverInput || !amt) return alert("Enter details");
+
+ let receiverName=null;
+ let receiverData=null;
 
  const users = await getDocs(collection(db,"users"));
 
- users.forEach(d=>{
-   const u=d.data();
-   if(d.id===r || u.iban===r){
-     receiverName=d.id;
-     receiverData=u;
+ users.forEach(docSnap=>{
+   const u = docSnap.data();
+   if(docSnap.id === receiverInput || u.iban === receiverInput){
+     receiverName = docSnap.id;
+     receiverData = u;
    }
  });
 
  if(!receiverName) return alert("Receiver not found");
- if(data.balance < amt) return alert("Insufficient funds");
+ if(balanceValue < amt) return alert("Insufficient funds");
 
- const date=new Date().toLocaleString();
+ const date = new Date().toLocaleString();
 
  await updateDoc(userRef,{
-  balance:data.balance-amt,
-  transactions:[...(data.transactions||[]),
-  {amount:-amt,note:"Sent to "+receiverName,date}]
+   balance: balanceValue - amt,
+   transactions:[...(data.transactions||[]),
+   {amount:-amt, note:"Sent to "+receiverName, date}]
  });
 
  await updateDoc(doc(db,"users",receiverName),{
-  balance:Number(receiverData.balance||0)+amt,
-  transactions:[...(receiverData.transactions||[]),
-  {amount:amt,note:"Received from "+username,date}]
+   balance:(receiverData.balance||0)+amt,
+   transactions:[...(receiverData.transactions||[]),
+   {amount:amt, note:"Received from "+username, date}]
  });
 
  alert("Transfer successful");
  location.reload();
 }
 
-window.transfer = transfer;
-
+/* LOGOUT */
 window.logout=()=>{
  localStorage.removeItem("user");
  location.href="index.html";
