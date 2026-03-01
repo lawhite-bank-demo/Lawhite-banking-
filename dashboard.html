@@ -88,50 +88,60 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// session check
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
+// load user data
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
-const data = snap.data();
-const welcomeEl = document.getElementById("welcome");
-const nameEl = document.getElementById("name");
-const accEl = document.getElementById("acc");
-const ibanEl = document.getElementById("iban");
-const swiftEl = document.getElementById("swift");
-const balanceEl = document.getElementById("balance");
-const txEl = document.getElementById("transactions");
 
-welcomeEl.innerText = "Hello, " + (data.fullName || username);
-nameEl.innerText = data.fullName || "-";
-accEl.innerText = data.accountNumber || "-";
-ibanEl.innerText = data.iban || "-";
-swiftEl.innerText = data.swift || "-";
-balanceEl.innerText = "€" + Number(data.balance || 0).toLocaleString();
-/* DISPLAY INFO */
-welcome.innerText = "Hello, " + data.fullName;
-  name.innerText = data.fullName || "";
-acc.innerText = data.accountNumber || "";
-iban.innerText = data.iban || "";
-swift.innerText = data.swift || "";
-balance.innerText = "€" + Number(data.balance || 0).toLocaleString();
-
-/* TRANSACTIONS */
-if(data.transactions){
- data.transactions.slice().reverse().forEach(tx=>{
-  const color = tx.amount > 0 ? "green":"red";
-  txEl.innerHTML +=
-  `<p class="${color}">
-   ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-   <br><small>${tx.date}</small>
-   </p>`;
- });
+if(!snap.exists()){
+  alert("User data not found");
+  location.href="index.html";
 }
 
-/* TRANSFER */
+const data = snap.data();
+
+// display account info
+document.getElementById("welcome").innerText =
+  "Hello, " + (data.fullName || username);
+
+document.getElementById("name").innerText =
+  data.fullName || "-";
+
+document.getElementById("acc").innerText =
+  data.accountNumber || "-";
+
+document.getElementById("iban").innerText =
+  data.iban || "-";
+
+document.getElementById("swift").innerText =
+  data.swift || "-";
+
+document.getElementById("balance").innerText =
+  "€" + Number(data.balance || 0).toLocaleString();
+
+// load transactions
+const txBox = document.getElementById("transactions");
+
+if(!data.transactions || data.transactions.length === 0){
+  txBox.innerHTML = "<p>No transactions yet</p>";
+}else{
+  data.transactions.slice().reverse().forEach(tx=>{
+    const color = tx.amount > 0 ? "green":"red";
+    txBox.innerHTML += `
+      <p class="${color}">
+        ${tx.note || "Transfer"} (€${Math.abs(tx.amount).toLocaleString()})
+        <br><small>${tx.date || ""}</small>
+      </p>`;
+  });
+}
+
+// transfer money
 async function transfer(){
- const r = receiver.value.trim();
- const amt = parseFloat(amount.value);
+ const r = document.getElementById("receiver").value.trim();
+ const amt = parseFloat(document.getElementById("amount").value);
 
  if(!r || !amt) return alert("Fill all fields");
 
@@ -159,7 +169,7 @@ async function transfer(){
  });
 
  await updateDoc(doc(db,"users",receiverName),{
-  balance:receiverData.balance+amt,
+  balance:Number(receiverData.balance||0)+amt,
   transactions:[...(receiverData.transactions||[]),
   {amount:amt,note:"Received from "+username,date}]
  });
@@ -167,6 +177,8 @@ async function transfer(){
  alert("Transfer successful");
  location.reload();
 }
+
+window.transfer = transfer;
 
 window.logout=()=>{
  localStorage.removeItem("user");
