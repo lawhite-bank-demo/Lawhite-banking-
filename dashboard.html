@@ -94,8 +94,20 @@ if(!username) location.href="index.html";
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 const data = snap.data();
-console.log(data);
-alert(JSON.stringify(data));
+const welcomeEl = document.getElementById("welcome");
+const nameEl = document.getElementById("name");
+const accEl = document.getElementById("acc");
+const ibanEl = document.getElementById("iban");
+const swiftEl = document.getElementById("swift");
+const balanceEl = document.getElementById("balance");
+const txEl = document.getElementById("transactions");
+
+welcomeEl.innerText = "Hello, " + (data.fullName || username);
+nameEl.innerText = data.fullName || "-";
+accEl.innerText = data.accountNumber || "-";
+ibanEl.innerText = data.iban || "-";
+swiftEl.innerText = data.swift || "-";
+balanceEl.innerText = "€" + Number(data.balance || 0).toLocaleString();
 /* DISPLAY INFO */
 welcome.innerText = "Hello, " + data.fullName;
   name.innerText = data.fullName || "";
@@ -108,7 +120,7 @@ balance.innerText = "€" + Number(data.balance || 0).toLocaleString();
 if(data.transactions){
  data.transactions.slice().reverse().forEach(tx=>{
   const color = tx.amount > 0 ? "green":"red";
-  transactions.innerHTML +=
+  txEl.innerHTML +=
   `<p class="${color}">
    ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
    <br><small>${tx.date}</small>
