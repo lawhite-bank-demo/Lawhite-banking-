@@ -87,8 +87,7 @@ async function loadTickets(){
         <b>Subject:</b> ${d.subject}<br>
         <b>Message:</b><br>${d.message}<br>
         <div class="status">Date: ${d.date}</div>
-        <div class="status">Status: ${d.status}</div>
-
+        <div class="status ${d.status}">Status: ${d.status}</div>
         ${d.reply ? `<p><b>Reply:</b> ${d.reply}</p>` : ""}
 
         <textarea id="reply-${id}" placeholder="Type reply..."></textarea>
