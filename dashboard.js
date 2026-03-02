@@ -252,3 +252,9 @@ window.logout = () => {
   localStorage.removeItem("user");
   location.href = "index.html";
 };
+window.logout = () => {
+  localStorage.clear();
+  sessionStorage.clear();
+
+  window.location.replace("index.html");
+};
