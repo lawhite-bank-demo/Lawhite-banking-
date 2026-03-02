@@ -67,13 +67,11 @@ button{
 
 <h3 id="welcome">Loading...</h3>
 
-<!-- BALANCE -->
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
   <div class="eye" id="toggleBalance">👁 Hide balance</div>
 </div>
 
-<!-- ACCOUNT INFO -->
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name">-</span><br>
@@ -82,7 +80,6 @@ IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
 </div>
 
-<!-- QUICK ACTIONS -->
 <div class="card">
 <b>Quick Actions</b>
 <div class="grid">
@@ -95,41 +92,6 @@ SWIFT: <span id="swift">-</span>
 </div>
 </div>
 
-<!-- TRANSFER -->
-<div class="card" id="transferBox" style="display:none;">
-<b>Send Money</b>
-<input id="receiver" placeholder="Username or IBAN">
-<input id="amount" type="number" placeholder="Amount">
-<button onclick="askPin()">Send</button>
-</div>
-
-<!-- PAY BILLS -->
-<div class="card" id="billBox" style="display:none;">
-<b>Pay Bills</b>
-<select id="billType">
-<option>Electricity</option>
-<option>Water</option>
-<option>Internet</option>
-<option>TV Subscription</option>
-</select>
-<input id="billAmount" type="number" placeholder="Amount">
-<button onclick="payBill()">Pay</button>
-</div>
-
-<!-- GIFT CARDS -->
-<div class="card" id="giftBox" style="display:none;">
-<b>Buy Gift Card</b>
-<select id="giftType">
-<option>Amazon</option>
-<option>iTunes</option>
-<option>Steam</option>
-<option>Google Play</option>
-</select>
-<input id="giftAmount" type="number" placeholder="Amount">
-<button onclick="buyGift()">Buy</button>
-</div>
-
-<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
@@ -137,34 +99,21 @@ SWIFT: <span id="swift">-</span>
 
 <button onclick="logout()" style="background:#ff4d4d">Logout</button>
 
-<!-- SUPPORT BUTTON -->
 <button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
 💬 Contact Bank Support
 </button>
 
 </div>
 
-<!-- PIN MODAL -->
-<div id="pinModal" style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;">
- <div style="background:#0a223d;padding:25px;border-radius:15px;width:85%;max-width:320px;text-align:center;">
-   <h3>Enter PIN</h3>
-   <input id="pinInput" type="password">
-   <button onclick="confirmTransfer()">Confirm</button>
-   <button onclick="closePin()" style="background:#555;margin-top:6px;">Cancel</button>
- </div>
-</div>
+<script type="module" src="dashboard.js?v=3"></script>
 
-<!-- SUPPORT SCRIPT -->
 <script>
 function contactSupport(){
-  const phone = "14237960225";
-  const message = encodeURIComponent("Hello DeChase Bank Support, I need help with my account.");
-  window.open(`https://wa.me/${phone}?text=${message}`, "_blank");
+  const phone="14237960225";
+  const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
+  window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
 }
 </script>
-
-<!-- LOAD APP LOGIC -->
-<script type="module" src="dashboard.js?v=3"></script>
 
 </body>
 </html>
