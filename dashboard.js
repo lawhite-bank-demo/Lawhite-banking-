@@ -18,31 +18,35 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 
+// ======================================================
 // ✅ LOGIN PROTECTION
+// ======================================================
+
 const username = localStorage.getItem("user");
 
 if (!username) {
   window.location.replace("index.html");
 }
-// ✅ CHECK LOGIN
-const username = localStorage.getItem("user");
-if (!username) location.href = "index.html";
 
-// ✅ LOAD USER
+// ======================================================
+// ✅ LOAD USER DATA
+// ======================================================
+
 const userRef = doc(db, "users", username);
 const snap = await getDoc(userRef);
 
 if (!snap.exists()) {
   alert("User not found");
-  location.href = "index.html";
+  window.location.replace("index.html");
 }
 
 const data = snap.data();
 
-// ✅ DISPLAY USER INFO
+// ======================================================
+// 👤 DISPLAY USER INFO
+// ======================================================
+
 welcome.innerText = "Hello, " + (data.fullName || username);
 name.innerText = data.fullName || username;
 acc.innerText = data.accountNumber || "N/A";
@@ -50,7 +54,7 @@ iban.innerText = data.iban || "N/A";
 swift.innerText = data.swift || "DEUTDEFF";
 
 // ======================================================
-// 💰 BALANCE
+// 💰 BALANCE CONTROL
 // ======================================================
 
 let balanceValue = Number(data.balance || 0);
@@ -74,7 +78,7 @@ toggleBalance.onclick = () => {
 renderBalance();
 
 // ======================================================
-// 🧾 TRANSACTIONS (EUROPEAN STYLE)
+// 🧾 TRANSACTION DISPLAY
 // ======================================================
 
 const box = document.getElementById("transactions");
@@ -84,7 +88,7 @@ if (Array.isArray(data.transactions) && data.transactions.length) {
 
   const sorted = data.transactions
     .sort((a,b)=> new Date(b.date) - new Date(a.date))
-    .slice(0,5);   // show latest 5
+    .slice(0, 10);
 
   sorted.forEach(tx => {
 
@@ -102,14 +106,8 @@ if (Array.isArray(data.transactions) && data.transactions.length) {
       : "";
 
     let details = "";
-
-    if(tx.fromName){
-      details = "From: " + tx.fromName;
-    }
-
-    if(tx.toName){
-      details = "To: " + tx.toName;
-    }
+    if(tx.fromName) details = "From: " + tx.fromName;
+    if(tx.toName) details = "To: " + tx.toName;
 
     const div = document.createElement("div");
     div.className = color;
@@ -129,7 +127,7 @@ if (Array.isArray(data.transactions) && data.transactions.length) {
 }
 
 // ======================================================
-// 📂 SHOW PANELS
+// 📂 PANEL CONTROLS
 // ======================================================
 
 window.showTransfer = () => transferBox.style.display = "block";
@@ -137,35 +135,39 @@ window.showBills = () => billBox.style.display = "block";
 window.showGift = () => giftBox.style.display = "block";
 
 // ======================================================
-// 🔐 TRANSFER
+// 🔐 TRANSFER (Account Number OR IBAN)
 // ======================================================
 
 window.askPin = async () => {
 
-  const receiverName = receiver.value.trim();
+  const receiverInput = receiver.value.trim();
   const amountValue = parseFloat(amount.value);
 
-  if (!receiverName || !amountValue)
+  if (!receiverInput || !amountValue)
     return alert("Fill all fields");
 
   const pin = prompt("Enter PIN");
-  if(pin !== data.pin) return alert("Wrong PIN");
+  if (pin !== data.pin) return alert("Wrong PIN");
 
   const users = await getDocs(collection(db,"users"));
 
   let receiverData = null;
+  let receiverUsername = null;
 
-  users.forEach(d=>{
-    if(d.id === receiverName || d.data().iban === receiverName){
-      receiverData = d.data();
+  users.forEach(d => {
+    const u = d.data();
+    if (u.accountNumber === receiverInput || u.iban === receiverInput) {
+      receiverData = u;
+      receiverUsername = d.id;
     }
   });
 
-  if(!receiverData) return alert("Receiver not found");
-  if(balanceValue < amountValue) return alert("Insufficient funds");
+  if (!receiverData) return alert("Receiver not found");
+  if (balanceValue < amountValue) return alert("Insufficient funds");
 
   const date = new Date().toISOString();
 
+  // sender update
   await updateDoc(userRef,{
     balance: balanceValue - amountValue,
     transactions: [
@@ -173,20 +175,21 @@ window.askPin = async () => {
       {
         amount: -amountValue,
         note: "SEPA Transfer",
-        toName: receiverName,
+        toName: receiverData.fullName,
         date
       }
     ]
   });
 
-  await updateDoc(doc(db,"users",receiverName),{
+  // receiver update
+  await updateDoc(doc(db,"users",receiverUsername),{
     balance: Number(receiverData.balance || 0) + amountValue,
     transactions: [
       ...(receiverData.transactions || []),
       {
         amount: amountValue,
         note: "SEPA Credit Transfer",
-        fromName: username,
+        fromName: data.fullName,
         date
       }
     ]
@@ -257,12 +260,7 @@ window.buyGift = async () => {
 // ======================================================
 
 window.logout = () => {
-  localStorage.removeItem("user");
-  location.href = "index.html";
-};
-window.logout = () => {
   localStorage.clear();
   sessionStorage.clear();
-
   window.location.replace("index.html");
 };
