@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,11 +42,15 @@ body{
   gap:8px;
 }
 
-button{
+button, input, select{
   width:100%;
-  padding:12px;
+  padding:10px;
   border:none;
   border-radius:10px;
+  margin-top:6px;
+}
+
+button{
   background:#2d8cff;
   color:white;
   font-weight:600;
@@ -77,7 +80,6 @@ Name: <span id="name">-</span><br>
 Account: <span id="acc">-</span><br>
 IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
-<div id="freezeNotice"></div>
 </div>
 
 <!-- QUICK ACTIONS -->
@@ -87,8 +89,8 @@ SWIFT: <span id="swift">-</span>
   <button onclick="showTransfer()">Send</button>
   <button onclick="showBills()">Pay Bills</button>
   <button onclick="showGift()">Gift Cards</button>
-  <button onclick="alert('Withdraw coming')">Withdraw</button>
-  <button onclick="alert('Deposit coming')">Deposit</button>
+  <button onclick="alert('Withdraw coming soon')">Withdraw</button>
+  <button onclick="alert('Deposit coming soon')">Deposit</button>
   <button onclick="location.reload()">Refresh</button>
 </div>
 </div>
@@ -160,62 +162,52 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 🔐 CHECK LOGIN
+// CHECK LOGIN
 const username = localStorage.getItem("user");
 if(!username) location.href="index.html";
 
-// LOAD USER
+// LOAD USER DATA
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 
 if(!snap.exists()){
-  alert("User data missing in database");
-  throw new Error("No user data");
-}
-
-const data = snap.data();
-
-console.log("Firestore loaded:", data);
- alert("User not found");
+ alert("User not found in database");
  location.href="index.html";
 }
 
 const data = snap.data();
 
-// DISPLAY INFO
-document.getElementById("welcome").innerText =
-  "Hello, " + (data.fullName ?? username);
+// DISPLAY USER INFO
+document.getElementById("welcome").innerText = "Hello, " + (data.fullName || username);
+document.getElementById("name").innerText = data.fullName || "-";
+document.getElementById("acc").innerText = data.accountNumber || "-";
+document.getElementById("iban").innerText = data.iban || "-";
+document.getElementById("swift").innerText = data.swift || "-";
 
-document.getElementById("name").innerText =
-  data.fullName ?? "Not set";
-
-document.getElementById("acc").innerText =
-  data.accountNumber ?? "Not set";
-
-document.getElementById("iban").innerText =
-  data.iban ?? "Not set";
-
-document.getElementById("swift").innerText =
-  data.swift ?? "Not set";
-let balanceValue = Number(data.balance ?? 0);
+// BALANCE
+let balanceValue = Number(data.balance || 0);
 let hidden=false;
 
 function renderBalance(){
- balance.innerText = hidden ? "••••••" : "€"+balanceValue.toLocaleString();
- toggleBalance.innerText = hidden ? "👁 Show balance" : "👁 Hide balance";
+ document.getElementById("balance").innerText =
+   hidden ? "••••••" : "€"+balanceValue.toLocaleString();
+
+ document.getElementById("toggleBalance").innerText =
+   hidden ? "👁 Show balance" : "👁 Hide balance";
 }
-toggleBalance.onclick=()=>{hidden=!hidden;renderBalance();}
+
+toggleBalance.onclick=()=>{ hidden=!hidden; renderBalance(); }
 renderBalance();
 
 // TRANSACTIONS
 const box=document.getElementById("transactions");
-if(data.transactions){
+if(Array.isArray(data.transactions)){
  data.transactions.slice().reverse().forEach(tx=>{
-   const color = tx.amount>0 ? "green":"red";
-   box.innerHTML+=`
+   const color = tx.amount > 0 ? "green":"red";
+   box.innerHTML += `
      <div class="${color}">
-     ${tx.note} (€${Math.abs(tx.amount).toLocaleString()})
-     <div class="small">${tx.date||""}</div>
+       ${tx.note || "Transaction"} (€${Math.abs(tx.amount).toLocaleString()})
+       <div class="small">${tx.date || ""}</div>
      </div>`;
  });
 }
@@ -225,7 +217,7 @@ window.showTransfer=()=>transferBox.style.display="block";
 window.showBills=()=>billBox.style.display="block";
 window.showGift=()=>giftBox.style.display="block";
 
-// PIN TRANSFER
+// PIN + TRANSFER
 let transferData=null;
 
 window.askPin=()=>{
@@ -233,17 +225,17 @@ window.askPin=()=>{
   receiver:receiver.value.trim(),
   amount:parseFloat(amount.value)
  };
- if(!transferData.receiver||!transferData.amount) return alert("Fill fields");
+ if(!transferData.receiver || !transferData.amount) return alert("Fill fields");
  pinModal.style.display="flex";
 }
 
 window.closePin=()=>pinModal.style.display="none";
 
 window.confirmTransfer=async()=>{
- if(pinInput.value!==data.pin) return alert("Wrong PIN");
+ if(pinInput.value !== data.pin) return alert("Wrong PIN");
 
- const users=await getDocs(collection(db,"users"));
- let receiverName=null,receiverData=null;
+ const users = await getDocs(collection(db,"users"));
+ let receiverName=null, receiverData=null;
 
  users.forEach(d=>{
   if(d.id===transferData.receiver || d.data().iban===transferData.receiver){
@@ -253,12 +245,12 @@ window.confirmTransfer=async()=>{
  });
 
  if(!receiverName) return alert("Receiver not found");
- if(balanceValue<transferData.amount) return alert("Insufficient funds");
+ if(balanceValue < transferData.amount) return alert("Insufficient funds");
 
  const date=new Date().toLocaleString();
 
  await updateDoc(userRef,{
-  balance:balanceValue-transferData.amount,
+  balance: balanceValue-transferData.amount,
   transactions:[...(data.transactions||[]),
    {amount:-transferData.amount,note:"Sent to "+receiverName,date}]
  });
@@ -275,39 +267,37 @@ window.confirmTransfer=async()=>{
 
 // PAY BILL
 window.payBill=async()=>{
- const type=billType.value;
  const amt=parseFloat(billAmount.value);
  if(!amt) return alert("Enter amount");
- if(balanceValue<amt) return alert("Insufficient funds");
+ if(balanceValue < amt) return alert("Insufficient funds");
 
  const date=new Date().toLocaleString();
 
  await updateDoc(userRef,{
   balance:balanceValue-amt,
   transactions:[...(data.transactions||[]),
-   {amount:-amt,note:type+" bill paid",date}]
+   {amount:-amt,note:billType.value+" bill paid",date}]
  });
 
- alert(type+" paid successfully");
+ alert("Bill paid");
  location.reload();
 }
 
-// GIFT CARD
+// BUY GIFT CARD
 window.buyGift=async()=>{
- const type=giftType.value;
  const amt=parseFloat(giftAmount.value);
  if(!amt) return alert("Enter amount");
- if(balanceValue<amt) return alert("Insufficient funds");
+ if(balanceValue < amt) return alert("Insufficient funds");
 
  const date=new Date().toLocaleString();
 
  await updateDoc(userRef,{
   balance:balanceValue-amt,
   transactions:[...(data.transactions||[]),
-   {amount:-amt,note:type+" gift card",date}]
+   {amount:-amt,note:giftType.value+" gift card",date}]
  });
 
- alert(type+" gift card purchased");
+ alert("Gift card purchased");
  location.reload();
 }
 
