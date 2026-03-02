@@ -183,7 +183,7 @@ async function transfer(){
     balance:newSenderBalance,
     transactions:[...(data.transactions || []), senderTx]
   });
-
+console.log(username, data);
   await updateDoc(doc(db,"users",receiverName),{
     balance:newReceiverBalance,
     transactions:[...(receiverData.transactions || []), receiverTx]
