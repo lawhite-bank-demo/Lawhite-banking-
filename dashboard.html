@@ -14,7 +14,11 @@ body{
   background:linear-gradient(160deg,#020617,#031427,#021a35);
   color:white;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
+.container{
+  max-width:420px;
+  margin:auto;
+  padding:20px;
+}
 
 .card{
   background:rgba(255,255,255,0.05);
@@ -30,11 +34,18 @@ body{
   border-radius:20px;
   padding:22px;
   text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,.35);
 }
 
-.balance{font-size:34px;font-weight:700;}
-.eye{margin-top:6px;font-size:14px;cursor:pointer;}
+.balance{
+  font-size:34px;
+  font-weight:700;
+}
+
+.eye{
+  margin-top:6px;
+  font-size:14px;
+  cursor:pointer;
+}
 
 .grid{
   display:grid;
@@ -67,11 +78,13 @@ button{
 
 <h3 id="welcome">Loading...</h3>
 
+<!-- BALANCE -->
 <div class="balance-card">
   <div class="balance" id="balance">€0</div>
   <div class="eye" id="toggleBalance">👁 Hide balance</div>
 </div>
 
+<!-- ACCOUNT INFO -->
 <div class="card">
 <b>Account Info</b><br>
 Name: <span id="name">-</span><br>
@@ -80,19 +93,28 @@ IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
 </div>
 
+<!-- QUICK ACTIONS -->
 <div class="card">
 <b>Quick Actions</b>
-  <!-- TRANSFER -->
-<div class="card" id="transferBox" style="display:none;">
-<b>Send Money</b>
-<input id="receiver" placeholder="Username or IBAN">
+
+<div class="grid">
+  <button onclick="showTransfer()">Send</button>
+  <button onclick="showBills()">Pay Bills</button>
+  <button onclick="showGift()">Gift Cards</button>
+  <button onclick="alert('Withdraw coming soon')">Withdraw</button>
+  <button onclick="alert('Deposit coming soon')">Deposit</button>
+  <button onclick="location.reload()">Refresh</button>
+</div>
+
+<!-- TRANSFER PANEL -->
+<div id="transferBox" style="display:none;">
+<input id="receiver" placeholder="Account Number or IBAN">
 <input id="amount" type="number" placeholder="Amount">
 <button onclick="askPin()">Send</button>
 </div>
 
-<!-- PAY BILLS -->
-<div class="card" id="billBox" style="display:none;">
-<b>Pay Bills</b>
+<!-- PAY BILLS PANEL -->
+<div id="billBox" style="display:none;">
 <select id="billType">
 <option>Electricity</option>
 <option>Water</option>
@@ -103,9 +125,8 @@ SWIFT: <span id="swift">-</span>
 <button onclick="payBill()">Pay</button>
 </div>
 
-<!-- GIFT CARDS -->
-<div class="card" id="giftBox" style="display:none;">
-<b>Buy Gift Card</b>
+<!-- GIFT CARD PANEL -->
+<div id="giftBox" style="display:none;">
 <select id="giftType">
 <option>Amazon</option>
 <option>iTunes</option>
@@ -115,29 +136,29 @@ SWIFT: <span id="swift">-</span>
 <input id="giftAmount" type="number" placeholder="Amount">
 <button onclick="buyGift()">Buy</button>
 </div>
-<div class="grid">
-  <button onclick="showTransfer()">Send</button>
-  <button onclick="showBills()">Pay Bills</button>
-  <button onclick="showGift()">Gift Cards</button>
-  <button onclick="alert('Withdraw coming soon')">Withdraw</button>
-  <button onclick="alert('Deposit coming soon')">Deposit</button>
-  <button onclick="location.reload()">Refresh</button>
-</div>
+
 </div>
 
+<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
 </div>
 
+<!-- LOGOUT -->
 <button onclick="logout()" style="background:#ff4d4d">Logout</button>
 
+<!-- SUPPORT -->
 <button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
 💬 Contact Bank Support
 </button>
 
 </div>
-<script type="module" src="dashboard.js?v=10"></script>
+
+<!-- DASHBOARD SCRIPT -->
+<script type="module" src="dashboard.js?v=11"></script>
+
+<!-- WHATSAPP SUPPORT -->
 <script>
 function contactSupport(){
   const phone="14237960225";
