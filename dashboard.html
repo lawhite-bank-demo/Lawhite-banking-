@@ -185,7 +185,15 @@ document.getElementById("iban").innerText = data.iban || "-";
 document.getElementById("swift").innerText = data.swift || "-";
 
 // BALANCE
-let balanceValue = Number(data.balance || 0);
+let balanceValue = 0;
+
+if (data.transactions && data.transactions.length) {
+  data.transactions.forEach(tx => {
+    balanceValue += Number(tx.amount || 0);
+  });
+} else {
+  balanceValue = Number(data.balance || 0);
+}
 let hidden=false;
 
 function renderBalance(){
