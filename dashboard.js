@@ -20,7 +20,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ======================================================
-// ✅ LOGIN PROTECTION
+// ✅ LOGIN CHECK
 // ======================================================
 
 const username = localStorage.getItem("user");
@@ -47,11 +47,20 @@ const data = snap.data();
 // 👤 DISPLAY USER INFO
 // ======================================================
 
-welcome.innerText = "Hello, " + (data.fullName || username);
-name.innerText = data.fullName || username;
-acc.innerText = data.accountNumber || "N/A";
-iban.innerText = data.iban || "N/A";
-swift.innerText = data.swift || "DEUTDEFF";
+document.getElementById("welcome").innerText =
+  "Hello, " + (data.fullName || username);
+
+document.getElementById("name").innerText =
+  data.fullName || "-";
+
+document.getElementById("acc").innerText =
+  data.accountNumber || "-";
+
+document.getElementById("iban").innerText =
+  data.iban || "-";
+
+document.getElementById("swift").innerText =
+  data.swift || "DEUTDEFF";
 
 // ======================================================
 // 💰 BALANCE CONTROL
@@ -60,17 +69,20 @@ swift.innerText = data.swift || "DEUTDEFF";
 let balanceValue = Number(data.balance || 0);
 let hidden = false;
 
+const balanceEl = document.getElementById("balance");
+const toggleEl = document.getElementById("toggleBalance");
+
 function renderBalance() {
-  balance.innerText = hidden
+  balanceEl.innerText = hidden
     ? "••••••"
     : "€" + balanceValue.toLocaleString();
 
-  toggleBalance.innerText = hidden
+  toggleEl.innerText = hidden
     ? "👁 Show balance"
     : "👁 Hide balance";
 }
 
-toggleBalance.onclick = () => {
+toggleEl.onclick = () => {
   hidden = !hidden;
   renderBalance();
 };
@@ -78,17 +90,16 @@ toggleBalance.onclick = () => {
 renderBalance();
 
 // ======================================================
-// 🧾 TRANSACTION DISPLAY
+// 🧾 TRANSACTIONS
 // ======================================================
 
 const box = document.getElementById("transactions");
-box.innerHTML = "";
 
 if (Array.isArray(data.transactions) && data.transactions.length) {
 
   const sorted = data.transactions
     .sort((a,b)=> new Date(b.date) - new Date(a.date))
-    .slice(0, 10);
+    .slice(0,10);
 
   sorted.forEach(tx => {
 
@@ -105,9 +116,9 @@ if (Array.isArray(data.transactions) && data.transactions.length) {
         })
       : "";
 
-    let details = "";
-    if(tx.fromName) details = "From: " + tx.fromName;
-    if(tx.toName) details = "To: " + tx.toName;
+    const details =
+      tx.fromName ? "From: " + tx.fromName :
+      tx.toName ? "To: " + tx.toName : "";
 
     const div = document.createElement("div");
     div.className = color;
@@ -135,16 +146,19 @@ window.showBills = () => billBox.style.display = "block";
 window.showGift = () => giftBox.style.display = "block";
 
 // ======================================================
-// 🔐 TRANSFER (Account Number OR IBAN)
+// 🔐 TRANSFER (ACCOUNT NUMBER OR IBAN)
 // ======================================================
 
 window.askPin = async () => {
 
-  const receiverInput = receiver.value.trim();
-  const amountValue = parseFloat(amount.value);
+  const receiverInput = document.getElementById("receiver").value.trim();
+  const amountValue = parseFloat(document.getElementById("amount").value);
 
   if (!receiverInput || !amountValue)
     return alert("Fill all fields");
+
+  if (!data.pin)
+    return alert("PIN not set for this user");
 
   const pin = prompt("Enter PIN");
   if (pin !== data.pin) return alert("Wrong PIN");
@@ -205,7 +219,8 @@ window.askPin = async () => {
 
 window.payBill = async () => {
 
-  const amt = parseFloat(billAmount.value);
+  const amt = parseFloat(document.getElementById("billAmount").value);
+
   if (!amt) return alert("Enter amount");
   if (balanceValue < amt) return alert("Insufficient funds");
 
@@ -217,7 +232,7 @@ window.payBill = async () => {
       ...(data.transactions || []),
       {
         amount: -amt,
-        note: billType.value + " Direct Debit",
+        note: document.getElementById("billType").value + " Direct Debit",
         date
       }
     ]
@@ -233,7 +248,8 @@ window.payBill = async () => {
 
 window.buyGift = async () => {
 
-  const amt = parseFloat(giftAmount.value);
+  const amt = parseFloat(document.getElementById("giftAmount").value);
+
   if (!amt) return alert("Enter amount");
   if (balanceValue < amt) return alert("Insufficient funds");
 
@@ -245,7 +261,7 @@ window.buyGift = async () => {
       ...(data.transactions || []),
       {
         amount: -amt,
-        note: giftType.value + " Gift Card",
+        note: document.getElementById("giftType").value + " Gift Card",
         date
       }
     ]
