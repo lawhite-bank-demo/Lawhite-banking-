@@ -164,7 +164,31 @@ async function initDashboard() {
   } else {
     box.innerHTML = "<div class='small'>No transactions yet</div>";
   }
+// ======================================================
+// 📂 PANEL TOGGLE
+// ======================================================
 
+const transferBox = document.getElementById("transferBox");
+const billBox = document.getElementById("billBox");
+const giftBox = document.getElementById("giftBox");
+
+window.showTransfer = () => {
+  transferBox.style.display = "block";
+  billBox.style.display = "none";
+  giftBox.style.display = "none";
+};
+
+window.showBills = () => {
+  billBox.style.display = "block";
+  transferBox.style.display = "none";
+  giftBox.style.display = "none";
+};
+
+window.showGift = () => {
+  giftBox.style.display = "block";
+  transferBox.style.display = "none";
+  billBox.style.display = "none";
+};
   // ======================================================
   // 🔐 TRANSFER
   // ======================================================
