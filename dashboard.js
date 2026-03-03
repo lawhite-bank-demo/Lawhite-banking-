@@ -20,281 +20,317 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ======================================================
-// ✅ LOGIN CHECK
+// 🚀 INIT DASHBOARD (SAFE WRAPPER)
 // ======================================================
 
-const username = localStorage.getItem("user");
+async function initDashboard() {
 
-if (!username) {
-  window.location.replace("index.html");
-}
+  const username = localStorage.getItem("user");
 
-const userRef = doc(db, "users", username);
-const snap = await getDoc(userRef);
+  if (!username) {
+    window.location.replace("index.html");
+    return;
+  }
 
-if (!snap.exists()) {
-  alert("User not found");
-  window.location.replace("index.html");
-}
+  const userRef = doc(db, "users", username);
+  const snap = await getDoc(userRef);
 
-const data = snap.data();
+  if (!snap.exists()) {
+    alert("User not found");
+    window.location.replace("index.html");
+    return;
+  }
 
-// ======================================================
-// 🔒 FREEZE BANNER CONTROL
-// ======================================================
+  const data = snap.data();
 
-const freezeBanner = document.getElementById("freezeBanner");
+  // ======================================================
+  // 🔔 SUCCESS BANNER
+  // ======================================================
 
-if (freezeBanner) {
-  freezeBanner.style.display = data.frozen ? "block" : "none";
-}
-function showSuccess(message) {
-  const banner = document.getElementById("successBanner");
-  if (!banner) return;
+  window.showSuccess = function (message) {
+    const banner = document.getElementById("successBanner");
+    if (!banner) return;
 
-  banner.innerText = "✅ " + message;
-  banner.style.display = "block";
+    banner.innerText = "✅ " + message;
+    banner.style.display = "block";
 
-  setTimeout(() => {
-    banner.style.display = "none";
-  }, 3000);
-}
-// ======================================================
-// 👤 DISPLAY USER INFO
-// ======================================================
+    setTimeout(() => {
+      banner.style.display = "none";
+    }, 2000);
+  };
 
-document.getElementById("welcome").innerText =
-  "Hello, " + (data.fullName || username);
+  // ======================================================
+  // 🔒 FREEZE CHECK
+  // ======================================================
 
-document.getElementById("name").innerText =
-  data.fullName || "-";
-
-document.getElementById("acc").innerText =
-  data.accountNumber || "-";
-
-document.getElementById("iban").innerText =
-  data.iban || "-";
-
-document.getElementById("swift").innerText =
-  data.swift || "DEUTDEFF";
-
-// ======================================================
-// 💰 BALANCE CONTROL
-// ======================================================
-
-let balanceValue = Number(data.balance || 0);
-let hidden = false;
-
-const balanceEl = document.getElementById("balance");
-const toggleEl = document.getElementById("toggleBalance");
-
-function renderBalance() {
-  balanceEl.innerText = hidden
-    ? "••••••"
-    : "€" + balanceValue.toLocaleString();
-
-  toggleEl.innerText = hidden
-    ? "👁 Show balance"
-    : "👁 Hide balance";
-}
-
-toggleEl.onclick = () => {
-  hidden = !hidden;
-  renderBalance();
-};
-
-renderBalance();
-
-// ======================================================
-// 🧾 TRANSACTIONS
-// ======================================================
-
-const box = document.getElementById("transactions");
-
-if (Array.isArray(data.transactions) && data.transactions.length) {
-
-  const sorted = (data.transactions || [])
-    .filter(tx => tx.date)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 20);
-
-  sorted.forEach(tx => {
-
-    const amount = Number(tx.amount || 0);
-    const color = amount > 0 ? "green" : "red";
-
-    const formattedDate = tx.date
-      ? new Date(tx.date).toLocaleString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false
-        })
-      : "";
-
-    const details =
-      tx.fromName ? "From: " + tx.fromName :
-      tx.toName ? "To: " + tx.toName : "";
-
-    const div = document.createElement("div");
-    div.className = color;
-
-    div.innerHTML = `
-      <strong>${tx.note || "Transaction"}</strong><br>
-      €${Math.abs(amount).toLocaleString()}
-      <div class="small">${details}</div>
-      <div class="small">${formattedDate}</div>
-    `;
-
-    box.appendChild(div);
-  });
-
-} else {
-  box.innerHTML = "<div class='small'>No transactions yet</div>";
-}
-
-// ======================================================
-// 🔐 TRANSFER
-// ======================================================
-
-window.askPin = async () => {
-
-  if (data.frozen)
-    return alert("Account is frozen. Contact bank support.");
-
-  const receiverInput = document.getElementById("receiver").value.trim();
-  const amountValue = parseFloat(document.getElementById("amount").value);
-
-  if (!receiverInput || !amountValue)
-    return alert("Fill all fields");
-
-  if (!data.pin)
-    return alert("PIN not set for this user");
-
-  const pin = prompt("Enter PIN");
-  if (pin !== data.pin) return alert("Wrong PIN");
-
-  const users = await getDocs(collection(db,"users"));
-
-  let receiverData = null;
-  let receiverUsername = null;
-
-  users.forEach(d => {
-    const u = d.data();
-    if (u.accountNumber === receiverInput || u.iban === receiverInput) {
-      receiverData = u;
-      receiverUsername = d.id;
+  function checkFreeze() {
+    if (data.frozen) {
+      alert("Account is frozen. Contact bank support.");
+      return true;
     }
-  });
+    return false;
+  }
 
-  if (!receiverData) return alert("Receiver not found");
-  if (balanceValue < amountValue) return alert("Insufficient funds");
+  // ======================================================
+  // 👤 DISPLAY USER INFO
+  // ======================================================
 
-  const date = new Date().toISOString();
+  document.getElementById("welcome").innerText =
+    "Hello, " + (data.fullName || username);
 
-  await updateDoc(userRef,{
-    balance: balanceValue - amountValue,
-    transactions: [
-      ...(data.transactions || []),
-      {
-        amount: -amountValue,
-        note: "SEPA Transfer",
-        toName: receiverData.fullName,
-        date
+  document.getElementById("name").innerText =
+    data.fullName || "-";
+
+  document.getElementById("acc").innerText =
+    data.accountNumber || "-";
+
+  document.getElementById("iban").innerText =
+    data.iban || "-";
+
+  document.getElementById("swift").innerText =
+    data.swift || "DEUTDEFF";
+
+  // ======================================================
+  // 💰 BALANCE
+  // ======================================================
+
+  let balanceValue = Number(data.balance || 0);
+  let hidden = false;
+
+  const balanceEl = document.getElementById("balance");
+  const toggleEl = document.getElementById("toggleBalance");
+
+  function renderBalance() {
+    balanceEl.innerText = hidden
+      ? "••••••"
+      : "€" + balanceValue.toLocaleString();
+
+    toggleEl.innerText = hidden
+      ? "👁 Show balance"
+      : "👁 Hide balance";
+  }
+
+  toggleEl.onclick = () => {
+    hidden = !hidden;
+    renderBalance();
+  };
+
+  renderBalance();
+
+  // ======================================================
+  // 🧾 TRANSACTIONS
+  // ======================================================
+
+  const box = document.getElementById("transactions");
+
+  if (Array.isArray(data.transactions) && data.transactions.length) {
+
+    const sorted = data.transactions
+      .filter(tx => tx.date)
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 20);
+
+    sorted.forEach(tx => {
+
+      const amount = Number(tx.amount || 0);
+      const color = amount > 0 ? "green" : "red";
+
+      const formattedDate = new Date(tx.date).toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      });
+
+      const details =
+        tx.fromName ? "From: " + tx.fromName :
+        tx.toName ? "To: " + tx.toName : "";
+
+      const div = document.createElement("div");
+      div.className = color;
+
+      div.innerHTML = `
+        <strong>${tx.note || "Transaction"}</strong><br>
+        €${Math.abs(amount).toLocaleString()}
+        <div class="small">${details}</div>
+        <div class="small">${formattedDate}</div>
+      `;
+
+      box.appendChild(div);
+    });
+
+  } else {
+    box.innerHTML = "<div class='small'>No transactions yet</div>";
+  }
+
+  // ======================================================
+  // 🔐 TRANSFER
+  // ======================================================
+
+  window.askPin = async () => {
+
+    if (checkFreeze()) return;
+
+    const receiverInput =
+      document.getElementById("receiver").value.trim();
+
+    const amountValue =
+      parseFloat(document.getElementById("amount").value);
+
+    if (!receiverInput || !amountValue)
+      return alert("Fill all fields");
+
+    if (!data.pin)
+      return alert("PIN not set for this user");
+
+    const pin = prompt("Enter PIN");
+    if (pin !== data.pin)
+      return alert("Wrong PIN");
+
+    if (balanceValue < amountValue)
+      return alert("Insufficient funds");
+
+    const users = await getDocs(collection(db, "users"));
+
+    let receiverData = null;
+    let receiverUsername = null;
+
+    users.forEach(d => {
+      const u = d.data();
+      if (u.accountNumber === receiverInput || u.iban === receiverInput) {
+        receiverData = u;
+        receiverUsername = d.id;
       }
-    ]
-  });
+    });
 
-  await updateDoc(doc(db,"users",receiverUsername),{
-    balance: Number(receiverData.balance || 0) + amountValue,
-    transactions: [
-      ...(receiverData.transactions || []),
-      {
-        amount: amountValue,
-        note: "SEPA Credit Transfer",
-        fromName: data.fullName,
-        date
-      }
-    ]
-  });
+    if (!receiverData)
+      return alert("Receiver not found");
 
-  showSuccess("Transfer Successful");
-setTimeout(() => {
-  location.reload();
-}, 1200);
+    const date = new Date().toISOString();
 
-// ======================================================
-// 💡 PAY BILL
-// ======================================================
+    // Update sender
+    await updateDoc(userRef, {
+      balance: balanceValue - amountValue,
+      transactions: [
+        ...(data.transactions || []),
+        {
+          amount: -amountValue,
+          note: "SEPA Transfer",
+          toName: receiverData.fullName,
+          date
+        }
+      ]
+    });
 
-window.payBill = async () => {
+    // Update receiver
+    await updateDoc(doc(db, "users", receiverUsername), {
+      balance: Number(receiverData.balance || 0) + amountValue,
+      transactions: [
+        ...(receiverData.transactions || []),
+        {
+          amount: amountValue,
+          note: "SEPA Credit Transfer",
+          fromName: data.fullName,
+          date
+        }
+      ]
+    });
 
-  if (data.frozen)
-    return alert("Account is frozen. Contact bank support.");
+    showSuccess("Transfer Successful");
 
-  const amt = parseFloat(document.getElementById("billAmount").value);
+    setTimeout(() => {
+      location.reload();
+    }, 1200);
+  };
 
-  if (!amt) return alert("Enter amount");
-  if (balanceValue < amt) return alert("Insufficient funds");
+  // ======================================================
+  // 💡 PAY BILL
+  // ======================================================
 
-  const date = new Date().toISOString();
+  window.payBill = async () => {
 
-  await updateDoc(userRef,{
-    balance: balanceValue - amt,
-    transactions: [
-      ...(data.transactions || []),
-      {
-        amount: -amt,
-        note: document.getElementById("billType").value + " Direct Debit",
-        date
-      }
-    ]
-  });
+    if (checkFreeze()) return;
 
-  showSuccess("Bill Payment Successful");
-  location.reload();
-};
+    const amt =
+      parseFloat(document.getElementById("billAmount").value);
 
-// ======================================================
-// 🎁 BUY GIFT CARD
-// ======================================================
+    if (!amt)
+      return alert("Enter amount");
 
-window.buyGift = async () => {
+    if (balanceValue < amt)
+      return alert("Insufficient funds");
 
-  if (data.frozen)
-    return alert("Account is frozen. Contact bank support.");
+    const date = new Date().toISOString();
 
-  const amt = parseFloat(document.getElementById("giftAmount").value);
+    await updateDoc(userRef, {
+      balance: balanceValue - amt,
+      transactions: [
+        ...(data.transactions || []),
+        {
+          amount: -amt,
+          note: document.getElementById("billType").value + " Direct Debit",
+          date
+        }
+      ]
+    });
 
-  if (!amt) return alert("Enter amount");
-  if (balanceValue < amt) return alert("Insufficient funds");
+    showSuccess("Bill Payment Successful");
 
-  const date = new Date().toISOString();
+    setTimeout(() => {
+      location.reload();
+    }, 1200);
+  };
 
-  await updateDoc(userRef,{
-    balance: balanceValue - amt,
-    transactions: [
-      ...(data.transactions || []),
-      {
-        amount: -amt,
-        note: document.getElementById("giftType").value + " Gift Card",
-        date
-      }
-    ]
-  });
+  // ======================================================
+  // 🎁 BUY GIFT CARD
+  // ======================================================
 
-  showSuccess("Gift Card Purchased");
-  location.reload();
-};
+  window.buyGift = async () => {
 
-// ======================================================
-// 🚪 LOGOUT
-// ======================================================
+    if (checkFreeze()) return;
 
-window.logout = () => {
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.replace("index.html");
-};
+    const amt =
+      parseFloat(document.getElementById("giftAmount").value);
+
+    if (!amt)
+      return alert("Enter amount");
+
+    if (balanceValue < amt)
+      return alert("Insufficient funds");
+
+    const date = new Date().toISOString();
+
+    await updateDoc(userRef, {
+      balance: balanceValue - amt,
+      transactions: [
+        ...(data.transactions || []),
+        {
+          amount: -amt,
+          note: document.getElementById("giftType").value + " Gift Card",
+          date
+        }
+      ]
+    });
+
+    showSuccess("Gift Card Purchased");
+
+    setTimeout(() => {
+      location.reload();
+    }, 1200);
+  };
+
+  // ======================================================
+  // 🚪 LOGOUT
+  // ======================================================
+
+  window.logout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("index.html");
+  };
+}
+
+// START APP
+initDashboard();
