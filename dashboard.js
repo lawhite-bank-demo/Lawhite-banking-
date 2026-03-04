@@ -53,7 +53,6 @@ body:
 }
 
 
-
 // INIT DASHBOARD
 
 async function initDashboard(){
@@ -73,7 +72,6 @@ return;
 const data = snap.data();
 
 
-
 // SUCCESS BANNER
 
 function showSuccess(message){
@@ -90,7 +88,6 @@ banner.style.display="none";
 },2000);
 
 }
-
 
 
 // USER INFO
@@ -112,7 +109,6 @@ if(document.getElementById("swift"))
 document.getElementById("swift").innerText = data.swift;
 
 
-
 // PROFILE
 
 if(document.getElementById("nameProfile"))
@@ -120,7 +116,6 @@ document.getElementById("nameProfile").innerText = data.fullName;
 
 if(document.getElementById("emailProfile"))
 document.getElementById("emailProfile").innerText = data.email;
-
 
 
 // BALANCE
@@ -138,24 +133,21 @@ if(!balanceEl) return;
 balanceEl.innerText =
 hidden ? "••••••" : "€"+balanceValue.toLocaleString();
 
+if(toggleEl){
 toggleEl.innerText =
 hidden ? "👁 Show balance" : "👁 Hide balance";
+}
 
 }
 
 if(toggleEl){
-
 toggleEl.onclick = ()=>{
-
 hidden = !hidden;
 renderBalance();
-
 };
-
 }
 
 renderBalance();
-
 
 
 // MULTI CURRENCY WALLET
@@ -175,7 +167,6 @@ Number(data.gbpBalance || 0).toLocaleString();
 if(document.getElementById("audWallet"))
 document.getElementById("audWallet").innerText =
 Number(data.audBalance || 0).toLocaleString();
-
 
 
 // CARD DISPLAY
@@ -201,7 +192,6 @@ const cvvElement = document.getElementById("cardCVV");
 if(cvvElement) cvvElement.innerText="***";
 
 
-
 // REVEAL CVV
 
 window.revealCVV = ()=>{
@@ -211,13 +201,10 @@ if(!cvvElement) return;
 cvvElement.innerText = data.cardCVV;
 
 setTimeout(()=>{
-
 cvvElement.innerText="***";
-
 },5000);
 
 };
-
 
 
 // FREEZE CARD
@@ -237,7 +224,6 @@ location.reload();
 };
 
 
-
 // COMPLETED TRANSACTIONS
 
 const box = document.getElementById("transactions");
@@ -246,13 +232,15 @@ if(box){
 
 box.innerHTML="";
 
-if(Array.isArray(data.transactions)){
+if(data.transactions){
 
-const sorted = data.transactions.sort(
-(a,b)=> new Date(b.date) - new Date(a.date)
-);
+const txArray = Array.isArray(data.transactions)
+? data.transactions
+: Object.values(data.transactions);
 
-sorted.slice(0,20).forEach(tx=>{
+txArray.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+txArray.slice(0,20).forEach(tx=>{
 
 const amount = Number(tx.amount);
 
@@ -273,20 +261,23 @@ box.appendChild(div);
 }
 
 
-
 // PENDING TRANSACTIONS
 
 const pendingBox = document.getElementById("pendingTransactions");
 
-if(pendingBox && Array.isArray(data.pendingTransactions)){
+if(pendingBox && data.pendingTransactions){
 
-data.pendingTransactions.forEach(tx=>{
+const pendingArray = Array.isArray(data.pendingTransactions)
+? data.pendingTransactions
+: Object.values(data.pendingTransactions);
+
+pendingArray.forEach(tx=>{
 
 const div = document.createElement("div");
 
 div.innerHTML = `
 <strong>${tx.merchant}</strong><br>
-€${Math.abs(tx.amount)}
+€${Math.abs(tx.amount).toLocaleString()}
 <div class="small">Status: Pending</div>
 <div class="small">${new Date(tx.date).toLocaleString()}</div>
 `;
@@ -296,7 +287,6 @@ pendingBox.appendChild(div);
 });
 
 }
-
 
 
 // RECEIVER LOOKUP
@@ -321,10 +311,8 @@ let foundName=null;
 
 users.forEach(d=>{
 const u=d.data();
-
 if(u.accountNumber===value || u.iban===value)
 foundName=u.fullName;
-
 });
 
 receiverNameBox.innerText =
@@ -333,7 +321,6 @@ foundName ? "Receiver: "+foundName : "Account not found";
 });
 
 }
-
 
 
 // TRANSFER
@@ -370,7 +357,6 @@ showSuccess("Transfer Approved");
 };
 
 
-
 // CURRENCY CONVERTER
 
 window.convertCurrency = async ()=>{
@@ -389,11 +375,9 @@ if(!amount) return alert("Enter amount");
 try{
 
 const res = await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
-
 const data = await res.json();
 
 const rate = data.rates[type];
-
 const result = amount * rate;
 
 resultBox.innerText =
@@ -406,7 +390,6 @@ resultBox.innerText = "Conversion failed";
 }
 
 };
-
 
 
 // LOGOUT
