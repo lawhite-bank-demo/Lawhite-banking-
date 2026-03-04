@@ -3,8 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import {
 getFirestore,
 doc,
-getDoc,
-updateDoc
+getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
@@ -24,7 +23,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 
-// USERNAME FROM LOGIN
+// USER LOGIN CHECK
 const username = localStorage.getItem("username");
 
 if(!username){
@@ -32,86 +31,115 @@ window.location.href="index.html";
 }
 
 
-// LOAD USER
+// GLOBAL VARIABLES
+let userData = {};
+let balanceVisible = true;
+
+
+// LOAD USER DATA
 async function loadUser(){
 
-const ref = doc(db,"users",username);
-const snap = await getDoc(ref);
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
 
 if(!snap.exists()){
 alert("User not found");
 return;
 }
 
-const data = snap.data();
+userData = snap.data();
 
 
 // WELCOME
 document.getElementById("welcome").innerText =
-"Welcome, " + (data.fullName || username);
+"Welcome, " + (userData.fullName || username);
 
 
 // ACCOUNT INFO
-document.getElementById("name").innerText = data.fullName || "-";
-document.getElementById("acc").innerText = data.accountNumber || "-";
-document.getElementById("iban").innerText = data.iban || "-";
-document.getElementById("swift").innerText = data.swift || "-";
+document.getElementById("name").innerText =
+userData.fullName || "-";
+
+document.getElementById("acc").innerText =
+userData.accountNumber || "-";
+
+document.getElementById("iban").innerText =
+userData.iban || "-";
+
+document.getElementById("swift").innerText =
+userData.swift || "-";
 
 
 // PROFILE
 document.getElementById("nameProfile").innerText =
-data.fullName || "-";
+userData.fullName || "-";
 
 document.getElementById("emailProfile").innerText =
-data.email || "-";
+userData.email || "-";
 
 
 // BALANCE
-balance = data.balance || 0;
-
-document.getElementById("balance").innerText =
-"€" + Number(balance).toLocaleString();
+updateBalance();
 
 
-// WALLETS
+// WALLET
 document.getElementById("eurWallet").innerText =
-data.walletEUR || 0;
+userData.walletEUR || 0;
 
 document.getElementById("usdWallet").innerText =
-data.walletUSD || 0;
+userData.walletUSD || 0;
 
 document.getElementById("gbpWallet").innerText =
-data.walletGBP || 0;
+userData.walletGBP || 0;
 
 document.getElementById("audWallet").innerText =
-data.walletAUD || 0;
+userData.walletAUD || 0;
 
 
 // CARD
 document.getElementById("cardNumber").innerText =
-data.cardNumber || "0000 0000 0000 0000";
+userData.cardNumber || "0000 0000 0000 0000";
 
 document.getElementById("cardName").innerText =
-data.fullName || "-";
+userData.fullName || "-";
 
 document.getElementById("cardExpiry").innerText =
-data.cardExpiry || "--/--";
+userData.cardExpiry || "--/--";
 
-cvv = data.cardCVV || "***";
+document.getElementById("cardCVV").innerText="***";
+
+
+// LOAD TRANSACTIONS
+loadTransactions();
+
+}
+
+
+function updateBalance(){
+
+const balance = userData.balance || 0;
+
+document.getElementById("balance").innerText =
+balanceVisible ? "€"+Number(balance).toLocaleString() : "••••";
+
+}
 
 
 // TRANSACTIONS
-const txBox = document.getElementById("transactions");
+function loadTransactions(){
 
-txBox.innerHTML="";
+const box = document.getElementById("transactions");
 
-const transactions = data.transactions || [];
+box.innerHTML="";
 
-transactions.reverse().forEach(t=>{
+const txs = userData.transactions || [];
 
-const div=document.createElement("div");
+for(let i=txs.length-1;i>=0;i--){
 
-div.innerHTML=`
+const t = txs[i];
+
+const div = document.createElement("div");
+
+div.innerHTML = `
 
 <div><b>${t.note || "Transaction"}</b></div>
 
@@ -125,73 +153,51 @@ ${new Date(t.date).toLocaleString()}
 
 `;
 
-txBox.appendChild(div);
-
-});
-
+box.appendChild(div);
 
 }
 
-loadUser();
-
-
-// BALANCE HIDE
-let balanceVisible=true;
-let balance=0;
-
-document.getElementById("toggleBalance").onclick=()=>{
-
-if(balanceVisible){
-
-document.getElementById("balance").innerText="••••";
-
-balanceVisible=false;
-
-}else{
-
-document.getElementById("balance").innerText=
-"€"+Number(balance).toLocaleString();
-
-balanceVisible=true;
-
 }
+
+
+// TOGGLE BALANCE
+document.getElementById("toggleBalance").onclick=function(){
+
+balanceVisible = !balanceVisible;
+
+updateBalance();
 
 };
 
 
 // SHOW CVV
-let cvv="***";
-
 window.revealCVV=function(){
 
-document.getElementById("cardCVV").innerText=cvv;
+document.getElementById("cardCVV").innerText =
+userData.cardCVV || "***";
 
 };
 
 
 // FREEZE CARD
-window.toggleCard=async function(){
+window.toggleCard=function(){
 
-alert("Card freeze toggled");
+alert("Card freeze/unfreeze feature active.");
 
 };
 
 
-// TRANSFER
-window.askPin=async function(){
+// SEND TRANSFER
+window.askPin=function(){
 
-const pin=prompt("Enter your PIN");
+const pin = prompt("Enter your PIN");
 
 if(!pin) return;
-
-alert("Transfer request submitted");
 
 document.getElementById("successBanner").style.display="block";
 
 setTimeout(()=>{
-
 document.getElementById("successBanner").style.display="none";
-
 },3000);
 
 };
@@ -200,18 +206,18 @@ document.getElementById("successBanner").style.display="none";
 // CURRENCY CONVERTER
 window.convertCurrency=function(){
 
-const amount=parseFloat(
-document.getElementById("convertAmount").value
-);
+const amount =
+parseFloat(document.getElementById("convertAmount").value) || 0;
 
-const type=document.getElementById("convertType").value;
+const type =
+document.getElementById("convertType").value;
 
-let result=0;
+let result = 0;
 
-if(type==="USD") result=amount*1.08;
-if(type==="GBP") result=amount*0.86;
+if(type==="USD") result = amount*1.08;
+if(type==="GBP") result = amount*0.86;
 
-document.getElementById("conversionResult").innerText=
+document.getElementById("conversionResult").innerText =
 "≈ "+result.toFixed(2)+" "+type;
 
 };
@@ -225,3 +231,7 @@ localStorage.removeItem("username");
 window.location.href="index.html";
 
 };
+
+
+// START APP
+loadUser();
