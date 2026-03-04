@@ -1,161 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Bank</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-<style>
+<title>DeChase Bank Dashboard</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>
 body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:linear-gradient(160deg,#020617,#031427,#021a35);
-  color:white;
+margin:0;
+font-family:'Inter',sans-serif;
+background:linear-gradient(160deg,#020617,#031427,#021a35);
+color:white;
 }
+
 .container{
-  max-width:420px;
-  margin:auto;
-  padding:20px;
+max-width:420px;
+margin:auto;
+padding:20px;
 }
+
 .card{
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(18px);
-  border-radius:18px;
-  padding:16px;
-  margin-bottom:15px;
-  border:1px solid rgba(255,255,255,0.06);
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(18px);
+border-radius:18px;
+padding:16px;
+margin-bottom:15px;
+border:1px solid rgba(255,255,255,0.06);
 }
+
 .balance-card{
-  background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
-  border-radius:20px;
-  padding:22px;
-  text-align:center;
+background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
+border-radius:20px;
+padding:22px;
+text-align:center;
+margin-bottom:15px;
 }
+
 .balance{
-  font-size:34px;
-  font-weight:700;
+font-size:34px;
+font-weight:700;
 }
+
 .eye{
-  margin-top:6px;
-  font-size:14px;
-  cursor:pointer;
+margin-top:6px;
+font-size:14px;
+cursor:pointer;
 }
+
 .grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:8px;
+margin-top:10px;
 }
-button, input, select{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  margin-top:8px;
+
+button,input,select{
+width:100%;
+padding:10px;
+border:none;
+border-radius:10px;
+margin-top:8px;
 }
+
 button{
-  background:#2d8cff;
-  color:white;
-  font-weight:600;
+background:#2d8cff;
+color:white;
+font-weight:600;
 }
+
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
 .small{font-size:12px;opacity:.8;}
-</style>
-</head>
-<body>
 
-<div class="container">
+.bank-card{
+background:linear-gradient(135deg,#0a1f44,#1d4ed8);
+border-radius:16px;
+padding:18px;
+margin-bottom:10px;
+}
 
-<h3 id="welcome">Loading...</h3>
+.card-number{
+font-size:22px;
+letter-spacing:3px;
+margin:20px 0;
+}
 
-<!-- BALANCE -->
-<div class="balance-card">
-  <div class="balance" id="balance">€0</div>
-  <div class="eye" id="toggleBalance">👁 Hide balance</div>
-</div>
+.card-bottom{
+display:flex;
+justify-content:space-between;
+font-size:14px;
+}
 
-<!-- ACCOUNT INFO -->
-<div class="card">
+.freezeBtn{
+background:#ff3b3b;
+margin-bottom:15px;
+}
+
+#transactions div{
+background:#0d2b4a;
+padding:10px;
+border-radius:8px;
+margin-bottom:8px;
+}
+</style></head><body><div class="container"><h3 id="welcome">Loading...</h3><!-- BANK CARD --><div class="bank-card"><div style="text-align:right;font-weight:bold;" id="cardType">VISA</div><div class="card-number" id="cardNumber">
+0000 0000 0000 0000
+</div><div class="card-bottom"><div>
+<div class="small">Card Holder</div>
+<div id="cardName">---</div>
+</div><div>
+<div class="small">Expiry</div>
+<div id="cardExpiry">--/--</div>
+</div><div>
+<div class="small">CVV</div>
+<div id="cardCVV">***</div>
+</div></div></div><button onclick="toggleCard()" class="freezeBtn">
+Freeze / Unfreeze Card
+</button><!-- BALANCE --><div class="balance-card">
+<div class="balance" id="balance">€0</div>
+<div class="eye" id="toggleBalance">👁 Hide balance</div>
+</div><!-- ACCOUNT INFO --><div class="card">
 <b>Account Info</b><br>
 Name: <span id="name">-</span><br>
 Account: <span id="acc">-</span><br>
 IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
-</div>
-
-<!-- QUICK ACTIONS -->
-<div class="card">
-<b>Quick Actions</b>
+</div><!-- QUICK ACTIONS --><div class="card"><b>Quick Actions</b>
 
 <div class="grid">
-  <button onclick="showTransfer()">Send</button>
-  <button onclick="showBills()">Pay Bills</button>
-  <button onclick="showGift()">Gift Cards</button>
-  <button onclick="alert('Withdraw coming soon')">Withdraw</button>
-  <button onclick="alert('Deposit coming soon')">Deposit</button>
-  <button onclick="location.reload()">Refresh</button>
-</div>
-
-<!-- TRANSFER PANEL -->
-<div id="transferBox" style="display:none;">
-  <input id="receiver" placeholder="Account Number or IBAN">
-  <div id="receiverName" class="small" style="color:#00ffb2;"></div>
-  <input id="amount" type="number" placeholder="Amount">
-  <button onclick="askPin()">Send</button>
-</div>
-
-<!-- PAY BILLS PANEL -->
-<div id="billBox" style="display:none;">
+<button onclick="showTransfer()">Send</button>
+<button onclick="showBills()">Pay Bills</button>
+<button onclick="showGift()">Gift Cards</button>
+<button onclick="alert('Withdraw coming soon')">Withdraw</button>
+<button onclick="alert('Deposit coming soon')">Deposit</button>
+<button onclick="location.reload()">Refresh</button>
+</div><!-- TRANSFER PANEL --><div id="transferBox" style="display:none;">
+<input id="receiver" placeholder="Account Number or IBAN">
+<div id="receiverName" class="small"></div>
+<input id="amount" type="number" placeholder="Amount (€)">
+<button onclick="askPin()">Send Transfer</button>
+</div><!-- BILL PANEL --><div id="billBox" style="display:none;">
 <select id="billType">
 <option>Electricity Utility</option>
 <option>Water Utility</option>
 <option>Internet Service</option>
 <option>Property Tax</option>
 <option>Income Tax</option>
-<option>Business Tax</option>
-<option>Mortgage Payment</option>
 <option>Vehicle Insurance</option>
-<option>Health Insurance</option>
-<option>Government Levy</option>
-</select>
-<input id="billAmount" type="number" placeholder="Amount">
-<button onclick="payBill()">Pay</button>
-</div>
-
-<!-- GIFT CARD PANEL -->
-<div id="giftBox" style="display:none;">
+<option>Government Fee</option>
+</select><input id="billAmount" type="number" placeholder="Amount (€)">
+<button onclick="payBill()">Pay Bill</button>
+</div><!-- GIFT CARD PANEL --><div id="giftBox" style="display:none;">
 <select id="giftType">
 <option>Amazon</option>
 <option>iTunes</option>
 <option>Steam</option>
 <option>Google Play</option>
-</select>
-<input id="giftAmount" type="number" placeholder="Amount">
-<button onclick="buyGift()">Buy</button>
-</div>
-
-</div>
-
-<!-- TRANSACTIONS -->
-<div class="card">
+</select><input id="giftAmount" type="number" placeholder="Amount (€)">
+<button onclick="buyGift()">Buy Gift Card</button>
+</div></div><!-- TRANSACTIONS --><div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
-</div>
+</div><!-- LOGOUT --><button onclick="logout()" style="background:#ff4d4d">Logout</button>
 
-<!-- LOGOUT -->
-<button onclick="logout()" style="background:#ff4d4d">Logout</button>
-
-<!-- SUPPORT -->
-<button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
+<!-- SUPPORT --><button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
 💬 Contact Bank Support
-</button>
-
-</div>
-
-<!-- SUCCESS BANNER -->
-<div id="successBanner" style="
+</button></div><!-- SUCCESS BANNER --><div id="successBanner" style="
 display:none;
 position:fixed;
 top:20px;
@@ -169,17 +175,11 @@ font-weight:bold;
 box-shadow:0 8px 20px rgba(0,0,0,0.2);
 z-index:9999;">
 ✅ Payment Successful
-</div>
-
-<script type="module" src="dashboard.js?v=23"></script>
-
-<script>
+</div><script type="module" src="dashboard.js"></script><script>
 function contactSupport(){
-  const phone="14237960225";
-  const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
-  window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+const phone="14237960225";
+const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
+window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
 }
-</script>
-
-</body>
+</script></body>
 </html>
