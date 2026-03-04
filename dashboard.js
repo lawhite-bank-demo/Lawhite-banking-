@@ -26,7 +26,8 @@ const db = getFirestore(app);
 let currentOTP = null;
 let otpExpiry = null;
 
-const ELASTIC_API_KEY = "PASTE_YOUR_ELASTIC_API_KEY_HERE";
+// ✅ YOUR ELASTIC EMAIL API KEY INSERTED
+const ELASTIC_API_KEY = "1EB4C32D1F5E58D70D026AF84037AEA54D1E2C859A1F092998C4A061092E4F7D7B6A7A83873BEC25441CA45E29A470A6";
 
 async function sendOTP(email){
 
@@ -277,7 +278,6 @@ async function initDashboard(){
     if(totalSentToday + amountValue > DAILY_LIMIT)
       return alert("Daily transfer limit exceeded (€100,000)");
 
-    // SEND OTP
     await sendOTP(data.email);
 
     const enteredOTP = prompt("Enter the 6-digit OTP sent to email");
