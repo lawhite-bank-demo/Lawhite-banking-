@@ -19,7 +19,6 @@ body{
   margin:auto;
   padding:20px;
 }
-
 .card{
   background:rgba(255,255,255,0.05);
   backdrop-filter:blur(18px);
@@ -28,48 +27,41 @@ body{
   margin-bottom:15px;
   border:1px solid rgba(255,255,255,0.06);
 }
-
 .balance-card{
   background:linear-gradient(135deg,#3aa0ff,#6ed0ff);
   border-radius:20px;
   padding:22px;
   text-align:center;
 }
-
 .balance{
   font-size:34px;
   font-weight:700;
 }
-
 .eye{
   margin-top:6px;
   font-size:14px;
   cursor:pointer;
 }
-
 .grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:8px;
 }
-
 button, input, select{
   width:100%;
   padding:10px;
   border:none;
   border-radius:10px;
-  margin-top:6px;
+  margin-top:8px;
 }
-
 button{
   background:#2d8cff;
   color:white;
   font-weight:600;
 }
-
 .green{color:#00ffb2;}
 .red{color:#ff6b6b;}
-.small{font-size:12px;opacity:.7;}
+.small{font-size:12px;opacity:.8;}
 </style>
 </head>
 <body>
@@ -108,9 +100,10 @@ SWIFT: <span id="swift">-</span>
 
 <!-- TRANSFER PANEL -->
 <div id="transferBox" style="display:none;">
-<input id="receiver" placeholder="Account Number or IBAN">
-<div id="receiverName" class="small" style="margin-top:4px;color:#00ffb2;"></div> <input id="amount" type="number" placeholder="Amount">
-<button onclick="askPin()">Send</button>
+  <input id="receiver" placeholder="Account Number or IBAN">
+  <div id="receiverName" class="small" style="color:#00ffb2;"></div>
+  <input id="amount" type="number" placeholder="Amount">
+  <button onclick="askPin()">Send</button>
 </div>
 
 <!-- PAY BILLS PANEL -->
@@ -174,15 +167,12 @@ padding:14px 22px;
 border-radius:8px;
 font-weight:bold;
 box-shadow:0 8px 20px rgba(0,0,0,0.2);
-z-index:9999;
-transition:0.3s;">
+z-index:9999;">
 ✅ Payment Successful
 </div>
 
-<!-- DASHBOARD SCRIPT -->
-<script type="module" src="dashboard.js?v=22"></script>
+<script type="module" src="dashboard.js?v=23"></script>
 
-<!-- WHATSAPP SUPPORT -->
 <script>
 function contactSupport(){
   const phone="14237960225";
