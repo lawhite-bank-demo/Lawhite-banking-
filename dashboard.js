@@ -26,19 +26,14 @@ const db = getFirestore(app);
 async function initDashboard() {
 
   const username = localStorage.getItem("user");
-
-  if (!username) {
-    window.location.replace("index.html");
-    return;
-  }
+  if (!username) return window.location.replace("index.html");
 
   const userRef = doc(db, "users", username);
   const snap = await getDoc(userRef);
 
   if (!snap.exists()) {
     alert("User not found");
-    window.location.replace("index.html");
-    return;
+    return window.location.replace("index.html");
   }
 
   const data = snap.data();
@@ -72,7 +67,7 @@ async function initDashboard() {
   }
 
   // ======================================================
-  // 👤 DISPLAY USER INFO
+  // 👤 USER INFO
   // ======================================================
 
   document.getElementById("welcome").innerText =
@@ -81,7 +76,7 @@ async function initDashboard() {
   document.getElementById("name").innerText = data.fullName || "-";
   document.getElementById("acc").innerText = data.accountNumber || "-";
   document.getElementById("iban").innerText = data.iban || "-";
-  document.getElementById("swift").innerText = data.swift || "DEUTDEFF";
+  document.getElementById("swift").innerText = data.swift || "-";
 
   // ======================================================
   // 💰 BALANCE
@@ -111,7 +106,7 @@ async function initDashboard() {
   renderBalance();
 
   // ======================================================
-  // 🧾 TRANSACTIONS
+  // 🧾 TRANSACTIONS (VALID + SORTED)
   // ======================================================
 
   const box = document.getElementById("transactions");
@@ -119,12 +114,15 @@ async function initDashboard() {
 
   if (Array.isArray(data.transactions) && data.transactions.length) {
 
-    const sorted = data.transactions
-      .filter(tx => tx.date)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 20);
+    const validTx = data.transactions.filter(tx =>
+      tx.date && !isNaN(new Date(tx.date).getTime())
+    );
 
-    sorted.forEach(tx => {
+    const sorted = validTx.sort((a, b) =>
+      new Date(b.date) - new Date(a.date)
+    );
+
+    sorted.slice(0, 20).forEach(tx => {
 
       const amount = Number(tx.amount || 0);
       const color = amount > 0 ? "green" : "red";
@@ -150,6 +148,7 @@ async function initDashboard() {
         €${Math.abs(amount).toLocaleString()}
         <div class="small">${details}</div>
         <div class="small">${formattedDate}</div>
+        ${tx.ref ? `<div class="small">Ref: ${tx.ref}</div>` : ""}
       `;
 
       box.appendChild(div);
@@ -196,29 +195,23 @@ async function initDashboard() {
     receiverInput.addEventListener("input", async () => {
 
       const value = receiverInput.value.trim();
-      if (!value) {
-        receiverNameBox.innerText = "";
-        return;
-      }
+      if (!value) return receiverNameBox.innerText = "";
 
       const users = await getDocs(collection(db, "users"));
+
       let foundName = null;
 
       users.forEach(d => {
         const u = d.data();
-        if (u.accountNumber === value || u.iban === value) {
+        if (u.accountNumber === value || u.iban === value)
           foundName = u.fullName;
-        }
       });
 
-      if (foundName) {
-        receiverNameBox.innerText = "Receiver: " + foundName;
-        receiverNameBox.style.color = "#00ffb2";
-      } else {
-        receiverNameBox.innerText = "Account not found";
-        receiverNameBox.style.color = "#ff6b6b";
-      }
+      receiverNameBox.innerText =
+        foundName ? "Receiver: " + foundName : "Account not found";
 
+      receiverNameBox.style.color =
+        foundName ? "#00ffb2" : "#ff6b6b";
     });
   }
 
@@ -230,17 +223,13 @@ async function initDashboard() {
 
     if (checkFreeze()) return;
 
-    const receiverValue =
-      document.getElementById("receiver").value.trim();
-
-    const amountValue =
-      parseFloat(document.getElementById("amount").value);
+    const receiverValue = document.getElementById("receiver").value.trim();
+    const amountValue = parseFloat(document.getElementById("amount").value);
 
     if (!receiverValue || !amountValue)
       return alert("Fill all fields");
 
-    const pin = prompt("Enter PIN");
-    if (pin !== data.pin)
+    if (prompt("Enter PIN") !== data.pin)
       return alert("Wrong PIN");
 
     if (balanceValue < amountValue)
@@ -277,6 +266,7 @@ async function initDashboard() {
       return alert("Receiver not found");
 
     const date = new Date().toISOString();
+    const ref = "DCB" + Date.now();
 
     await updateDoc(userRef, {
       balance: balanceValue - amountValue,
@@ -286,7 +276,8 @@ async function initDashboard() {
           amount: -amountValue,
           note: "SEPA Transfer",
           toName: receiverData.fullName,
-          date
+          date,
+          ref
         }
       ]
     });
@@ -299,82 +290,13 @@ async function initDashboard() {
           amount: amountValue,
           note: "SEPA Credit Transfer",
           fromName: data.fullName,
-          date
+          date,
+          ref
         }
       ]
     });
 
     showSuccess("Transfer Successful");
-    setTimeout(() => location.reload(), 1200);
-  };
-
-  // ======================================================
-  // 💡 PAY BILL
-  // ======================================================
-
-  window.payBill = async () => {
-
-    if (checkFreeze()) return;
-
-    const amt =
-      parseFloat(document.getElementById("billAmount").value);
-
-    if (!amt)
-      return alert("Enter amount");
-
-    if (balanceValue < amt)
-      return alert("Insufficient funds");
-
-    const date = new Date().toISOString();
-
-    await updateDoc(userRef, {
-      balance: balanceValue - amt,
-      transactions: [
-        ...(data.transactions || []),
-        {
-          amount: -amt,
-          note: document.getElementById("billType").value + " Direct Debit",
-          date
-        }
-      ]
-    });
-
-    showSuccess("Bill Payment Successful");
-    setTimeout(() => location.reload(), 1200);
-  };
-
-  // ======================================================
-  // 🎁 BUY GIFT CARD
-  // ======================================================
-
-  window.buyGift = async () => {
-
-    if (checkFreeze()) return;
-
-    const amt =
-      parseFloat(document.getElementById("giftAmount").value);
-
-    if (!amt)
-      return alert("Enter amount");
-
-    if (balanceValue < amt)
-      return alert("Insufficient funds");
-
-    const date = new Date().toISOString();
-
-    await updateDoc(userRef, {
-      balance: balanceValue - amt,
-      transactions: [
-        ...(data.transactions || []),
-        {
-          amount: -amt,
-          note: document.getElementById("giftType").value + " Gift Card",
-          date
-        }
-      ]
-    });
-
-    showSuccess("Gift Card Purchased");
     setTimeout(() => location.reload(), 1200);
   };
 
