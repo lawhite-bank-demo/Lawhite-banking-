@@ -17,7 +17,7 @@ margin:0;
 font-family:'Inter',sans-serif;
 background:linear-gradient(180deg,#020617,#031427,#021a35);
 color:white;
-padding-bottom:80px;
+padding-bottom:90px;
 }
 
 .container{
@@ -28,12 +28,10 @@ padding:20px;
 
 .card{
 background:rgba(255,255,255,0.04);
-backdrop-filter:blur(20px);
 border-radius:18px;
 padding:18px;
 margin-bottom:16px;
 border:1px solid rgba(255,255,255,0.08);
-box-shadow:0 10px 30px rgba(0,0,0,0.35);
 }
 
 .balance-card{
@@ -42,7 +40,6 @@ border-radius:22px;
 padding:24px;
 text-align:center;
 margin-bottom:18px;
-box-shadow:0 20px 40px rgba(0,0,0,0.35);
 }
 
 .balance{
@@ -62,42 +59,16 @@ padding:12px;
 border:none;
 border-radius:12px;
 margin-top:10px;
-font-size:14px;
 }
 
 button{
-background:linear-gradient(135deg,#2f80ed,#1c5fd4);
+background:#1d4ed8;
 color:white;
 font-weight:600;
-cursor:pointer;
 }
 
 .freezeBtn{
-background:linear-gradient(135deg,#ff4b4b,#e11d48);
-}
-
-.small{
-font-size:12px;
-opacity:.8;
-}
-
-.bank-card{
-background:linear-gradient(135deg,#162d66,#1d4ed8);
-border-radius:18px;
-padding:20px;
-margin-bottom:12px;
-}
-
-.card-number{
-font-size:24px;
-letter-spacing:4px;
-margin:22px 0;
-}
-
-.card-bottom{
-display:flex;
-justify-content:space-between;
-font-size:14px;
+background:#e11d48;
 }
 
 .wallet-chip{
@@ -131,7 +102,7 @@ border-top:1px solid rgba(255,255,255,0.08);
 background:none;
 border:none;
 color:white;
-font-size:14px;
+font-size:13px;
 }
 
 </style>
@@ -145,14 +116,19 @@ font-size:14px;
 
 <h3 id="welcome">Loading...</h3>
 
-<!-- HOME PAGE -->
+
+<!-- HOME -->
 
 <div id="homePage">
 
 <div class="balance-card">
+
 <div class="balance" id="balance">€0</div>
+
 <div class="eye" id="toggleBalance">👁 Hide balance</div>
+
 </div>
+
 
 <div class="card">
 
@@ -165,7 +141,6 @@ SWIFT: <span id="swift">-</span>
 
 </div>
 
-<!-- MULTI CURRENCY WALLET -->
 
 <div class="card">
 
@@ -193,7 +168,6 @@ SWIFT: <span id="swift">-</span>
 
 </div>
 
-<!-- PENDING TRANSACTIONS -->
 
 <div class="card">
 
@@ -201,13 +175,12 @@ SWIFT: <span id="swift">-</span>
 
 <div id="pendingTransactions">
 
-<div class="small">No pending transactions</div>
+<div>No pending transactions</div>
 
 </div>
 
 </div>
 
-<!-- COMPLETED TRANSACTIONS -->
 
 <div class="card">
 
@@ -220,52 +193,34 @@ SWIFT: <span id="swift">-</span>
 </div>
 
 
-<!-- CARDS PAGE -->
+<!-- CARDS -->
 
 <div id="cardsPage" style="display:none">
 
-<div class="bank-card">
+<div class="card">
 
-<div style="text-align:right;font-weight:bold;" id="cardType">VISA</div>
+<b>Card</b>
 
-<div class="card-number" id="cardNumber">
-0000 0000 0000 0000
-</div>
+<div id="cardType">VISA</div>
 
-<div class="card-bottom">
+<div id="cardNumber">0000 0000 0000 0000</div>
 
-<div>
-<div class="small">Card Holder</div>
-<div id="cardName">---</div>
-</div>
+<div>Holder: <span id="cardName">---</span></div>
 
-<div>
-<div class="small">Expiry</div>
-<div id="cardExpiry">--/--</div>
-</div>
+<div>Expiry: <span id="cardExpiry">--/--</span></div>
 
-<div>
-<div class="small">CVV</div>
-<div id="cardCVV">***</div>
+<div>CVV: <span id="cardCVV">***</span></div>
 
-<button onclick="revealCVV()" style="margin-top:6px;background:#1e40af;">
-Show CVV
-</button>
+<button onclick="revealCVV()">Show CVV</button>
+
+<button class="freezeBtn" onclick="toggleCard()">Freeze / Unfreeze</button>
 
 </div>
 
 </div>
 
-</div>
 
-<button onclick="toggleCard()" class="freezeBtn">
-Freeze / Unfreeze Card
-</button>
-
-</div>
-
-
-<!-- PAYMENTS PAGE -->
+<!-- PAYMENTS -->
 
 <div id="paymentsPage" style="display:none">
 
@@ -275,88 +230,126 @@ Freeze / Unfreeze Card
 
 <input id="receiver" placeholder="Account Number or IBAN">
 
-<div id="receiverName" class="small"></div>
+<div id="receiverName"></div>
 
-<input id="amount" type="number" placeholder="Amount (€)">
+<input id="amount" placeholder="Amount">
 
 <button onclick="askPin()">Send Transfer</button>
 
 </div>
+
 
 <div class="card">
 
 <b>Currency Converter</b>
 
 <select id="convertType">
-<option value="USD">Euro → US Dollar</option>
-<option value="GBP">Euro → British Pound</option>
+
+<option value="USD">EUR → USD</option>
+
+<option value="GBP">EUR → GBP</option>
+
 </select>
 
-<input id="convertAmount" placeholder="Amount in Euro">
+<input id="convertAmount" placeholder="Amount">
 
 <button onclick="convertCurrency()">Convert</button>
 
-<div id="conversionResult" class="small"></div>
+<div id="conversionResult"></div>
 
 </div>
 
 </div>
 
 
-<!-- PROFILE PAGE -->
+<!-- BILLS -->
+
+<div id="billsPage" style="display:none">
+
+<div class="card">
+
+<b>Pay Bills</b>
+
+<button onclick="payBill('Electricity',120)">Electricity €120</button>
+
+<button onclick="payBill('Netflix',15)">Netflix €15</button>
+
+<button onclick="payBill('Internet',60)">Internet €60</button>
+
+</div>
+
+</div>
+
+
+<!-- GIFT CARDS -->
+
+<div id="giftPage" style="display:none">
+
+<div class="card">
+
+<b>Gift Cards</b>
+
+<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
+
+</div>
+
+</div>
+
+
+<!-- PROFILE -->
 
 <div id="profilePage" style="display:none">
 
 <div class="card">
 
-<b>User Profile</b><br><br>
-
 Name: <span id="nameProfile">-</span><br>
+
 Email: <span id="emailProfile">-</span>
 
 </div>
 
-<button onclick="logout()" style="background:#ff4d4d">
-Logout
-</button>
+<button onclick="logout()">Logout</button>
 
-<button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
-💬 Contact Bank Support
-</button>
+<button onclick="contactSupport()">Contact Support</button>
 
 </div>
 
 </div>
 
 
-<!-- SUCCESS BANNER -->
-
-<div id="successBanner" style="
+<div id="successBanner"
+style="
 display:none;
 position:fixed;
 top:20px;
 left:50%;
 transform:translateX(-50%);
 background:#22c55e;
-color:white;
 padding:14px 22px;
 border-radius:8px;
-font-weight:bold;
-box-shadow:0 8px 20px rgba(0,0,0,0.2);
-z-index:9999;">
+">
 
-✅ Transaction Successful
+Success
 
 </div>
 
 
-<!-- NAVIGATION -->
-
 <div class="bottomNav">
 
 <button onclick="openPage('homePage')">Home</button>
+
 <button onclick="openPage('cardsPage')">Cards</button>
+
 <button onclick="openPage('paymentsPage')">Payments</button>
+
+<button onclick="openPage('billsPage')">Bills</button>
+
+<button onclick="openPage('giftPage')">Gift</button>
+
 <button onclick="openPage('profilePage')">Profile</button>
 
 </div>
@@ -364,26 +357,27 @@ z-index:9999;">
 
 <script type="module" src="dashboard.js"></script>
 
+
 <script>
 
 function openPage(page){
 
-document.getElementById("homePage").style.display="none";
-document.getElementById("cardsPage").style.display="none";
-document.getElementById("paymentsPage").style.display="none";
-document.getElementById("profilePage").style.display="none";
+["homePage","cardsPage","paymentsPage","billsPage","giftPage","profilePage"]
+
+.forEach(p=>document.getElementById(p).style.display="none");
 
 document.getElementById(page).style.display="block";
 
 }
 
+
 function contactSupport(){
 
 const phone="14237960225";
 
-const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
+const msg=encodeURIComponent("Hello DeChase Support");
 
-window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+window.open(`https://wa.me/${phone}?text=${msg}`);
 
 }
 
