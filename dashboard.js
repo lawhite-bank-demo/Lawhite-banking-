@@ -156,20 +156,12 @@ location.reload();
 // USER INFO
 // ======================================================
 
-if(document.getElementById("welcome"))
 document.getElementById("welcome").innerText =
 "Hello, " + (data.fullName || username);
 
-if(document.getElementById("name"))
 document.getElementById("name").innerText = data.fullName || "-";
-
-if(document.getElementById("acc"))
 document.getElementById("acc").innerText = data.accountNumber || "-";
-
-if(document.getElementById("iban"))
 document.getElementById("iban").innerText = data.iban || "-";
-
-if(document.getElementById("swift"))
 document.getElementById("swift").innerText = data.swift || "-";
 
 if(document.getElementById("nameProfile"))
@@ -177,6 +169,26 @@ document.getElementById("nameProfile").innerText = data.fullName || "-";
 
 if(document.getElementById("emailProfile"))
 document.getElementById("emailProfile").innerText = data.email || "-";
+
+// ======================================================
+// MULTI CURRENCY WALLET
+// ======================================================
+
+if(document.getElementById("eurWallet"))
+document.getElementById("eurWallet").innerText =
+(data.balance || 0).toLocaleString();
+
+if(document.getElementById("usdWallet"))
+document.getElementById("usdWallet").innerText =
+(data.usdBalance || 0).toLocaleString();
+
+if(document.getElementById("gbpWallet"))
+document.getElementById("gbpWallet").innerText =
+(data.gbpBalance || 0).toLocaleString();
+
+if(document.getElementById("audWallet"))
+document.getElementById("audWallet").innerText =
+(data.audBalance || 0).toLocaleString();
 
 // ======================================================
 // BALANCE
@@ -190,8 +202,6 @@ const toggleEl = document.getElementById("toggleBalance");
 
 function renderBalance(){
 
-if(!balanceEl || !toggleEl) return;
-
 balanceEl.innerText =
 hidden ? "••••••" : "€"+balanceValue.toLocaleString();
 
@@ -200,12 +210,10 @@ hidden ? "👁 Show balance" : "👁 Hide balance";
 
 }
 
-if(toggleEl){
 toggleEl.onclick = ()=>{
 hidden=!hidden;
 renderBalance();
 };
-}
 
 renderBalance();
 
@@ -214,8 +222,6 @@ renderBalance();
 // ======================================================
 
 const box = document.getElementById("transactions");
-
-if(box){
 
 box.innerHTML="";
 
@@ -241,8 +247,6 @@ box.appendChild(div);
 
 }else{
 box.innerHTML="<div class='small'>No transactions yet</div>";
-}
-
 }
 
 // ======================================================
@@ -341,10 +345,8 @@ const rate = data.rates[type];
 
 const result = amount * rate;
 
-let currencyName = type === "USD" ? "US Dollar" : "British Pound";
-
 resultBox.innerText =
-amount + " EUR = " + result.toFixed(2) + " " + type + " (" + currencyName + ")";
+amount + " EUR = " + result.toFixed(2) + " " + type;
 
 }catch(err){
 
@@ -355,7 +357,7 @@ resultBox.innerText = "Conversion failed";
 };
 
 // ======================================================
-// RECEIPT GENERATOR (NEW FEATURE)
+// RECEIPT GENERATOR
 // ======================================================
 
 window.generateReceipt = ()=>{
@@ -377,12 +379,10 @@ Transaction Receipt
 Reference: ${ref}
 Date: ${date}
 
-Sender: Customer
 Receiver: ${receiver}
 
 Amount: €${amount}
 Type: SEPA Transfer
-
 Status: Completed
 `;
 
