@@ -311,7 +311,7 @@ return alert("OTP expired");
 if(enteredOTP != currentOTP)
 return alert("Invalid OTP");
 
-alert("Transfer approved");
+showSuccess("Transfer Approved");
 
 };
 
@@ -351,6 +351,48 @@ amount + " EUR = " + result.toFixed(2) + " " + type + " (" + currencyName + ")";
 resultBox.innerText = "Conversion failed";
 
 }
+
+};
+
+// ======================================================
+// RECEIPT GENERATOR (NEW FEATURE)
+// ======================================================
+
+window.generateReceipt = ()=>{
+
+const receiver =
+document.getElementById("receiver")?.value || "Receiver";
+
+const amount =
+document.getElementById("amount")?.value || "0";
+
+const date = new Date().toLocaleString();
+
+const ref = "DCB"+Math.floor(Math.random()*100000000);
+
+const receipt = `
+DeChase Bank
+Transaction Receipt
+
+Reference: ${ref}
+Date: ${date}
+
+Sender: Customer
+Receiver: ${receiver}
+
+Amount: €${amount}
+Type: SEPA Transfer
+
+Status: Completed
+`;
+
+const blob = new Blob([receipt], {type:"text/plain"});
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "DeChase_Receipt.txt";
+a.click();
 
 };
 
