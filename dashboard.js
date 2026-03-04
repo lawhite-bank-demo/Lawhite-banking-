@@ -190,6 +190,74 @@ window.showGift = () => {
   billBox.style.display = "none";
 };
   // ======================================================
+// 📂 PANEL TOGGLE
+// ======================================================
+
+const transferBox = document.getElementById("transferBox");
+const billBox = document.getElementById("billBox");
+const giftBox = document.getElementById("giftBox");
+
+window.showTransfer = () => {
+  transferBox.style.display = "block";
+  billBox.style.display = "none";
+  giftBox.style.display = "none";
+};
+
+window.showBills = () => {
+  billBox.style.display = "block";
+  transferBox.style.display = "none";
+  giftBox.style.display = "none";
+};
+
+window.showGift = () => {
+  giftBox.style.display = "block";
+  transferBox.style.display = "none";
+  billBox.style.display = "none";
+};
+
+// ======================================================
+// 🔎 LIVE RECEIVER NAME PREVIEW
+// ======================================================
+
+const receiverInput = document.getElementById("receiver");
+const receiverNameBox = document.getElementById("receiverName");
+
+if (receiverInput && receiverNameBox) {
+
+  receiverInput.addEventListener("input", async () => {
+
+    const value = receiverInput.value.trim();
+
+    if (!value) {
+      receiverNameBox.innerText = "";
+      return;
+    }
+
+    const users = await getDocs(collection(db, "users"));
+
+    let foundName = null;
+
+    users.forEach(d => {
+      const u = d.data();
+      if (u.accountNumber === value || u.iban === value) {
+        foundName = u.fullName;
+      }
+    });
+    if (foundName) {
+      receiverNameBox.innerText = "Receiver: " + foundName;
+      receiverNameBox.style.color = "#00ffb2";
+    } else {
+      receiverNameBox.innerText = "Account not found";
+      receiverNameBox.style.color = "#ff6b6b";
+    }
+
+  });
+
+}
+// ======================================================
+// 🔐 TRANSFER
+// ======================================================
+  // ======================================================
   // 🔐 TRANSFER
   // ======================================================
 
