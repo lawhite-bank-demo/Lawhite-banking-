@@ -2,8 +2,10 @@
 <html lang="en">
 
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>DeChase Bank</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -98,18 +100,19 @@ justify-content:space-between;
 font-size:14px;
 }
 
-#transactions div{
-background:rgba(255,255,255,0.05);
-padding:12px;
-border-radius:10px;
-margin-bottom:10px;
-}
-
 .wallet-chip{
 display:flex;
 justify-content:space-between;
 padding:8px 0;
 border-bottom:1px solid rgba(255,255,255,0.05);
+}
+
+#transactions div,
+#pendingTransactions div{
+background:rgba(255,255,255,0.05);
+padding:12px;
+border-radius:10px;
+margin-bottom:10px;
 }
 
 .bottomNav{
@@ -135,13 +138,14 @@ font-size:14px;
 
 </head>
 
+
 <body>
 
 <div class="container">
 
 <h3 id="welcome">Loading...</h3>
 
-<!-- HOME PAGE -->
+<!-- ================= HOME PAGE ================= -->
 
 <div id="homePage">
 
@@ -160,6 +164,8 @@ IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
 
 </div>
+
+<!-- MULTI CURRENCY WALLET -->
 
 <div class="card">
 
@@ -187,14 +193,29 @@ SWIFT: <span id="swift">-</span>
 
 </div>
 
+<!-- PENDING TRANSACTIONS -->
+
 <div class="card">
+
+<b>Pending Transactions</b>
+
+<div id="pendingTransactions"></div>
+
+</div>
+
+<!-- COMPLETED TRANSACTIONS -->
+
+<div class="card">
+
 <b>Transactions</b>
+
 <div id="transactions"></div>
-</div>
 
 </div>
 
-<!-- CARDS PAGE -->
+</div>
+
+<!-- ================= CARDS PAGE ================= -->
 
 <div id="cardsPage" style="display:none">
 
@@ -238,7 +259,7 @@ Freeze / Unfreeze Card
 
 </div>
 
-<!-- PAYMENTS PAGE -->
+<!-- ================= PAYMENTS PAGE ================= -->
 
 <div id="paymentsPage" style="display:none">
 
@@ -310,7 +331,7 @@ Freeze / Unfreeze Card
 
 </div>
 
-<!-- PROFILE PAGE -->
+<!-- ================= PROFILE PAGE ================= -->
 
 <div id="profilePage" style="display:none">
 
@@ -355,7 +376,7 @@ z-index:9999;">
 
 </div>
 
-<!-- NAVIGATION -->
+<!-- BOTTOM NAV -->
 
 <div class="bottomNav">
 
