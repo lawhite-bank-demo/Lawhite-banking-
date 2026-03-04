@@ -27,11 +27,10 @@ padding:20px;
 }
 
 .card{
-background:rgba(255,255,255,0.04);
+background:rgba(255,255,255,0.05);
 border-radius:18px;
 padding:18px;
 margin-bottom:16px;
-border:1px solid rgba(255,255,255,0.08);
 }
 
 .balance-card{
@@ -67,19 +66,14 @@ color:white;
 font-weight:600;
 }
 
-.freezeBtn{
-background:#e11d48;
-}
-
 .wallet-chip{
 display:flex;
 justify-content:space-between;
 padding:10px 0;
-border-bottom:1px solid rgba(255,255,255,0.05);
+border-bottom:1px solid rgba(255,255,255,0.08);
 }
 
-#transactions div,
-#pendingTransactions div{
+.tx{
 background:rgba(255,255,255,0.06);
 padding:12px;
 border-radius:10px;
@@ -95,7 +89,7 @@ background:#021a35;
 display:flex;
 justify-content:space-around;
 padding:14px 0;
-border-top:1px solid rgba(255,255,255,0.08);
+border-top:1px solid rgba(255,255,255,0.1);
 }
 
 .bottomNav button{
@@ -103,6 +97,11 @@ background:none;
 border:none;
 color:white;
 font-size:13px;
+}
+
+.small{
+font-size:12px;
+opacity:.8;
 }
 
 </style>
@@ -117,7 +116,7 @@ font-size:13px;
 <h3 id="welcome">Loading...</h3>
 
 
-<!-- HOME -->
+<!-- HOME PAGE -->
 
 <div id="homePage">
 
@@ -173,11 +172,7 @@ SWIFT: <span id="swift">-</span>
 
 <b>Pending Transactions</b>
 
-<div id="pendingTransactions">
-
-<div>No pending transactions</div>
-
-</div>
+<div id="pendingTransactions"></div>
 
 </div>
 
@@ -193,15 +188,14 @@ SWIFT: <span id="swift">-</span>
 </div>
 
 
+
 <!-- CARDS -->
 
 <div id="cardsPage" style="display:none">
 
 <div class="card">
 
-<b>Card</b>
-
-<div id="cardType">VISA</div>
+<b id="cardType">CARD</b>
 
 <div id="cardNumber">0000 0000 0000 0000</div>
 
@@ -213,11 +207,12 @@ SWIFT: <span id="swift">-</span>
 
 <button onclick="revealCVV()">Show CVV</button>
 
-<button class="freezeBtn" onclick="toggleCard()">Freeze / Unfreeze</button>
+<button onclick="toggleCard()">Freeze / Unfreeze Card</button>
 
 </div>
 
 </div>
+
 
 
 <!-- PAYMENTS -->
@@ -230,7 +225,7 @@ SWIFT: <span id="swift">-</span>
 
 <input id="receiver" placeholder="Account Number or IBAN">
 
-<div id="receiverName"></div>
+<div id="receiverName" class="small"></div>
 
 <input id="amount" placeholder="Amount">
 
@@ -246,7 +241,6 @@ SWIFT: <span id="swift">-</span>
 <select id="convertType">
 
 <option value="USD">EUR → USD</option>
-
 <option value="GBP">EUR → GBP</option>
 
 </select>
@@ -260,6 +254,7 @@ SWIFT: <span id="swift">-</span>
 </div>
 
 </div>
+
 
 
 <!-- BILLS -->
@@ -281,6 +276,7 @@ SWIFT: <span id="swift">-</span>
 </div>
 
 
+
 <!-- GIFT CARDS -->
 
 <div id="giftPage" style="display:none">
@@ -300,6 +296,7 @@ SWIFT: <span id="swift">-</span>
 </div>
 
 
+
 <!-- PROFILE -->
 
 <div id="profilePage" style="display:none">
@@ -307,18 +304,18 @@ SWIFT: <span id="swift">-</span>
 <div class="card">
 
 Name: <span id="nameProfile">-</span><br>
-
 Email: <span id="emailProfile">-</span>
 
 </div>
 
 <button onclick="logout()">Logout</button>
 
-<button onclick="contactSupport()">Contact Support</button>
+<button onclick="contactSupport()">Contact Bank Support</button>
 
 </div>
 
 </div>
+
 
 
 <div id="successBanner"
@@ -338,18 +335,14 @@ Success
 </div>
 
 
+
 <div class="bottomNav">
 
 <button onclick="openPage('homePage')">Home</button>
-
 <button onclick="openPage('cardsPage')">Cards</button>
-
 <button onclick="openPage('paymentsPage')">Payments</button>
-
 <button onclick="openPage('billsPage')">Bills</button>
-
 <button onclick="openPage('giftPage')">Gift</button>
-
 <button onclick="openPage('profilePage')">Profile</button>
 
 </div>
@@ -375,7 +368,7 @@ function contactSupport(){
 
 const phone="14237960225";
 
-const msg=encodeURIComponent("Hello DeChase Support");
+const msg=encodeURIComponent("Hello DeChase Bank Support");
 
 window.open(`https://wa.me/${phone}?text=${msg}`);
 
