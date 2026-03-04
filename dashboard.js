@@ -18,29 +18,29 @@ appId: "XXXX"
 };
 
 
-// INIT FIREBASE
+// INITIALIZE FIREBASE
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 
-// USER LOGIN CHECK
+// CHECK LOGIN
 const username = localStorage.getItem("username");
 
-if(!username){
-window.location.href="index.html";
+if (!username) {
+window.location.href = "index.html";
 }
 
 
-// GLOBAL VARIABLES
+// GLOBAL DATA
 let userData = {};
 let balanceVisible = true;
 
 
-// LOAD USER DATA
-async function loadUser(){
+// LOAD USER DATA (RUNS ONLY ONCE)
+async function loadDashboard(){
 
-const userRef = doc(db,"users",username);
-const snap = await getDoc(userRef);
+const ref = doc(db,"users",username);
+const snap = await getDoc(ref);
 
 if(!snap.exists()){
 alert("User not found");
@@ -81,7 +81,7 @@ userData.email || "-";
 updateBalance();
 
 
-// WALLET
+// WALLETS
 document.getElementById("eurWallet").innerText =
 userData.walletEUR || 0;
 
@@ -105,41 +105,44 @@ userData.fullName || "-";
 document.getElementById("cardExpiry").innerText =
 userData.cardExpiry || "--/--";
 
-document.getElementById("cardCVV").innerText="***";
+document.getElementById("cardCVV").innerText = "***";
 
 
-// LOAD TRANSACTIONS
-loadTransactions();
+// TRANSACTIONS
+renderTransactions();
 
 }
 
 
+// BALANCE DISPLAY
 function updateBalance(){
 
 const balance = userData.balance || 0;
 
 document.getElementById("balance").innerText =
-balanceVisible ? "€"+Number(balance).toLocaleString() : "••••";
+balanceVisible
+? "€" + Number(balance).toLocaleString()
+: "••••";
 
 }
 
 
 // TRANSACTIONS
-function loadTransactions(){
+function renderTransactions(){
 
 const box = document.getElementById("transactions");
 
-box.innerHTML="";
+box.innerHTML = "";
 
 const txs = userData.transactions || [];
 
-for(let i=txs.length-1;i>=0;i--){
+for(let i = txs.length - 1; i >= 0; i--){
 
 const t = txs[i];
 
-const div = document.createElement("div");
+const item = document.createElement("div");
 
-div.innerHTML = `
+item.innerHTML = `
 
 <div><b>${t.note || "Transaction"}</b></div>
 
@@ -147,13 +150,11 @@ div.innerHTML = `
 
 <div class="small">Ref: ${t.reference || "-"}</div>
 
-<div class="small">
-${new Date(t.date).toLocaleString()}
-</div>
+<div class="small">${new Date(t.date).toLocaleString()}</div>
 
 `;
 
-box.appendChild(div);
+box.appendChild(item);
 
 }
 
@@ -161,7 +162,7 @@ box.appendChild(div);
 
 
 // TOGGLE BALANCE
-document.getElementById("toggleBalance").onclick=function(){
+document.getElementById("toggleBalance").onclick = function(){
 
 balanceVisible = !balanceVisible;
 
@@ -171,7 +172,7 @@ updateBalance();
 
 
 // SHOW CVV
-window.revealCVV=function(){
+window.revealCVV = function(){
 
 document.getElementById("cardCVV").innerText =
 userData.cardCVV || "***";
@@ -179,16 +180,16 @@ userData.cardCVV || "***";
 };
 
 
-// FREEZE CARD
-window.toggleCard=function(){
+// CARD FREEZE
+window.toggleCard = function(){
 
-alert("Card freeze/unfreeze feature active.");
+alert("Card freeze/unfreeze feature activated.");
 
 };
 
 
-// SEND TRANSFER
-window.askPin=function(){
+// TRANSFER BUTTON
+window.askPin = function(){
 
 const pin = prompt("Enter your PIN");
 
@@ -204,7 +205,7 @@ document.getElementById("successBanner").style.display="none";
 
 
 // CURRENCY CONVERTER
-window.convertCurrency=function(){
+window.convertCurrency = function(){
 
 const amount =
 parseFloat(document.getElementById("convertAmount").value) || 0;
@@ -214,24 +215,24 @@ document.getElementById("convertType").value;
 
 let result = 0;
 
-if(type==="USD") result = amount*1.08;
-if(type==="GBP") result = amount*0.86;
+if(type === "USD") result = amount * 1.08;
+if(type === "GBP") result = amount * 0.86;
 
 document.getElementById("conversionResult").innerText =
-"≈ "+result.toFixed(2)+" "+type;
+"≈ " + result.toFixed(2) + " " + type;
 
 };
 
 
 // LOGOUT
-window.logout=function(){
+window.logout = function(){
 
 localStorage.removeItem("username");
 
-window.location.href="index.html";
+window.location.href = "index.html";
 
 };
 
 
-// START APP
-loadUser();
+// START DASHBOARD
+loadDashboard();
