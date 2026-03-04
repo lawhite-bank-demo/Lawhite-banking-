@@ -1,8 +1,13 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Bank</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>
+<title>DeChase Bank</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
 
 body{
 margin:0;
@@ -85,6 +90,12 @@ font-size:14px;
 background:#ff3b3b;
 }
 
+.cvvBtn{
+background:#1e40af;
+margin-top:6px;
+font-size:12px;
+}
+
 #transactions div{
 background:#0d2b4a;
 padding:10px;
@@ -111,52 +122,147 @@ color:white;
 font-size:14px;
 }
 
-</style></head><body><div class="container"><h3 id="welcome">Loading...</h3><!-- ================= HOME PAGE ================= --><div id="homePage"><div class="balance-card">
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h3 id="welcome">Loading...</h3>
+
+<!-- ================= HOME PAGE ================= -->
+
+<div id="homePage">
+
+<div class="balance-card">
 <div class="balance" id="balance">€0</div>
 <div class="eye" id="toggleBalance">👁 Hide balance</div>
-</div><div class="card">
+</div>
+
+<div class="card">
 <b>Account Info</b><br>
 Name: <span id="name">-</span><br>
 Account: <span id="acc">-</span><br>
 IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
-</div><div class="card">
+</div>
+
+<div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
-</div></div><!-- ================= CARDS PAGE ================= --><div id="cardsPage" style="display:none"><div class="bank-card"><div style="text-align:right;font-weight:bold;" id="cardType">VISA</div><div class="card-number" id="cardNumber">
+</div>
+
+</div>
+
+<!-- ================= CARDS PAGE ================= -->
+
+<div id="cardsPage" style="display:none">
+
+<div class="bank-card">
+
+<div style="text-align:right;font-weight:bold;" id="cardType">
+VISA
+</div>
+
+<div class="card-number" id="cardNumber">
 0000 0000 0000 0000
-</div><div class="card-bottom"><div>
+</div>
+
+<div class="card-bottom">
+
+<div>
 <div class="small">Card Holder</div>
 <div id="cardName">---</div>
-</div><div>
+</div>
+
+<div>
 <div class="small">Expiry</div>
 <div id="cardExpiry">--/--</div>
-</div><div>
+</div>
+
+<div>
 <div class="small">CVV</div>
 <div id="cardCVV">***</div>
-</div></div></div><button onclick="toggleCard()" class="freezeBtn">
-Freeze / Unfreeze Card
-</button></div><!-- ================= PAYMENTS PAGE ================= --><div id="paymentsPage" style="display:none"><div class="card"><input id="receiver" placeholder="Account Number or IBAN">
-<div id="receiverName" class="small"></div><input id="amount" type="number" placeholder="Amount (€)"><button onclick="askPin()">Send Transfer</button>
 
-</div><div class="card"><select id="billType">
+<button onclick="revealCVV()" class="cvvBtn">
+Show CVV
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<button onclick="toggleCard()" class="freezeBtn">
+Freeze / Unfreeze Card
+</button>
+
+</div>
+
+<!-- ================= PAYMENTS PAGE ================= -->
+
+<div id="paymentsPage" style="display:none">
+
+<div class="card">
+
+<input id="receiver" placeholder="Account Number or IBAN">
+
+<div id="receiverName" class="small"></div>
+
+<input id="amount" type="number" placeholder="Amount (€)">
+
+<button onclick="askPin()">Send Transfer</button>
+
+</div>
+
+<div class="card">
+
+<select id="billType">
 <option>Electricity</option>
 <option>Water</option>
 <option>Internet</option>
 <option>TV Subscription</option>
 <option>Government Fee</option>
-</select><input id="billAmount" placeholder="Amount (€)"><button onclick="payBill()">Pay Bill</button>
+</select>
 
-</div></div><!-- ================= PROFILE PAGE ================= --><div id="profilePage" style="display:none"><div class="card"><b>User Profile</b><br><br>
+<input id="billAmount" placeholder="Amount (€)">
+
+<button onclick="payBill()">Pay Bill</button>
+
+</div>
+
+</div>
+
+<!-- ================= PROFILE PAGE ================= -->
+
+<div id="profilePage" style="display:none">
+
+<div class="card">
+
+<b>User Profile</b><br><br>
 
 Name: <span id="nameProfile">-</span><br>
 Email: <span id="emailProfile">-</span>
 
-</div><button onclick="logout()" style="background:#ff4d4d">
+</div>
+
+<button onclick="logout()" style="background:#ff4d4d">
 Logout
-</button><button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
+</button>
+
+<button onclick="contactSupport()" style="background:#25D366;margin-top:10px;">
 💬 Contact Bank Support
-</button></div></div><!-- SUCCESS BANNER --><div id="successBanner" style="
+</button>
+
+</div>
+
+</div>
+
+<!-- SUCCESS BANNER -->
+
+<div id="successBanner" style="
 display:none;
 position:fixed;
 top:20px;
@@ -170,12 +276,22 @@ font-weight:bold;
 box-shadow:0 8px 20px rgba(0,0,0,0.2);
 z-index:9999;">
 ✅ Transaction Successful
-</div><!-- BOTTOM NAVIGATION --><div class="bottomNav"><button onclick="openPage('homePage')">Home</button>
+</div>
+
+<!-- BOTTOM NAV -->
+
+<div class="bottomNav">
+
+<button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('cardsPage')">Cards</button>
 <button onclick="openPage('paymentsPage')">Payments</button>
 <button onclick="openPage('profilePage')">Profile</button>
 
-</div><script type="module" src="dashboard.js"></script><script>
+</div>
+
+<script type="module" src="dashboard.js"></script>
+
+<script>
 
 function openPage(page){
 
@@ -189,11 +305,15 @@ document.getElementById(page).style.display="block";
 }
 
 function contactSupport(){
+
 const phone="14237960225";
 const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
+
 window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+
 }
 
 </script>
+
 </body>
 </html>
