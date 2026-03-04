@@ -1,4 +1,5 @@
-// 🔥 FIREBASE IMPORTS
+// FIREBASE IMPORTS
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore,
@@ -9,7 +10,9 @@ collection,
 getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 FIREBASE CONFIG
+
+// FIREBASE CONFIG
+
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
 authDomain: "dechase-bank.firebaseapp.com",
@@ -19,14 +22,13 @@ projectId: "dechase-bank"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ======================================================
+
 // OTP SYSTEM
-// ======================================================
 
 let currentOTP = null;
 let otpExpiry = null;
 
-const ELASTIC_API_KEY = "1EB4C32D1F5E58D70D026AF84037AEA54D1E2C859A1F092998C4A061092E4F7D7B6A7A83873BEC25441CA45E29A470A6";
+const ELASTIC_API_KEY = "YOUR_ELASTIC_KEY";
 
 async function sendOTP(email){
 
@@ -35,14 +37,6 @@ const otp = Math.floor(100000 + Math.random()*900000);
 currentOTP = otp;
 otpExpiry = Date.now() + 60000;
 
-const subject = "DeChase Bank Security Code";
-
-const body =
-"DeChase Bank Security Verification\n\n" +
-"Your OTP code is: " + otp + "\n\n" +
-"This code expires in 60 seconds.\n\n" +
-"Do not share this code.";
-
 await fetch("https://api.elasticemail.com/v2/email/send",{
 method:"POST",
 headers:{
@@ -50,21 +44,22 @@ headers:{
 },
 body:
 "apikey="+ELASTIC_API_KEY+
-"&subject="+encodeURIComponent(subject)+
+"&subject=DeChase OTP"+
 "&from=dechasebank@gmail.com"+
 "&to="+email+
-"&bodyText="+encodeURIComponent(body)
+"&bodyText=Your OTP is "+otp
 });
 
 }
 
-// ======================================================
+
+
 // INIT DASHBOARD
-// ======================================================
 
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
+
 if(!username) return window.location.replace("index.html");
 
 const userRef = doc(db,"users",username);
@@ -72,22 +67,23 @@ const snap = await getDoc(userRef);
 
 if(!snap.exists()){
 alert("User not found");
-return window.location.replace("index.html");
+return;
 }
 
 const data = snap.data();
 
-// ======================================================
+
+
 // SUCCESS BANNER
-// ======================================================
 
 function showSuccess(message){
 
 const banner = document.getElementById("successBanner");
+
 if(!banner) return;
 
 banner.innerText = "✅ " + message;
-banner.style.display = "block";
+banner.style.display="block";
 
 setTimeout(()=>{
 banner.style.display="none";
@@ -95,9 +91,94 @@ banner.style.display="none";
 
 }
 
-// ======================================================
+
+
+// USER INFO
+
+if(document.getElementById("welcome"))
+document.getElementById("welcome").innerText =
+"Hello, " + data.fullName;
+
+if(document.getElementById("name"))
+document.getElementById("name").innerText = data.fullName;
+
+if(document.getElementById("acc"))
+document.getElementById("acc").innerText = data.accountNumber;
+
+if(document.getElementById("iban"))
+document.getElementById("iban").innerText = data.iban;
+
+if(document.getElementById("swift"))
+document.getElementById("swift").innerText = data.swift;
+
+
+
+// PROFILE
+
+if(document.getElementById("nameProfile"))
+document.getElementById("nameProfile").innerText = data.fullName;
+
+if(document.getElementById("emailProfile"))
+document.getElementById("emailProfile").innerText = data.email;
+
+
+
+// BALANCE
+
+let balanceValue = Number(data.balance || 0);
+let hidden = false;
+
+const balanceEl = document.getElementById("balance");
+const toggleEl = document.getElementById("toggleBalance");
+
+function renderBalance(){
+
+if(!balanceEl) return;
+
+balanceEl.innerText =
+hidden ? "••••••" : "€"+balanceValue.toLocaleString();
+
+toggleEl.innerText =
+hidden ? "👁 Show balance" : "👁 Hide balance";
+
+}
+
+if(toggleEl){
+
+toggleEl.onclick = ()=>{
+
+hidden = !hidden;
+renderBalance();
+
+};
+
+}
+
+renderBalance();
+
+
+
+// MULTI CURRENCY WALLET
+
+if(document.getElementById("eurWallet"))
+document.getElementById("eurWallet").innerText =
+Number(data.balance || 0).toLocaleString();
+
+if(document.getElementById("usdWallet"))
+document.getElementById("usdWallet").innerText =
+Number(data.usdBalance || 0).toLocaleString();
+
+if(document.getElementById("gbpWallet"))
+document.getElementById("gbpWallet").innerText =
+Number(data.gbpBalance || 0).toLocaleString();
+
+if(document.getElementById("audWallet"))
+document.getElementById("audWallet").innerText =
+Number(data.audBalance || 0).toLocaleString();
+
+
+
 // CARD DISPLAY
-// ======================================================
 
 if(document.getElementById("cardNumber"))
 document.getElementById("cardNumber").innerText =
@@ -116,27 +197,30 @@ document.getElementById("cardType").innerText =
 data.cardType || "CARD";
 
 const cvvElement = document.getElementById("cardCVV");
-if(cvvElement) cvvElement.innerText = "***";
 
-// ======================================================
-// CVV REVEAL
-// ======================================================
+if(cvvElement) cvvElement.innerText="***";
+
+
+
+// REVEAL CVV
 
 window.revealCVV = ()=>{
 
 if(!cvvElement) return;
 
-cvvElement.innerText = data.cardCVV || "***";
+cvvElement.innerText = data.cardCVV;
 
 setTimeout(()=>{
-cvvElement.innerText = "***";
+
+cvvElement.innerText="***";
+
 },5000);
 
 };
 
-// ======================================================
-// CARD FREEZE
-// ======================================================
+
+
+// FREEZE CARD
 
 window.toggleCard = async ()=>{
 
@@ -152,91 +236,30 @@ location.reload();
 
 };
 
-// ======================================================
-// USER INFO
-// ======================================================
 
-document.getElementById("welcome").innerText =
-"Hello, " + (data.fullName || username);
 
-document.getElementById("name").innerText = data.fullName || "-";
-document.getElementById("acc").innerText = data.accountNumber || "-";
-document.getElementById("iban").innerText = data.iban || "-";
-document.getElementById("swift").innerText = data.swift || "-";
-
-if(document.getElementById("nameProfile"))
-document.getElementById("nameProfile").innerText = data.fullName || "-";
-
-if(document.getElementById("emailProfile"))
-document.getElementById("emailProfile").innerText = data.email || "-";
-
-// ======================================================
-// MULTI CURRENCY WALLET
-// ======================================================
-
-if(document.getElementById("eurWallet"))
-document.getElementById("eurWallet").innerText =
-(data.balance || 0).toLocaleString();
-
-if(document.getElementById("usdWallet"))
-document.getElementById("usdWallet").innerText =
-(data.usdBalance || 0).toLocaleString();
-
-if(document.getElementById("gbpWallet"))
-document.getElementById("gbpWallet").innerText =
-(data.gbpBalance || 0).toLocaleString();
-
-if(document.getElementById("audWallet"))
-document.getElementById("audWallet").innerText =
-(data.audBalance || 0).toLocaleString();
-
-// ======================================================
-// BALANCE
-// ======================================================
-
-let balanceValue = Number(data.balance || 0);
-let hidden = false;
-
-const balanceEl = document.getElementById("balance");
-const toggleEl = document.getElementById("toggleBalance");
-
-function renderBalance(){
-
-balanceEl.innerText =
-hidden ? "••••••" : "€"+balanceValue.toLocaleString();
-
-toggleEl.innerText =
-hidden ? "👁 Show balance" : "👁 Hide balance";
-
-}
-
-toggleEl.onclick = ()=>{
-hidden=!hidden;
-renderBalance();
-};
-
-renderBalance();
-
-// ======================================================
-// TRANSACTIONS
-// ======================================================
+// COMPLETED TRANSACTIONS
 
 const box = document.getElementById("transactions");
 
+if(box){
+
 box.innerHTML="";
 
-if(Array.isArray(data.transactions) && data.transactions.length){
+if(Array.isArray(data.transactions)){
 
-const sorted = data.transactions.sort((a,b)=> new Date(b.date)-new Date(a.date));
+const sorted = data.transactions.sort(
+(a,b)=> new Date(b.date) - new Date(a.date)
+);
 
 sorted.slice(0,20).forEach(tx=>{
 
-const amount = Number(tx.amount || 0);
+const amount = Number(tx.amount);
 
 const div = document.createElement("div");
 
-div.innerHTML=`
-<strong>${tx.note || "Transaction"}</strong><br>
+div.innerHTML = `
+<strong>${tx.note || tx.merchant || "Transaction"}</strong><br>
 €${Math.abs(amount).toLocaleString()}
 <div class="small">${new Date(tx.date).toLocaleString()}</div>
 `;
@@ -245,13 +268,38 @@ box.appendChild(div);
 
 });
 
-}else{
-box.innerHTML="<div class='small'>No transactions yet</div>";
 }
 
-// ======================================================
+}
+
+
+
+// PENDING TRANSACTIONS
+
+const pendingBox = document.getElementById("pendingTransactions");
+
+if(pendingBox && Array.isArray(data.pendingTransactions)){
+
+data.pendingTransactions.forEach(tx=>{
+
+const div = document.createElement("div");
+
+div.innerHTML = `
+<strong>${tx.merchant}</strong><br>
+€${Math.abs(tx.amount)}
+<div class="small">Status: Pending</div>
+<div class="small">${new Date(tx.date).toLocaleString()}</div>
+`;
+
+pendingBox.appendChild(div);
+
+});
+
+}
+
+
+
 // RECEIVER LOOKUP
-// ======================================================
 
 const receiverInput=document.getElementById("receiver");
 const receiverNameBox=document.getElementById("receiverName");
@@ -273,20 +321,22 @@ let foundName=null;
 
 users.forEach(d=>{
 const u=d.data();
+
 if(u.accountNumber===value || u.iban===value)
 foundName=u.fullName;
+
 });
 
-receiverNameBox.innerText=
+receiverNameBox.innerText =
 foundName ? "Receiver: "+foundName : "Account not found";
 
 });
 
 }
 
-// ======================================================
-// TRANSFER WITH OTP
-// ======================================================
+
+
+// TRANSFER
 
 window.askPin = async ()=>{
 
@@ -319,9 +369,9 @@ showSuccess("Transfer Approved");
 
 };
 
-// ======================================================
+
+
 // CURRENCY CONVERTER
-// ======================================================
 
 window.convertCurrency = async ()=>{
 
@@ -339,6 +389,7 @@ if(!amount) return alert("Enter amount");
 try{
 
 const res = await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
+
 const data = await res.json();
 
 const rate = data.rates[type];
@@ -356,54 +407,17 @@ resultBox.innerText = "Conversion failed";
 
 };
 
-// ======================================================
-// RECEIPT GENERATOR
-// ======================================================
 
-window.generateReceipt = ()=>{
 
-const receiver =
-document.getElementById("receiver")?.value || "Receiver";
-
-const amount =
-document.getElementById("amount")?.value || "0";
-
-const date = new Date().toLocaleString();
-
-const ref = "DCB"+Math.floor(Math.random()*100000000);
-
-const receipt = `
-DeChase Bank
-Transaction Receipt
-
-Reference: ${ref}
-Date: ${date}
-
-Receiver: ${receiver}
-
-Amount: €${amount}
-Type: SEPA Transfer
-Status: Completed
-`;
-
-const blob = new Blob([receipt], {type:"text/plain"});
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href = url;
-a.download = "DeChase_Receipt.txt";
-a.click();
-
-};
-
-// ======================================================
 // LOGOUT
-// ======================================================
 
 window.logout = ()=>{
+
 localStorage.clear();
 sessionStorage.clear();
+
 window.location.replace("index.html");
+
 };
 
 }
