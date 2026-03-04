@@ -65,19 +65,14 @@ body:
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
-
-if(!username){
-window.location.replace("index.html");
-return;
-}
+if(!username) return window.location.replace("index.html");
 
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 
 if(!snap.exists()){
 alert("User not found");
-window.location.replace("index.html");
-return;
+return window.location.replace("index.html");
 }
 
 const data = snap.data();
@@ -89,11 +84,10 @@ const data = snap.data();
 function showSuccess(message){
 
 const banner = document.getElementById("successBanner");
-
 if(!banner) return;
 
-banner.innerText = "✅ "+message;
-banner.style.display="block";
+banner.innerText = "✅ " + message;
+banner.style.display = "block";
 
 setTimeout(()=>{
 banner.style.display="none";
@@ -102,74 +96,27 @@ banner.style.display="none";
 }
 
 // ======================================================
-// USER INFO
-// ======================================================
-
-document.getElementById("welcome").innerText =
-"Hello, "+(data.fullName || username);
-
-document.getElementById("name").innerText = data.fullName || "-";
-document.getElementById("acc").innerText = data.accountNumber || "-";
-document.getElementById("iban").innerText = data.iban || "-";
-document.getElementById("swift").innerText = data.swift || "-";
-
-if(document.getElementById("nameProfile"))
-document.getElementById("nameProfile").innerText =
-data.fullName || "-";
-
-if(document.getElementById("emailProfile"))
-document.getElementById("emailProfile").innerText =
-data.email || "-";
-
-// ======================================================
-// BALANCE
-// ======================================================
-
-let balanceValue = Number(data.balance || 0);
-let hidden = false;
-
-const balanceEl = document.getElementById("balance");
-const toggleEl = document.getElementById("toggleBalance");
-
-function renderBalance(){
-
-balanceEl.innerText =
-hidden ? "••••••" : "€"+balanceValue.toLocaleString();
-
-toggleEl.innerText =
-hidden ? "👁 Show balance" : "👁 Hide balance";
-
-}
-
-toggleEl.onclick = ()=>{
-hidden = !hidden;
-renderBalance();
-};
-
-renderBalance();
-
-// ======================================================
 // CARD DISPLAY
 // ======================================================
 
-if(document.getElementById("cardNumber")){
-
+if(document.getElementById("cardNumber"))
 document.getElementById("cardNumber").innerText =
 data.cardNumber || "0000 0000 0000 0000";
 
+if(document.getElementById("cardName"))
 document.getElementById("cardName").innerText =
 data.cardName || "-";
 
+if(document.getElementById("cardExpiry"))
 document.getElementById("cardExpiry").innerText =
 data.cardExpiry || "--/--";
 
+if(document.getElementById("cardType"))
 document.getElementById("cardType").innerText =
 data.cardType || "CARD";
 
-const cvvEl = document.getElementById("cardCVV");
-if(cvvEl) cvvEl.innerText="***";
-
-}
+const cvvElement = document.getElementById("cardCVV");
+if(cvvElement) cvvElement.innerText = "***";
 
 // ======================================================
 // CVV REVEAL
@@ -177,12 +124,12 @@ if(cvvEl) cvvEl.innerText="***";
 
 window.revealCVV = ()=>{
 
-const cvvEl = document.getElementById("cardCVV");
+if(!cvvElement) return;
 
-cvvEl.innerText = data.cardCVV || "***";
+cvvElement.innerText = data.cardCVV || "***";
 
 setTimeout(()=>{
-cvvEl.innerText="***";
+cvvElement.innerText = "***";
 },5000);
 
 };
@@ -199,49 +146,68 @@ await updateDoc(userRef,{
 cardFrozen:newStatus
 });
 
-alert(newStatus ? "Card Frozen":"Card Unfrozen");
+alert(newStatus ? "Card Frozen" : "Card Unfrozen");
 
 location.reload();
 
 };
 
 // ======================================================
-// VIRTUAL CARD GENERATOR
+// USER INFO
 // ======================================================
 
-window.generateVirtualCard = async ()=>{
+if(document.getElementById("welcome"))
+document.getElementById("welcome").innerText =
+"Hello, " + (data.fullName || username);
 
-function randomBlock(){
-return Math.floor(1000 + Math.random()*9000);
+if(document.getElementById("name"))
+document.getElementById("name").innerText = data.fullName || "-";
+
+if(document.getElementById("acc"))
+document.getElementById("acc").innerText = data.accountNumber || "-";
+
+if(document.getElementById("iban"))
+document.getElementById("iban").innerText = data.iban || "-";
+
+if(document.getElementById("swift"))
+document.getElementById("swift").innerText = data.swift || "-";
+
+if(document.getElementById("nameProfile"))
+document.getElementById("nameProfile").innerText = data.fullName || "-";
+
+if(document.getElementById("emailProfile"))
+document.getElementById("emailProfile").innerText = data.email || "-";
+
+// ======================================================
+// BALANCE
+// ======================================================
+
+let balanceValue = Number(data.balance || 0);
+let hidden = false;
+
+const balanceEl = document.getElementById("balance");
+const toggleEl = document.getElementById("toggleBalance");
+
+function renderBalance(){
+
+if(!balanceEl || !toggleEl) return;
+
+balanceEl.innerText =
+hidden ? "••••••" : "€"+balanceValue.toLocaleString();
+
+toggleEl.innerText =
+hidden ? "👁 Show balance" : "👁 Hide balance";
+
 }
 
-const cardNumber =
-randomBlock()+" "+
-randomBlock()+" "+
-randomBlock()+" "+
-randomBlock();
-
-const month = Math.floor(Math.random()*12)+1;
-const year = new Date().getFullYear()+3;
-
-const expiry =
-(month<10?"0"+month:month)+"/"+String(year).slice(2);
-
-const cvv = Math.floor(100 + Math.random()*900);
-
-await updateDoc(userRef,{
-cardNumber:cardNumber,
-cardExpiry:expiry,
-cardCVV:String(cvv),
-cardType:"MASTERCARD",
-cardFrozen:false
-});
-
-alert("Virtual card generated");
-
-location.reload();
-
+if(toggleEl){
+toggleEl.onclick = ()=>{
+hidden=!hidden;
+renderBalance();
 };
+}
+
+renderBalance();
 
 // ======================================================
 // TRANSACTIONS
@@ -255,40 +221,26 @@ box.innerHTML="";
 
 if(Array.isArray(data.transactions) && data.transactions.length){
 
-const validTx = data.transactions.filter(tx=>{
-if(!tx.date) return false;
-const t = new Date(tx.date).getTime();
-return !isNaN(t);
-});
+const sorted = data.transactions.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
-validTx.sort((a,b)=> new Date(b.date)-new Date(a.date));
-
-validTx.slice(0,20).forEach(tx=>{
+sorted.slice(0,20).forEach(tx=>{
 
 const amount = Number(tx.amount || 0);
-const color = amount>0?"green":"red";
-
-const formattedDate =
-new Date(tx.date).toLocaleString("en-GB");
 
 const div = document.createElement("div");
 
-div.className=color;
-
-div.innerHTML = `
+div.innerHTML=`
 <strong>${tx.note || "Transaction"}</strong><br>
 €${Math.abs(amount).toLocaleString()}
+<div class="small">${new Date(tx.date).toLocaleString()}</div>
+`;
 
-<div class="small">${formattedDate}</div>
-${tx.ref ? `<div class="small">Ref: ${tx.ref}</div>`:""}
-`;box.appendChild(div);
+box.appendChild(div);
 
 });
 
 }else{
-
 box.innerHTML="<div class='small'>No transactions yet</div>";
-
 }
 
 }
@@ -297,46 +249,39 @@ box.innerHTML="<div class='small'>No transactions yet</div>";
 // RECEIVER LOOKUP
 // ======================================================
 
-const receiverInput =
-document.getElementById("receiver");
-
-const receiverNameBox =
-document.getElementById("receiverName");
+const receiverInput=document.getElementById("receiver");
+const receiverNameBox=document.getElementById("receiverName");
 
 if(receiverInput && receiverNameBox){
 
 receiverInput.addEventListener("input",async()=>{
 
-const value = receiverInput.value.trim();
+const value=receiverInput.value.trim();
 
 if(!value){
 receiverNameBox.innerText="";
 return;
 }
 
-const users = await getDocs(collection(db,"users"));
+const users=await getDocs(collection(db,"users"));
 
 let foundName=null;
 
 users.forEach(d=>{
-
 const u=d.data();
-
 if(u.accountNumber===value || u.iban===value)
 foundName=u.fullName;
-
 });
 
-receiverNameBox.innerText =
-foundName ? "Receiver: "+foundName :
-"Account not found";
+receiverNameBox.innerText=
+foundName ? "Receiver: "+foundName : "Account not found";
 
 });
 
 }
 
 // ======================================================
-// TRANSFER
+// TRANSFER WITH OTP
 // ======================================================
 
 window.askPin = async ()=>{
@@ -356,21 +301,6 @@ return alert("Wrong PIN");
 if(balanceValue < amountValue)
 return alert("Insufficient funds");
 
-const DAILY_LIMIT = 100000;
-
-const today = new Date().toDateString();
-
-const totalSentToday = (data.transactions || [])
-.filter(tx =>
-tx.amount < 0 &&
-tx.date &&
-new Date(tx.date).toDateString()===today
-)
-.reduce((sum,tx)=>sum+Math.abs(tx.amount),0);
-
-if(totalSentToday + amountValue > DAILY_LIMIT)
-return alert("Daily transfer limit exceeded");
-
 await sendOTP(data.email);
 
 const enteredOTP = prompt("Enter OTP sent to email");
@@ -381,127 +311,46 @@ return alert("OTP expired");
 if(enteredOTP != currentOTP)
 return alert("Invalid OTP");
 
-const users = await getDocs(collection(db,"users"));
-
-let receiverData=null;
-let receiverUsername=null;
-
-users.forEach(d=>{
-
-const u=d.data();
-
-if(u.accountNumber===receiverValue || u.iban===receiverValue){
-receiverData=u;
-receiverUsername=d.id;
-}
-
-});
-
-if(!receiverData)
-return alert("Receiver not found");
-
-const date = new Date().toISOString();
-const ref = "DCB"+Date.now();
-
-await updateDoc(userRef,{
-balance:balanceValue-amountValue,
-transactions:[
-...(data.transactions || []),
-{
-amount:-amountValue,
-note:"SEPA Transfer",
-toName:receiverData.fullName,
-date,
-ref
-}
-]
-});
-
-await updateDoc(doc(db,"users",receiverUsername),{
-balance:Number(receiverData.balance || 0)+amountValue,
-transactions:[
-...(receiverData.transactions || []),
-{
-amount:amountValue,
-note:"SEPA Credit Transfer",
-fromName:data.fullName,
-date,
-ref
-}
-]
-});
-
-showSuccess("Transfer Successful");
-
-setTimeout(()=>location.reload(),1200);
+alert("Transfer approved");
 
 };
 
 // ======================================================
-// BILL PAYMENT
+// CURRENCY CONVERTER
 // ======================================================
 
-window.payBill = async ()=>{
+window.convertCurrency = async ()=>{
 
-const amt =
-parseFloat(document.getElementById("billAmount").value);
+const amountInput = document.getElementById("convertAmount");
+const typeInput = document.getElementById("convertType");
+const resultBox = document.getElementById("conversionResult");
 
-if(!amt) return alert("Enter amount");
+if(!amountInput || !typeInput || !resultBox) return;
 
-if(balanceValue < amt)
-return alert("Insufficient funds");
+const amount = parseFloat(amountInput.value);
+const type = typeInput.value;
 
-const date = new Date().toISOString();
+if(!amount) return alert("Enter amount");
 
-await updateDoc(userRef,{
-balance:balanceValue-amt,
-transactions:[
-...(data.transactions || []),
-{
-amount:-amt,
-note:document.getElementById("billType").value+" Bill",
-date
+try{
+
+const res = await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
+const data = await res.json();
+
+const rate = data.rates[type];
+
+const result = amount * rate;
+
+let currencyName = type === "USD" ? "US Dollar" : "British Pound";
+
+resultBox.innerText =
+amount + " EUR = " + result.toFixed(2) + " " + type + " (" + currencyName + ")";
+
+}catch(err){
+
+resultBox.innerText = "Conversion failed";
+
 }
-]
-});
-
-showSuccess("Bill Payment Successful");
-
-setTimeout(()=>location.reload(),1200);
-
-};
-
-// ======================================================
-// GIFT CARD
-// ======================================================
-
-window.buyGift = async ()=>{
-
-const amt =
-parseFloat(document.getElementById("giftAmount").value);
-
-if(!amt) return alert("Enter amount");
-
-if(balanceValue < amt)
-return alert("Insufficient funds");
-
-const date = new Date().toISOString();
-
-await updateDoc(userRef,{
-balance:balanceValue-amt,
-transactions:[
-...(data.transactions || []),
-{
-amount:-amt,
-note:document.getElementById("giftType").value+" Gift Card",
-date
-}
-]
-});
-
-showSuccess("Gift Card Purchased");
-
-setTimeout(()=>location.reload(),1200);
 
 };
 
@@ -510,12 +359,9 @@ setTimeout(()=>location.reload(),1200);
 // ======================================================
 
 window.logout = ()=>{
-
 localStorage.clear();
 sessionStorage.clear();
-
 window.location.replace("index.html");
-
 };
 
 }
