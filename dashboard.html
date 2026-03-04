@@ -93,6 +93,10 @@ font-size:14px;
 background:#ff3b3b;
 }
 
+.generateBtn{
+background:#22c55e;
+}
+
 #transactions div{
 background:#0d2b4a;
 padding:10px;
@@ -181,9 +185,11 @@ VISA
 <div>
 <div class="small">CVV</div>
 <div id="cardCVV">***</div>
-<button onclick="revealCVV()" style="margin-top:6px;background:#1e40af;">
+
+<button onclick="revealCVV()" style="background:#1e40af;margin-top:5px;">
 Show CVV
 </button>
+
 </div>
 
 </div>
@@ -194,20 +200,19 @@ Show CVV
 Freeze / Unfreeze Card
 </button>
 
+<button onclick="generateVirtualCard()" class="generateBtn">
+Generate Virtual Card
+</button>
+
 </div>
 
 <!-- ================= PAYMENTS PAGE ================= -->
 
 <div id="paymentsPage" style="display:none">
 
-<!-- TRANSFER -->
-
 <div class="card">
 
-<b>Transfer</b>
-
 <input id="receiver" placeholder="Account Number or IBAN">
-
 <div id="receiverName" class="small"></div>
 
 <input id="amount" type="number" placeholder="Amount (€)">
@@ -216,11 +221,7 @@ Freeze / Unfreeze Card
 
 </div>
 
-<!-- PAY BILLS -->
-
 <div class="card">
-
-<b>Pay Bills</b>
 
 <select id="billType">
 <option>Electricity</option>
@@ -228,31 +229,11 @@ Freeze / Unfreeze Card
 <option>Internet</option>
 <option>TV Subscription</option>
 <option>Government Fee</option>
-<option>Property Tax</option>
 </select>
 
 <input id="billAmount" placeholder="Amount (€)">
 
 <button onclick="payBill()">Pay Bill</button>
-
-</div>
-
-<!-- GIFT CARDS -->
-
-<div class="card">
-
-<b>Gift Cards</b>
-
-<select id="giftType">
-<option>Amazon</option>
-<option>Steam</option>
-<option>iTunes</option>
-<option>Google Play</option>
-</select>
-
-<input id="giftAmount" placeholder="Amount (€)">
-
-<button onclick="buyGift()">Buy Gift Card</button>
 
 </div>
 
@@ -306,11 +287,8 @@ z-index:9999;">
 <div class="bottomNav">
 
 <button onclick="openPage('homePage')">Home</button>
-
 <button onclick="openPage('cardsPage')">Cards</button>
-
 <button onclick="openPage('paymentsPage')">Payments</button>
-
 <button onclick="openPage('profilePage')">Profile</button>
 
 </div>
@@ -331,9 +309,13 @@ document.getElementById(page).style.display="block";
 }
 
 function contactSupport(){
+
 const phone="14237960225";
+
 const msg=encodeURIComponent("Hello DeChase Bank Support, I need help.");
+
 window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+
 }
 
 </script>
