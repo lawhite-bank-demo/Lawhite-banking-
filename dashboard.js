@@ -1,238 +1,529 @@
 // FIREBASE IMPORTS
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore,
 doc,
-getDoc
+getDoc,
+updateDoc,
+collection,
+getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
 // FIREBASE CONFIG
+
 const firebaseConfig = {
-apiKey: "YOUR_API_KEY",
-authDomain: "YOUR_PROJECT.firebaseapp.com",
-projectId: "YOUR_PROJECT",
-storageBucket: "YOUR_PROJECT.appspot.com",
-messagingSenderId: "XXXX",
-appId: "XXXX"
+apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+authDomain: "dechase-bank.firebaseapp.com",
+projectId: "dechase-bank"
 };
 
-
-// INITIALIZE FIREBASE
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 
-// CHECK LOGIN
-const username = localStorage.getItem("username");
+// OTP SYSTEM
 
-if (!username) {
-window.location.href = "index.html";
+let currentOTP=null;
+let otpExpiry=null;
+
+async function sendOTP(email){
+
+const otp=Math.floor(100000+Math.random()*900000);
+
+currentOTP=otp;
+otpExpiry=Date.now()+60000;
+
+console.log("OTP:",otp);
+
 }
 
 
-// GLOBAL DATA
-let userData = {};
-let balanceVisible = true;
+// INIT DASHBOARD
 
+async function initDashboard(){
 
-// LOAD USER DATA (RUNS ONLY ONCE)
-async function loadDashboard(){
+const username=localStorage.getItem("user");
 
-const ref = doc(db,"users",username);
-const snap = await getDoc(ref);
+if(!username) return window.location.replace("index.html");
+
+const userRef=doc(db,"users",username);
+const snap=await getDoc(userRef);
 
 if(!snap.exists()){
+
 alert("User not found");
 return;
+
 }
 
-userData = snap.data();
+const data=snap.data();
 
 
-// WELCOME
-document.getElementById("welcome").innerText =
-"Welcome, " + (userData.fullName || username);
+// SUCCESS BANNER
+
+function showSuccess(msg){
+
+const banner=document.getElementById("successBanner");
+
+if(!banner) return;
+
+banner.innerText="✅ "+msg;
+
+banner.style.display="block";
+
+setTimeout(()=>{
+
+banner.style.display="none";
+
+},2000);
+
+}
 
 
-// ACCOUNT INFO
-document.getElementById("name").innerText =
-userData.fullName || "-";
+// FORMAT DATE
 
-document.getElementById("acc").innerText =
-userData.accountNumber || "-";
+function formatDate(date){
 
-document.getElementById("iban").innerText =
-userData.iban || "-";
+if(!date) return "-";
 
-document.getElementById("swift").innerText =
-userData.swift || "-";
+const d=new Date(date);
+
+if(isNaN(d)) return "-";
+
+return d.toLocaleString();
+
+}
+
+
+// USER INFO
+
+document.getElementById("welcome").innerText="Hello, "+data.fullName;
+
+document.getElementById("name").innerText=data.fullName;
+
+document.getElementById("acc").innerText=data.accountNumber;
+
+document.getElementById("iban").innerText=data.iban;
+
+document.getElementById("swift").innerText=data.swift;
 
 
 // PROFILE
-document.getElementById("nameProfile").innerText =
-userData.fullName || "-";
 
-document.getElementById("emailProfile").innerText =
-userData.email || "-";
+document.getElementById("nameProfile").innerText=data.fullName;
+
+document.getElementById("emailProfile").innerText=data.email;
 
 
 // BALANCE
-updateBalance();
+
+let balanceValue=Number(data.balance||0);
+
+let hidden=false;
+
+const balanceEl=document.getElementById("balance");
+
+const toggleEl=document.getElementById("toggleBalance");
+
+function renderBalance(){
+
+balanceEl.innerText=hidden?"••••":"€"+balanceValue.toLocaleString();
+
+toggleEl.innerText=hidden?"👁 Show balance":"👁 Hide balance";
+
+}
+
+toggleEl.onclick=()=>{
+
+hidden=!hidden;
+
+renderBalance();
+
+};
+
+renderBalance();
 
 
-// WALLETS
-document.getElementById("eurWallet").innerText =
-userData.walletEUR || 0;
+// WALLET
 
-document.getElementById("usdWallet").innerText =
-userData.walletUSD || 0;
+document.getElementById("eurWallet").innerText=
+Number(data.balance||0).toLocaleString();
 
-document.getElementById("gbpWallet").innerText =
-userData.walletGBP || 0;
+document.getElementById("usdWallet").innerText=
+Number(data.usdBalance||0).toLocaleString();
 
-document.getElementById("audWallet").innerText =
-userData.walletAUD || 0;
+document.getElementById("gbpWallet").innerText=
+Number(data.gbpBalance||0).toLocaleString();
+
+document.getElementById("audWallet").innerText=
+Number(data.audBalance||0).toLocaleString();
 
 
 // CARD
-document.getElementById("cardNumber").innerText =
-userData.cardNumber || "0000 0000 0000 0000";
 
-document.getElementById("cardName").innerText =
-userData.fullName || "-";
+document.getElementById("cardNumber").innerText=
+data.cardNumber||"0000 0000 0000 0000";
 
-document.getElementById("cardExpiry").innerText =
-userData.cardExpiry || "--/--";
+document.getElementById("cardName").innerText=
+data.cardName||"-";
 
-document.getElementById("cardCVV").innerText = "***";
+document.getElementById("cardExpiry").innerText=
+data.cardExpiry||"--/--";
+
+document.getElementById("cardType").innerText=
+data.cardType||"CARD";
+
+const cvvEl=document.getElementById("cardCVV");
+
+cvvEl.innerText="***";
+
+
+// REVEAL CVV
+
+window.revealCVV=()=>{
+
+cvvEl.innerText=data.cardCVV;
+
+setTimeout(()=>{
+
+cvvEl.innerText="***";
+
+},5000);
+
+};
+
+
+// FREEZE CARD
+
+window.toggleCard=async()=>{
+
+const newStatus=!data.cardFrozen;
+
+await updateDoc(userRef,{cardFrozen:newStatus});
+
+alert(newStatus?"Card Frozen":"Card Unfrozen");
+
+initDashboard();
+
+};
 
 
 // TRANSACTIONS
-renderTransactions();
+
+const box=document.getElementById("transactions");
+
+if(box){
+
+box.innerHTML="";
+
+let txArray=[];
+
+if(data.transactions){
+
+txArray=Array.isArray(data.transactions)
+?data.transactions:Object.values(data.transactions);
 
 }
 
+txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-// BALANCE DISPLAY
-function updateBalance(){
+txArray.slice(0,20).forEach(tx=>{
 
-const balance = userData.balance || 0;
+const div=document.createElement("div");
 
-document.getElementById("balance").innerText =
-balanceVisible
-? "€" + Number(balance).toLocaleString()
-: "••••";
+div.innerHTML=`
 
-}
+<strong>${tx.note||"Transaction"}</strong><br>
 
+€${Math.abs(tx.amount||0).toLocaleString()}
 
-// TRANSACTIONS
-function renderTransactions(){
+<div class="small">Ref: ${tx.reference||"-"}</div>
 
-const box = document.getElementById("transactions");
-
-box.innerHTML = "";
-
-const txs = userData.transactions || [];
-
-for(let i = txs.length - 1; i >= 0; i--){
-
-const t = txs[i];
-
-const item = document.createElement("div");
-
-item.innerHTML = `
-
-<div><b>${t.note || "Transaction"}</b></div>
-
-<div>€${Number(t.amount).toLocaleString()}</div>
-
-<div class="small">Ref: ${t.reference || "-"}</div>
-
-<div class="small">${new Date(t.date).toLocaleString()}</div>
+<div class="small">${formatDate(tx.date)}</div>
 
 `;
 
-box.appendChild(item);
+box.appendChild(div);
+
+});
 
 }
 
+
+// RECEIVER LOOKUP
+
+const receiverInput=document.getElementById("receiver");
+
+const receiverNameBox=document.getElementById("receiverName");
+
+if(receiverInput){
+
+receiverInput.addEventListener("input",async()=>{
+
+const value=receiverInput.value.trim();
+
+if(!value){
+
+receiverNameBox.innerText="";
+return;
+
+}
+
+const users=await getDocs(collection(db,"users"));
+
+let foundName=null;
+
+users.forEach(d=>{
+
+const u=d.data();
+
+if(u.accountNumber===value||u.iban===value)
+
+foundName=u.fullName;
+
+});
+
+receiverNameBox.innerText=
+foundName?"Receiver: "+foundName:"Account not found";
+
+});
+
 }
 
 
-// TOGGLE BALANCE
-document.getElementById("toggleBalance").onclick = function(){
+// TRANSFER
 
-balanceVisible = !balanceVisible;
+window.askPin=async()=>{
 
-updateBalance();
+const receiverValue=document.getElementById("receiver").value.trim();
+
+const amountValue=parseFloat(document.getElementById("amount").value);
+
+if(!receiverValue||!amountValue)
+
+return alert("Fill all fields");
+
+if(prompt("Enter PIN")!==data.pin)
+
+return alert("Wrong PIN");
+
+if(balanceValue<amountValue)
+
+return alert("Insufficient funds");
+
+await sendOTP(data.email);
+
+const enteredOTP=prompt("Enter OTP");
+
+if(Date.now()>otpExpiry)
+
+return alert("OTP expired");
+
+if(enteredOTP!=currentOTP)
+
+return alert("Invalid OTP");
+
+
+// FIND RECEIVER
+
+const users=await getDocs(collection(db,"users"));
+
+let receiverDoc=null;
+
+let receiverData=null;
+
+users.forEach(d=>{
+
+const u=d.data();
+
+if(u.accountNumber===receiverValue||u.iban===receiverValue){
+
+receiverDoc=d.id;
+
+receiverData=u;
+
+}
+
+});
+
+if(!receiverDoc)
+
+return alert("Receiver not found");
+
+
+// UPDATE BALANCE
+
+const newSenderBalance=balanceValue-amountValue;
+
+await updateDoc(userRef,{balance:newSenderBalance});
+
+const receiverRef=doc(db,"users",receiverDoc);
+
+const newReceiverBalance=
+Number(receiverData.balance||0)+amountValue;
+
+await updateDoc(receiverRef,{balance:newReceiverBalance});
+
+
+// REFERENCE
+
+const reference=
+"DCB-"+Math.floor(10000000+Math.random()*90000000);
+
+
+// SAVE TX
+
+const tx={
+
+amount:-amountValue,
+
+date:new Date().toISOString(),
+
+note:"SEPA Credit Transfer",
+
+toName:receiverData.fullName,
+
+reference:reference
+
+};
+
+const updatedTx=[...(data.transactions||[]),tx];
+
+await updateDoc(userRef,{transactions:updatedTx});
+
+showSuccess("Transfer Successful");
+
+initDashboard();
 
 };
 
 
-// SHOW CVV
-window.revealCVV = function(){
+// GIFT CARD PURCHASE
 
-document.getElementById("cardCVV").innerText =
-userData.cardCVV || "***";
+window.buyGiftCard=async(type,amount)=>{
+
+if(balanceValue<amount)
+
+return alert("Insufficient balance");
+
+const reference=
+"DCB-"+Math.floor(10000000+Math.random()*90000000);
+
+const tx={
+
+amount:-amount,
+
+date:new Date().toISOString(),
+
+note:type+" Gift Card",
+
+reference:reference
+
+};
+
+const updatedTx=[...(data.transactions||[]),tx];
+
+await updateDoc(userRef,{
+
+balance:balanceValue-amount,
+
+transactions:updatedTx
+
+});
+
+showSuccess(type+" Gift Card Purchased");
+
+initDashboard();
 
 };
 
 
-// CARD FREEZE
-window.toggleCard = function(){
+// PAY BILL
 
-alert("Card freeze/unfreeze feature activated.");
+window.payBill=async(type,amount)=>{
+
+if(balanceValue<amount)
+
+return alert("Insufficient balance");
+
+const reference=
+"DCB-"+Math.floor(10000000+Math.random()*90000000);
+
+const tx={
+
+amount:-amount,
+
+date:new Date().toISOString(),
+
+note:type+" Bill Payment",
+
+reference:reference
 
 };
 
+const updatedTx=[...(data.transactions||[]),tx];
 
-// TRANSFER BUTTON
-window.askPin = function(){
+await updateDoc(userRef,{
 
-const pin = prompt("Enter your PIN");
+balance:balanceValue-amount,
 
-if(!pin) return;
+transactions:updatedTx
 
-document.getElementById("successBanner").style.display="block";
+});
 
-setTimeout(()=>{
-document.getElementById("successBanner").style.display="none";
-},3000);
+showSuccess(type+" Bill Paid");
+
+initDashboard();
 
 };
 
 
 // CURRENCY CONVERTER
-window.convertCurrency = function(){
 
-const amount =
-parseFloat(document.getElementById("convertAmount").value) || 0;
+window.convertCurrency=async()=>{
 
-const type =
-document.getElementById("convertType").value;
+const amount=parseFloat(document.getElementById("convertAmount").value);
 
-let result = 0;
+const type=document.getElementById("convertType").value;
 
-if(type === "USD") result = amount * 1.08;
-if(type === "GBP") result = amount * 0.86;
+const resultBox=document.getElementById("conversionResult");
 
-document.getElementById("conversionResult").innerText =
-"≈ " + result.toFixed(2) + " " + type;
+if(!amount) return alert("Enter amount");
+
+try{
+
+const res=await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
+
+const data=await res.json();
+
+const rate=data.rates[type];
+
+const result=amount*rate;
+
+resultBox.innerText=
+amount+" EUR = "+result.toFixed(2)+" "+type;
+
+}catch{
+
+resultBox.innerText="Conversion failed";
+
+}
 
 };
 
 
 // LOGOUT
-window.logout = function(){
 
-localStorage.removeItem("username");
+window.logout=()=>{
 
-window.location.href = "index.html";
+localStorage.clear();
+
+window.location.replace("index.html");
 
 };
 
+}
 
-// START DASHBOARD
-loadDashboard();
+initDashboard();
