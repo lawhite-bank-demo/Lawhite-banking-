@@ -103,16 +103,16 @@ font-size:14px;
 .wallet-chip{
 display:flex;
 justify-content:space-between;
-padding:8px 0;
+padding:10px 0;
 border-bottom:1px solid rgba(255,255,255,0.05);
 }
 
 #transactions div,
 #pendingTransactions div{
-background:rgba(255,255,255,0.05);
+background:rgba(255,255,255,0.06);
 padding:12px;
 border-radius:10px;
-margin-bottom:10px;
+margin-top:10px;
 }
 
 .bottomNav{
@@ -145,7 +145,7 @@ font-size:14px;
 
 <h3 id="welcome">Loading...</h3>
 
-<!-- ================= HOME PAGE ================= -->
+<!-- HOME PAGE -->
 
 <div id="homePage">
 
@@ -199,7 +199,11 @@ SWIFT: <span id="swift">-</span>
 
 <b>Pending Transactions</b>
 
-<div id="pendingTransactions"></div>
+<div id="pendingTransactions">
+
+<div class="small">No pending transactions</div>
+
+</div>
 
 </div>
 
@@ -215,7 +219,8 @@ SWIFT: <span id="swift">-</span>
 
 </div>
 
-<!-- ================= CARDS PAGE ================= -->
+
+<!-- CARDS PAGE -->
 
 <div id="cardsPage" style="display:none">
 
@@ -259,7 +264,8 @@ Freeze / Unfreeze Card
 
 </div>
 
-<!-- ================= PAYMENTS PAGE ================= -->
+
+<!-- PAYMENTS PAGE -->
 
 <div id="paymentsPage" style="display:none">
 
@@ -274,41 +280,6 @@ Freeze / Unfreeze Card
 <input id="amount" type="number" placeholder="Amount (€)">
 
 <button onclick="askPin()">Send Transfer</button>
-
-</div>
-
-<div class="card">
-
-<b>Pay Bills</b>
-
-<select id="billType">
-<option>Electricity</option>
-<option>Water</option>
-<option>Internet</option>
-<option>TV Subscription</option>
-<option>Government Fee</option>
-</select>
-
-<input id="billAmount" placeholder="Amount (€)">
-
-<button onclick="payBill()">Pay Bill</button>
-
-</div>
-
-<div class="card">
-
-<b>Gift Cards</b>
-
-<select id="giftType">
-<option>Amazon</option>
-<option>iTunes</option>
-<option>Steam</option>
-<option>Google Play</option>
-</select>
-
-<input id="giftAmount" placeholder="Amount (€)">
-
-<button onclick="buyGift()">Buy Gift Card</button>
 
 </div>
 
@@ -331,7 +302,8 @@ Freeze / Unfreeze Card
 
 </div>
 
-<!-- ================= PROFILE PAGE ================= -->
+
+<!-- PROFILE PAGE -->
 
 <div id="profilePage" style="display:none">
 
@@ -356,6 +328,7 @@ Logout
 
 </div>
 
+
 <!-- SUCCESS BANNER -->
 
 <div id="successBanner" style="
@@ -376,7 +349,8 @@ z-index:9999;">
 
 </div>
 
-<!-- BOTTOM NAV -->
+
+<!-- NAVIGATION -->
 
 <div class="bottomNav">
 
@@ -386,6 +360,7 @@ z-index:9999;">
 <button onclick="openPage('profilePage')">Profile</button>
 
 </div>
+
 
 <script type="module" src="dashboard.js"></script>
 
