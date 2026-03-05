@@ -120,8 +120,12 @@ async function login(){
       return;
     }
 
-    // ✅ save session
-    localStorage.setItem("user", username);
+    // save session
+localStorage.setItem("user", username);
+
+setTimeout(()=>{
+  location.href="dashboard.html";
+},300);
 
     // small delay prevents blank dashboard load
     setTimeout(()=>{
