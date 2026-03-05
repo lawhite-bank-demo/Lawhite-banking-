@@ -59,6 +59,17 @@ return;
 const data=snap.data();
 
 
+// SESSION SECURITY CHECK
+
+const savedSession = localStorage.getItem("session");
+
+if(savedSession != data.session){
+localStorage.clear();
+window.location.replace("index.html");
+return;
+}
+
+
 // SUCCESS BANNER
 
 function showSuccess(message){
@@ -253,7 +264,6 @@ return alert("OTP expired");
 if(enteredOTP!=currentOTP)
 return alert("Invalid OTP");
 
-
 const users=await getDocs(collection(db,"users"));
 
 let receiverDoc=null;
@@ -281,7 +291,6 @@ await updateDoc(receiverRef,{
 balance:Number(receiverData.balance||0)+amountValue
 });
 
-
 const reference="DCB-"+Math.floor(10000000+Math.random()*90000000);
 
 const tx={
@@ -298,118 +307,6 @@ await updateDoc(userRef,{transactions:updatedTx});
 showSuccess("Transfer Successful");
 
 location.reload();
-
-};
-
-
-// PAY BILLS
-
-window.payBill=async(name,amount)=>{
-
-if(balanceValue<amount)
-return alert("Insufficient balance");
-
-if(prompt("Enter PIN")!==data.pin)
-return alert("Wrong PIN");
-
-const newBalance=balanceValue-amount;
-
-await updateDoc(userRef,{balance:newBalance});
-
-const tx={
-amount:-amount,
-date:new Date().toISOString(),
-note:name+" Bill Payment",
-reference:"DCB-"+Math.floor(10000000+Math.random()*90000000)
-};
-
-await updateDoc(userRef,{
-transactions:[...(data.transactions||[]),tx]
-});
-
-showSuccess(name+" Paid");
-
-location.reload();
-
-};
-
-
-// BUY GIFT CARD
-
-window.buyGiftCard=async(name,amount)=>{
-
-if(balanceValue<amount)
-return alert("Insufficient balance");
-
-if(prompt("Enter PIN")!==data.pin)
-return alert("Wrong PIN");
-
-const newBalance=balanceValue-amount;
-
-await updateDoc(userRef,{balance:newBalance});
-
-const tx={
-amount:-amount,
-date:new Date().toISOString(),
-note:name+" Gift Card",
-reference:"DCB-"+Math.floor(10000000+Math.random()*90000000)
-};
-
-await updateDoc(userRef,{
-transactions:[...(data.transactions||[]),tx]
-});
-
-showSuccess(name+" Gift Card Purchased");
-
-location.reload();
-
-};
-
-
-// CHANGE PIN
-
-window.changePin=async()=>{
-
-const oldPin=prompt("Enter Current PIN");
-
-if(oldPin!==data.pin)
-return alert("Incorrect PIN");
-
-const newPin=prompt("Enter New PIN");
-
-if(!newPin||newPin.length<4)
-return alert("PIN must be at least 4 digits");
-
-const confirmPin=prompt("Confirm New PIN");
-
-if(newPin!==confirmPin)
-return alert("PINs do not match");
-
-await updateDoc(userRef,{pin:newPin});
-
-alert("PIN Changed Successfully");
-
-};
-
-
-// CURRENCY CONVERTER
-
-window.convertCurrency=async()=>{
-
-const amount=document.getElementById("convertAmount").value;
-const type=document.getElementById("convertType").value;
-
-if(!amount) return;
-
-const res=await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
-const dataRate=await res.json();
-
-const rate=dataRate.rates[type];
-
-const result=amount*rate;
-
-document.getElementById("conversionResult").innerText=
-amount+" EUR = "+result.toFixed(2)+" "+type;
 
 };
 
