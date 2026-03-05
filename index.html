@@ -120,9 +120,11 @@ async function login(){
       return;
     }
 
-    // save session
+    // save login session
 localStorage.setItem("user", username);
+localStorage.setItem("session", doc.data().session);
 
+// redirect
 setTimeout(()=>{
   location.href="dashboard.html";
 },300);
