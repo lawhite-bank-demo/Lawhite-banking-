@@ -1,87 +1,381 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deposit</title>
+
+<title>DeChase Bank</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
+
 body{
-  font-family:Arial;
-  background:#061a2f;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+margin:0;
+font-family:'Inter',sans-serif;
+background:linear-gradient(180deg,#020617,#031427,#021a35);
+color:white;
+padding-bottom:90px;
 }
+
+.container{
+max-width:420px;
+margin:auto;
+padding:20px;
+}
+
 .card{
-  background:#0d2b4d;
-  padding:25px;
-  border-radius:12px;
-  width:300px;
+background:rgba(255,255,255,0.05);
+border-radius:18px;
+padding:18px;
+margin-bottom:16px;
 }
-input,button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:8px;
-  border:none;
+
+.balance-card{
+background:linear-gradient(135deg,#2f80ed,#56ccf2);
+border-radius:22px;
+padding:24px;
+text-align:center;
+margin-bottom:18px;
 }
+
+.balance{
+font-size:36px;
+font-weight:700;
+}
+
+.eye{
+margin-top:8px;
+font-size:14px;
+cursor:pointer;
+}
+
+button,input,select{
+width:100%;
+padding:12px;
+border:none;
+border-radius:12px;
+margin-top:10px;
+}
+
 button{
-  background:#1e88e5;
-  color:white;
+background:#1d4ed8;
+color:white;
+font-weight:600;
 }
+
+.wallet-chip{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid rgba(255,255,255,0.08);
+}
+
+.tx{
+background:rgba(255,255,255,0.06);
+padding:12px;
+border-radius:10px;
+margin-top:10px;
+}
+
+.bottomNav{
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+background:#021a35;
+display:flex;
+justify-content:space-around;
+padding:14px 0;
+border-top:1px solid rgba(255,255,255,0.1);
+}
+
+.bottomNav button{
+background:none;
+border:none;
+color:white;
+font-size:13px;
+}
+
+.small{
+font-size:12px;
+opacity:.8;
+}
+
 </style>
+
 </head>
+
 <body>
 
-<div class="card">
-<h2>Deposit Money</h2>
+<div class="container">
 
-<input type="number" id="amount" placeholder="Amount">
+<h3 id="welcome">Loading...</h3>
 
-<button onclick="deposit()">Deposit</button>
-<button onclick="goBack()">Back</button>
 
-<p id="msg"></p>
+<!-- HOME PAGE -->
+
+<div id="homePage">
+
+<div class="balance-card">
+
+<div class="balance" id="balance">€0</div>
+
+<div class="eye" id="toggleBalance">👁 Hide balance</div>
+
 </div>
 
+
+<div class="card">
+
+<b>Account Info</b><br>
+
+Name: <span id="name">-</span><br>
+Account: <span id="acc">-</span><br>
+IBAN: <span id="iban">-</span><br>
+SWIFT: <span id="swift">-</span>
+
+</div>
+
+
+<div class="card">
+
+<b>Multi Currency Wallet</b>
+
+<div class="wallet-chip">
+<span>🇪🇺 EUR</span>
+<span>€<span id="eurWallet">0</span></span>
+</div>
+
+<div class="wallet-chip">
+<span>🇺🇸 USD</span>
+<span>$<span id="usdWallet">0</span></span>
+</div>
+
+<div class="wallet-chip">
+<span>🇬🇧 GBP</span>
+<span>£<span id="gbpWallet">0</span></span>
+</div>
+
+<div class="wallet-chip">
+<span>🇦🇺 AUD</span>
+<span>A$<span id="audWallet">0</span></span>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<b>Pending Transactions</b>
+
+<div id="pendingTransactions"></div>
+
+</div>
+
+
+<div class="card">
+
+<b>Transactions</b>
+
+<div id="transactions"></div>
+
+</div>
+
+</div>
+
+
+<!-- CARDS -->
+
+<div id="cardsPage" style="display:none">
+
+<div class="card">
+
+<b id="cardType">CARD</b>
+
+<div id="cardNumber">0000 0000 0000 0000</div>
+
+<div>Holder: <span id="cardName">---</span></div>
+
+<div>Expiry: <span id="cardExpiry">--/--</span></div>
+
+<div>CVV: <span id="cardCVV">***</span></div>
+
+<button onclick="revealCVV()">Show CVV</button>
+
+<button onclick="toggleCard()">Freeze / Unfreeze Card</button>
+
+</div>
+
+</div>
+
+
+<!-- PAYMENTS -->
+
+<div id="paymentsPage" style="display:none">
+
+<div class="card">
+
+<b>Send Transfer</b>
+
+<input id="receiver" placeholder="Account Number or IBAN">
+
+<div id="receiverName" class="small"></div>
+
+<input id="amount" placeholder="Amount">
+
+<button onclick="askPin()">Send Transfer</button>
+
+</div>
+
+
+<div class="card">
+
+<b>Currency Converter</b>
+
+<select id="convertType">
+
+<option value="USD">EUR → USD</option>
+<option value="GBP">EUR → GBP</option>
+
+</select>
+
+<input id="convertAmount" placeholder="Amount">
+
+<button onclick="convertCurrency()">Convert</button>
+
+<div id="conversionResult"></div>
+
+</div>
+
+</div>
+
+
+<!-- BILLS -->
+
+<div id="billsPage" style="display:none">
+
+<div class="card">
+
+<b>Pay Bills</b>
+
+<button onclick="payBill('Electricity',120)">Electricity €120</button>
+
+<button onclick="payBill('Netflix',15)">Netflix €15</button>
+
+<button onclick="payBill('Internet',60)">Internet €60</button>
+
+</div>
+
+</div>
+
+
+<!-- GIFT CARDS -->
+
+<div id="giftPage" style="display:none">
+
+<div class="card">
+
+<b>Gift Cards</b>
+
+<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
+
+</div>
+
+</div>
+
+
+<!-- PROFILE -->
+
+<div id="profilePage" style="display:none">
+
+<div class="card">
+
+Name: <span id="nameProfile">-</span><br>
+Email: <span id="emailProfile">-</span>
+
+</div>
+
+<button onclick="changePin()">Change PIN</button>
+
+<button onclick="logout()">Logout</button>
+
+<button onclick="contactSupport()">Contact Bank Support</button>
+
+</div>
+
+</div>
+
+
+<div id="successBanner"
+style="
+display:none;
+position:fixed;
+top:20px;
+left:50%;
+transform:translateX(-50%);
+background:#22c55e;
+padding:14px 22px;
+border-radius:8px;
+">
+
+Success
+
+</div>
+
+
+<div class="bottomNav">
+
+<button onclick="openPage('homePage')">Home</button>
+<button onclick="openPage('cardsPage')">Cards</button>
+<button onclick="openPage('paymentsPage')">Payments</button>
+<button onclick="openPage('billsPage')">Bills</button>
+<button onclick="openPage('giftPage')">Gift</button>
+<button onclick="openPage('profilePage')">Profile</button>
+
+</div>
+
+
 <script>
-function deposit(){
 
-  const amount = parseFloat(document.getElementById("amount").value);
-  let user = JSON.parse(localStorage.getItem("loggedInUser"));
-  let users = JSON.parse(localStorage.getItem("bankUsers"));
-
-  if(amount <= 0){
-    msg.innerText = "Enter valid amount";
-    return;
-  }
-
-  user.balance += amount;
-
-  if(!user.transactions) user.transactions = [];
-
-  user.transactions.push({
-    amount: amount,
-    note: "Cash Deposit",
-    date: new Date().toLocaleDateString()
-  });
-
-  const updated = users.map(u =>
-    u.username === user.username ? user : u
-  );
-
-  localStorage.setItem("bankUsers", JSON.stringify(updated));
-  localStorage.setItem("loggedInUser", JSON.stringify(user));
-
-  msg.innerText = "Deposit successful";
-
-  setTimeout(()=> window.location.href="Dashboard.html", 1000);
+if(!localStorage.getItem("user")){
+window.location.href="index.html";
 }
 
-function goBack(){
-  window.location.href="Dashboard.html";
+</script>
+
+
+<script type="module" src="dashboard.js"></script>
+
+
+<script>
+
+function openPage(page){
+
+["homePage","cardsPage","paymentsPage","billsPage","giftPage","profilePage"]
+.forEach(p=>document.getElementById(p).style.display="none");
+
+document.getElementById(page).style.display="block";
+
 }
+
+
+function contactSupport(){
+
+const phone="14237960225";
+
+const msg=encodeURIComponent("Hello DeChase Bank Support");
+
+window.open(`https://wa.me/${phone}?text=${msg}`);
+
+}
+
 </script>
 
 </body>
