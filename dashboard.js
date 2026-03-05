@@ -65,8 +65,6 @@ function showSuccess(message){
 
 const banner=document.getElementById("successBanner");
 
-if(!banner) return;
-
 banner.innerText="✅ "+message;
 banner.style.display="block";
 
@@ -165,7 +163,7 @@ await updateDoc(userRef,{cardFrozen:newStatus});
 
 alert(newStatus?"Card Frozen":"Card Unfrozen");
 
-initDashboard();
+location.reload();
 
 };
 
@@ -199,7 +197,6 @@ if((tx.note||"").includes("SEPA")) icon="🏦";
 if((tx.note||"").includes("ATM")) icon="🏧";
 if((tx.note||"").includes("Gift")) icon="🎁";
 if((tx.note||"").includes("Bill")) icon="💡";
-if((tx.note||"").includes("Crypto")) icon="₿";
 
 const color=amount>=0?"#22c55e":"#ef4444";
 const sign=amount>=0?"+":"-";
@@ -224,42 +221,6 @@ ${sign}€${Math.abs(amount).toLocaleString()}
 `;
 
 box.appendChild(div);
-
-});
-
-}
-
-
-// RECEIVER LOOKUP
-
-const receiverInput=document.getElementById("receiver");
-const receiverNameBox=document.getElementById("receiverName");
-
-if(receiverInput){
-
-receiverInput.addEventListener("input",async()=>{
-
-const value=receiverInput.value.trim();
-
-if(!value){
-receiverNameBox.innerText="";
-return;
-}
-
-const users=await getDocs(collection(db,"users"));
-
-let foundName=null;
-
-users.forEach(d=>{
-const u=d.data();
-
-if(u.accountNumber===value||u.iban===value)
-foundName=u.fullName;
-
-});
-
-receiverNameBox.innerText=
-foundName?"Receiver: "+foundName:"Account not found";
 
 });
 
@@ -293,8 +254,6 @@ if(enteredOTP!=currentOTP)
 return alert("Invalid OTP");
 
 
-// FIND RECEIVER
-
 const users=await getDocs(collection(db,"users"));
 
 let receiverDoc=null;
@@ -312,34 +271,23 @@ receiverData=u;
 if(!receiverDoc)
 return alert("Receiver not found");
 
-
-// UPDATE BALANCES
-
 const newSenderBalance=balanceValue-amountValue;
 
 await updateDoc(userRef,{balance:newSenderBalance});
 
 const receiverRef=doc(db,"users",receiverDoc);
 
-const newReceiverBalance=
-Number(receiverData.balance||0)+amountValue;
-
-await updateDoc(receiverRef,{balance:newReceiverBalance});
-
-
-// REFERENCE
-
-const reference=
-"DCB-"+Math.floor(10000000+Math.random()*90000000);
+await updateDoc(receiverRef,{
+balance:Number(receiverData.balance||0)+amountValue
+});
 
 
-// SAVE TX
+const reference="DCB-"+Math.floor(10000000+Math.random()*90000000);
 
 const tx={
 amount:-amountValue,
 date:new Date().toISOString(),
 note:"SEPA Credit Transfer",
-toName:receiverData.fullName,
 reference:reference
 };
 
@@ -349,7 +297,119 @@ await updateDoc(userRef,{transactions:updatedTx});
 
 showSuccess("Transfer Successful");
 
-initDashboard();
+location.reload();
+
+};
+
+
+// PAY BILLS
+
+window.payBill=async(name,amount)=>{
+
+if(balanceValue<amount)
+return alert("Insufficient balance");
+
+if(prompt("Enter PIN")!==data.pin)
+return alert("Wrong PIN");
+
+const newBalance=balanceValue-amount;
+
+await updateDoc(userRef,{balance:newBalance});
+
+const tx={
+amount:-amount,
+date:new Date().toISOString(),
+note:name+" Bill Payment",
+reference:"DCB-"+Math.floor(10000000+Math.random()*90000000)
+};
+
+await updateDoc(userRef,{
+transactions:[...(data.transactions||[]),tx]
+});
+
+showSuccess(name+" Paid");
+
+location.reload();
+
+};
+
+
+// BUY GIFT CARD
+
+window.buyGiftCard=async(name,amount)=>{
+
+if(balanceValue<amount)
+return alert("Insufficient balance");
+
+if(prompt("Enter PIN")!==data.pin)
+return alert("Wrong PIN");
+
+const newBalance=balanceValue-amount;
+
+await updateDoc(userRef,{balance:newBalance});
+
+const tx={
+amount:-amount,
+date:new Date().toISOString(),
+note:name+" Gift Card",
+reference:"DCB-"+Math.floor(10000000+Math.random()*90000000)
+};
+
+await updateDoc(userRef,{
+transactions:[...(data.transactions||[]),tx]
+});
+
+showSuccess(name+" Gift Card Purchased");
+
+location.reload();
+
+};
+
+
+// CHANGE PIN
+
+window.changePin=async()=>{
+
+const oldPin=prompt("Enter Current PIN");
+
+if(oldPin!==data.pin)
+return alert("Incorrect PIN");
+
+const newPin=prompt("Enter New PIN");
+
+if(!newPin||newPin.length<4)
+return alert("PIN must be at least 4 digits");
+
+const confirmPin=prompt("Confirm New PIN");
+
+if(newPin!==confirmPin)
+return alert("PINs do not match");
+
+await updateDoc(userRef,{pin:newPin});
+
+alert("PIN Changed Successfully");
+
+};
+
+
+// CURRENCY CONVERTER
+
+window.convertCurrency=async()=>{
+
+const amount=document.getElementById("convertAmount").value;
+const type=document.getElementById("convertType").value;
+
+if(!amount) return;
+
+const res=await fetch("https://api.exchangerate-api.com/v4/latest/EUR");
+const dataRate=await res.json();
+
+const rate=dataRate.rates[type];
+
+const result=amount*rate;
+
+document.getElementById("conversionResult").innerText=
+amount+" EUR = "+result.toFixed(2)+" "+type;
 
 };
 
