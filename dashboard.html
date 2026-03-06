@@ -1,5 +1,7 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DeChase Bank</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeChase Bank</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>
 
 body{
 margin:0;
@@ -33,12 +35,6 @@ margin-bottom:18px;
 .balance{
 font-size:36px;
 font-weight:700;
-}
-
-.eye{
-margin-top:8px;
-font-size:14px;
-cursor:pointer;
 }
 
 button,input,select{
@@ -81,13 +77,6 @@ color:white;
 font-size:13px;
 }
 
-.small{
-font-size:12px;
-opacity:.8;
-}
-
-/* BANK CARD */
-
 .bankCard{
 background:linear-gradient(135deg,#1d4ed8,#2563eb,#0ea5e9);
 border-radius:20px;
@@ -95,30 +84,11 @@ padding:22px;
 box-shadow:0 15px 40px rgba(0,0,0,0.4);
 }
 
-.cardTop{
-display:flex;
-justify-content:space-between;
-font-weight:600;
-}
-
 .cardNumber{
 font-size:22px;
 letter-spacing:3px;
 margin:20px 0;
 }
-
-.cardBottom{
-display:flex;
-justify-content:space-between;
-font-size:13px;
-}
-
-.label{
-opacity:.7;
-font-size:11px;
-}
-
-/* CONFIRMATION MODAL */
 
 #confirmTransfer{
 display:none;
@@ -140,9 +110,8 @@ width:90%;
 max-width:350px;
 }
 
-</style></head><body><div class="container"><h3 id="welcome">Loading...</h3><!-- HOME --><div id="homePage"><div class="balance-card">
+</style></head><body><div class="container"><h3 id="welcome">Loading...</h3><!-- HOME PAGE --><div id="homePage"><div class="balance-card">
 <div class="balance" id="balance">€0</div>
-<div class="eye" id="toggleBalance">👁 Hide balance</div>
 </div><div class="card">
 <b>Account Info</b><br>
 Name: <span id="name">-</span><br>
@@ -150,39 +119,19 @@ Account: <span id="acc">-</span><br>
 IBAN: <span id="iban">-</span><br>
 SWIFT: <span id="swift">-</span>
 </div><div class="card">
-<b>Multi Currency Wallet</b><div class="wallet-chip">
-<span>🇪🇺 EUR</span>
-<span>€<span id="eurWallet">0</span></span>
-</div><div class="wallet-chip">
-<span>🇺🇸 USD</span>
-<span>$<span id="usdWallet">0</span></span>
-</div><div class="wallet-chip">
-<span>🇬🇧 GBP</span>
-<span>£<span id="gbpWallet">0</span></span>
-</div><div class="wallet-chip">
-<span>🇦🇺 AUD</span>
-<span>A$<span id="audWallet">0</span></span>
-</div></div><div class="card">
 <b>Pending Transactions</b>
 <div id="pendingTransactions"></div>
 </div><div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
-</div></div><!-- CARDS --><div id="cardsPage" style="display:none"><div class="bankCard"><div class="cardTop">
-<span>DeChase Bank</span>
-<span>VISA</span>
-</div><div class="cardNumber" id="cardNumber">
+</div></div><!-- CARDS --><div id="cardsPage" style="display:none"><div class="bankCard">
+<div>DeChase Bank</div><div class="cardNumber" id="cardNumber">
 4532 7845 9823 4451
-</div><div class="cardBottom"><div>
-<div class="label">CARD HOLDER</div>
-<div id="cardName">---</div>
 </div><div>
-<div class="label">EXPIRES</div>
-<div id="cardExpiry">--/--</div>
-</div><div>
-<div class="label">CVV</div>
-<div id="cardCVV">***</div>
-</div></div></div><div class="card">
+Holder: <span id="cardName">---</span><br>
+Expiry: <span id="cardExpiry">--/--</span><br>
+CVV: <span id="cardCVV">***</span>
+</div></div><div class="card">
 <button onclick="revealCVV()">Show CVV</button>
 <button onclick="toggleCard()">Freeze / Unfreeze Card</button>
 </div></div><!-- PAYMENTS --><div id="paymentsPage" style="display:none"><div class="card"><b>International Transfer</b>
@@ -193,51 +142,49 @@ SWIFT: <span id="swift">-</span>
 <input id="postcode" placeholder="Postcode / ZIP">
 <input id="amount" placeholder="Amount"><button onclick="previewTransfer()">Send Transfer</button>
 
-</div><div class="card"><b>Currency Converter</b>
-
-<select id="convertType">
-<option value="USD">EUR → USD</option>
-<option value="GBP">EUR → GBP</option>
-</select><input id="convertAmount" placeholder="Amount"><button onclick="convertCurrency()">Convert</button>
-
-<div id="conversionResult"></div></div></div><!-- PROFILE --><div id="profilePage" style="display:none"><div class="card">
+</div></div><!-- BILLS --><div id="billsPage" style="display:none">
+<div class="card">
+<b>Pay Bills</b>
+<button onclick="payBill('Electricity',120)">Electricity €120</button>
+<button onclick="payBill('Netflix',15)">Netflix €15</button>
+<button onclick="payBill('Internet',60)">Internet €60</button>
+</div>
+</div><!-- GIFT --><div id="giftPage" style="display:none">
+<div class="card">
+<b>Gift Cards</b>
+<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
+</div>
+</div><!-- PROFILE --><div id="profilePage" style="display:none"><div class="card">
 Name: <span id="nameProfile">-</span><br>
 Email: <span id="emailProfile">-</span>
-</div><button onclick="changePin()">Change PIN</button>
-<button onclick="logout()">Logout</button>
+</div><button onclick="logout()">Logout</button>
 <button onclick="contactSupport()">Contact Bank Support</button>
 
-</div></div><!-- CONFIRM TRANSFER POPUP --><div id="confirmTransfer"><div class="modalBox"><h3>Confirm Transfer</h3><p id="confirmDetails"></p><button onclick="cancelTransfer()">Cancel</button>
+</div></div><!-- CONFIRMATION --><div id="confirmTransfer"><div class="modalBox"><h3>Confirm Transfer</h3><p id="confirmDetails"></p><button onclick="cancelTransfer()">Cancel</button>
 <button onclick="confirmTransfer()">Confirm Transfer</button>
 
 </div></div><div class="bottomNav"><button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('cardsPage')">Cards</button>
 <button onclick="openPage('paymentsPage')">Payments</button>
+<button onclick="openPage('billsPage')">Bills</button>
+<button onclick="openPage('giftPage')">Gift</button>
 <button onclick="openPage('profilePage')">Profile</button>
 
 </div><script type="module" src="dashboard.js"></script><script>
 
 function openPage(page){
-
-["homePage","cardsPage","paymentsPage","profilePage"]
+["homePage","cardsPage","paymentsPage","billsPage","giftPage","profilePage"]
 .forEach(p=>document.getElementById(p).style.display="none");
-
 document.getElementById(page).style.display="block";
-
 }
-
-/* SUPPORT */
 
 function contactSupport(){
-
 const phone="13312016202";
 const msg=encodeURIComponent("Hello DeChase Bank Support");
-
 window.open(`https://wa.me/${phone}?text=${msg}`);
-
 }
-
-/* TRANSFER PREVIEW */
 
 let transferData={};
 
@@ -247,39 +194,22 @@ const name=document.getElementById("receiverName").value;
 const iban=document.getElementById("receiver").value;
 const amount=document.getElementById("amount").value;
 
-if(!name || !iban || !amount){
-
-alert("Please complete transfer details");
-
-return;
-
-}
-
 transferData={name,iban,amount};
 
 document.getElementById("confirmDetails").innerHTML=
-`Recipient: ${name}<br>
-IBAN: ${iban}<br>
-Amount: €${amount}`;
+`Recipient: ${name}<br>IBAN: ${iban}<br>Amount: €${amount}`;
 
 document.getElementById("confirmTransfer").style.display="flex";
 
 }
 
 function cancelTransfer(){
-
 document.getElementById("confirmTransfer").style.display="none";
-
 }
 
 function confirmTransfer(){
-
 document.getElementById("confirmTransfer").style.display="none";
-
-/* continue with existing PIN transfer system */
-
 askPin();
-
 }
 
 </script>
