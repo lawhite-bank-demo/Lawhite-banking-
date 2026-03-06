@@ -41,8 +41,8 @@ otpExpiry=Date.now()+180000;
 try{
 
 await emailjs.send(
-"YOUR_SERVICE_ID",
-"YOUR_TEMPLATE_ID",
+service_ab123cd
+template_x9k21a
 {
 to_email:email,
 otp:otp
