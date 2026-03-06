@@ -122,15 +122,31 @@ document.getElementById("nameProfile").innerText = data.fullName;
 document.getElementById("emailProfile").innerText = data.email;
 
 
-// BALANCE
+// BALANCE SYSTEM
 
 let balanceValue = Number(data.balance || 0);
 let hidden = false;
 
 const balanceEl = document.getElementById("balance");
+const toggleEl = document.getElementById("toggleBalance");
 
 function renderBalance(){
-balanceEl.innerText = hidden ? "••••" : "€" + balanceValue.toLocaleString();
+
+if(hidden){
+balanceEl.innerText = "••••••";
+if(toggleEl) toggleEl.innerText = "👁 Show balance";
+}else{
+balanceEl.innerText = "€" + balanceValue.toLocaleString();
+if(toggleEl) toggleEl.innerText = "👁 Hide balance";
+}
+
+}
+
+if(toggleEl){
+toggleEl.onclick = () => {
+hidden = !hidden;
+renderBalance();
+};
 }
 
 renderBalance();
@@ -226,17 +242,12 @@ const div = document.createElement("div");
 div.className = "tx";
 
 div.innerHTML = `
-
 <strong>${icon} ${tx.note || "Transaction"}</strong><br>
-
 <span style="color:${color};font-weight:600;">
 ${sign}€${Math.abs(amount).toLocaleString()}
 </span>
-
 <div class="small">Ref: ${reference}</div>
-
 <div class="small">${formatDate(tx.date)}</div>
-
 `;
 
 box.appendChild(div);
