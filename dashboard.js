@@ -150,7 +150,7 @@ document.getElementById("nameProfile").innerText=data.fullName;
 document.getElementById("emailProfile").innerText=data.email;
 
 
-// BALANCE
+// BALANCE SYSTEM
 
 let balanceValue = Number(data.balance||0);
 let hidden = false;
@@ -250,19 +250,27 @@ txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 txArray.slice(0,20).forEach(tx=>{
 
 const amount=Number(tx.amount||0);
-
 const color=amount>=0?"#22c55e":"#ef4444";
 const sign=amount>=0?"+":"-";
+
+const reference =
+tx.reference || "DCB-"+Math.floor(10000000+Math.random()*90000000);
 
 const div=document.createElement("div");
 div.className="tx";
 
 div.innerHTML=`
+
 <strong>${tx.note||"Transaction"}</strong><br>
+
 <span style="color:${color};font-weight:600;">
 ${sign}€${Math.abs(amount).toLocaleString()}
 </span>
+
+<div class="small">Ref: ${reference}</div>
+
 <div class="small">${formatDate(tx.date)}</div>
+
 `;
 
 box.appendChild(div);
@@ -300,10 +308,15 @@ const div=document.createElement("div");
 div.className="tx";
 
 div.innerHTML=`
+
 <strong>🏦 Transfer Pending</strong><br>
+
 €${Number(p.amount).toLocaleString()} → ${p.iban}
+
 <div class="small">Status: Waiting for approval</div>
+
 <div class="small">${formatDate(p.date)}</div>
+
 `;
 
 pendingBox.appendChild(div);
