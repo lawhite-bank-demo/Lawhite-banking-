@@ -1,71 +1,74 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Support Admin</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-
-<style>
+<title>DeChase Admin Panel</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"><style>
 body{
-  margin:0;
-  font-family:'Inter',sans-serif;
-  background:#021427;
-  color:white;
+margin:0;
+font-family:'Inter',sans-serif;
+background:#021427;
+color:white;
 }
 
 .container{
-  max-width:650px;
-  margin:auto;
-  padding:20px;
+max-width:700px;
+margin:auto;
+padding:20px;
 }
 
 h2{
-  margin-bottom:10px;
+margin-bottom:10px;
 }
 
 .counter{
-  font-size:13px;
-  opacity:.7;
-  margin-bottom:15px;
+font-size:13px;
+opacity:.7;
+margin-bottom:15px;
 }
 
 .ticket{
-  background:#0a223d;
-  padding:16px;
-  border-radius:14px;
-  margin-bottom:15px;
+background:#0a223d;
+padding:16px;
+border-radius:14px;
+margin-bottom:15px;
 }
 
 textarea{
-  width:100%;
-  margin-top:10px;
-  padding:10px;
-  border-radius:8px;
-  border:none;
+width:100%;
+margin-top:10px;
+padding:10px;
+border-radius:8px;
+border:none;
 }
 
 button{
-  margin-top:8px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  background:#2d8cff;
-  color:white;
-  font-weight:600;
-  width:100%;
-  cursor:pointer;
+margin-top:8px;
+padding:10px;
+border:none;
+border-radius:8px;
+background:#2d8cff;
+color:white;
+font-weight:600;
+width:100%;
+cursor:pointer;
 }
 
 button.secondary{
-  background:#444;
+background:#444;
+}
+
+button.approve{
+background:#22c55e;
+}
+
+button.reject{
+background:#ef4444;
 }
 
 .status{
-  font-size:12px;
-  margin-top:5px;
-  font-weight:600;
+font-size:12px;
+margin-top:5px;
+font-weight:600;
 }
 
 .open{color:#ffcc66;}
@@ -73,151 +76,248 @@ button.secondary{
 .resolved{color:#6ed0ff;}
 
 .filter{
-  display:flex;
-  gap:8px;
-  margin-bottom:15px;
+display:flex;
+gap:8px;
+margin-bottom:15px;
 }
 
 .filter button{
-  flex:1;
-  padding:8px;
-  font-size:13px;
+flex:1;
+padding:8px;
+font-size:13px;
 }
-</style>
-</head>
-<body>
 
-<div class="container">
+.section{
+margin-top:35px;
+}
+</style></head><body><div class="container"><h2>Support Messages</h2>
+<div class="counter" id="counter"></div><div class="filter">
+<button onclick="setFilter('all')">All</button>
+<button onclick="setFilter('open')">Open</button>
+<button onclick="setFilter('replied')">Replied</button>
+<button onclick="setFilter('resolved')">Resolved</button>
+</div><div id="tickets"></div><div class="section"><h2>Pending Transfers</h2><div id="transfers"></div></div></div><script type="module">
 
-<h2>Support Messages</h2>
-<div class="counter" id="counter"></div>
-
-<div class="filter">
-  <button onclick="setFilter('all')">All</button>
-  <button onclick="setFilter('open')">Open</button>
-  <button onclick="setFilter('replied')">Replied</button>
-  <button onclick="setFilter('resolved')">Resolved</button>
-</div>
-
-<div id="tickets"></div>
-
-</div>
-
-<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, doc, updateDoc
+getFirestore,
+collection,
+getDocs,
+doc,
+updateDoc,
+deleteDoc,
+getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+
 const firebaseConfig = {
-  apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
-  authDomain: "dechase-bank.firebaseapp.com",
-  projectId: "dechase-bank"
+apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
+authDomain: "dechase-bank.firebaseapp.com",
+projectId: "dechase-bank"
 };
 
-const ADMIN_KEY = "admin123"; // change if you want
 
-// 🔐 ADMIN PROTECTION
+// ADMIN KEY
+
+const ADMIN_KEY = "admin123";
+
 const entered = prompt("Enter Admin Key");
+
 if(entered !== ADMIN_KEY){
-  alert("Access denied");
-  document.body.innerHTML="";
-  throw new Error("Unauthorized");
+
+alert("Access denied");
+document.body.innerHTML="";
+throw new Error("Unauthorized");
+
 }
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+
 const box = document.getElementById("tickets");
 const counter = document.getElementById("counter");
+const transferBox = document.getElementById("transfers");
 
-let currentFilter = "all";
 
-window.setFilter = (status)=>{
-  currentFilter = status;
-  loadTickets();
+let currentFilter="all";
+
+
+window.setFilter=(status)=>{
+currentFilter=status;
+loadTickets();
 };
 
+
 async function loadTickets(){
-  const snap = await getDocs(collection(db,"support_messages"));
-  box.innerHTML="";
 
-  let openCount = 0;
+const snap=await getDocs(collection(db,"support_messages"));
 
-  snap.forEach(docSnap=>{
-    const d = docSnap.data();
-    const id = docSnap.id;
+box.innerHTML="";
 
-    if(d.status === "open") openCount++;
+let openCount=0;
 
-    if(currentFilter !== "all" && d.status !== currentFilter) return;
+snap.forEach(docSnap=>{
 
-    const statusClass = d.status || "open";
+const d=docSnap.data();
+const id=docSnap.id;
 
-    box.innerHTML += `
-      <div class="ticket">
-        <b>User:</b> ${d.user}<br>
-        <b>Subject:</b> ${d.subject}<br><br>
+if(d.status==="open") openCount++;
 
-        <b>Message:</b><br>
-        ${d.message}<br>
+if(currentFilter!=="all" && d.status!==currentFilter) return;
 
-        <div class="status ${statusClass}">
-          Status: ${d.status || "open"}
-        </div>
+const statusClass=d.status || "open";
 
-        <div class="status">
-          Date: ${d.date}
-        </div>
+box.innerHTML+=`
 
-        ${d.reply ? `
-          <hr>
-          <b>Reply:</b><br>
-          ${d.reply}
-          <div class="status">
-            Reply Date: ${d.replyDate || ""}
-          </div>
-        ` : ""}
+<div class="ticket">
 
-        <textarea id="reply-${id}" placeholder="Type reply..."></textarea>
+<b>User:</b> ${d.user}<br>
+<b>Subject:</b> ${d.subject}<br><br>
 
-        <button onclick="sendReply('${id}')">Send Reply</button>
-        <button class="secondary" onclick="markResolved('${id}')">
-          Mark Resolved
-        </button>
-      </div>
-    `;
-  });
+<b>Message:</b><br>
+${d.message}<br>
 
-  counter.innerText = openCount + " open ticket(s)";
+<div class="status ${statusClass}">
+Status: ${d.status || "open"}
+</div>
+
+<div class="status">
+Date: ${d.date}
+</div>
+
+${d.reply ? `
+<hr>
+<b>Reply:</b><br>
+${d.reply}
+<div class="status">
+Reply Date: ${d.replyDate || ""}
+</div>
+` : ""}
+
+<textarea id="reply-${id}" placeholder="Type reply..."></textarea><button onclick="sendReply('${id}')">Send Reply</button>
+
+<button class="secondary" onclick="markResolved('${id}')">
+Mark Resolved
+</button></div>`;
+
+});
+
+counter.innerText=openCount+" open ticket(s)";
+
 }
 
-window.sendReply = async function(id){
-  const text = document.getElementById("reply-"+id).value.trim();
-  if(!text) return alert("Enter reply");
+window.sendReply=async function(id){
 
-  await updateDoc(doc(db,"support_messages",id),{
-    reply: text,
-    replyDate: new Date().toLocaleString(),
-    status: "replied"
-  });
+const text=document.getElementById("reply-"+id).value.trim();
 
-  alert("Reply sent");
-  loadTickets();
-}
+if(!text) return alert("Enter reply");
 
-window.markResolved = async function(id){
-  await updateDoc(doc(db,"support_messages",id),{
-    status:"resolved"
-  });
+await updateDoc(doc(db,"support_messages",id),{
 
-  loadTickets();
-}
+reply:text,
+replyDate:new Date().toLocaleString(),
+status:"replied"
+
+});
+
+alert("Reply sent");
 
 loadTickets();
 
-// 🔄 AUTO REFRESH EVERY 10 SECONDS
-setInterval(loadTickets,10000);
+}
+
+window.markResolved=async function(id){
+
+await updateDoc(doc(db,"support_messages",id),{
+
+status:"resolved"
+
+});
+
+loadTickets();
+
+}
+
+async function loadTransfers(){
+
+const snap=await getDocs(collection(db,"pendingTransfers"));
+
+transferBox.innerHTML="";
+
+if(snap.empty){
+
+transferBox.innerHTML="No pending transfers";
+
+return;
+
+}
+
+snap.forEach(docSnap=>{
+
+const d=docSnap.data();
+const id=docSnap.id;
+
+transferBox.innerHTML+=`
+
+<div class="ticket"><b>Sender:</b> ${d.sender}<br>
+<b>IBAN:</b> ${d.iban}<br>
+<b>Amount:</b> €${d.amount}<br>
+<b>Date:</b> ${d.date}<br>
+
+<button class="approve" onclick="approveTransfer('${id}')">
+Approve Transfer
+</button><button class="reject" onclick="rejectTransfer('${id}')">
+Reject Transfer
+</button></div>`;
+
+});
+
+}
+
+window.approveTransfer=async function(id){
+
+const ref=doc(db,"pendingTransfers",id);
+const snap=await getDoc(ref);
+const data=snap.data();
+
+const userRef=doc(db,"users",data.sender);
+const userSnap=await getDoc(userRef);
+
+const userData=userSnap.data();
+
+const newBalance=userData.balance - data.amount;
+
+await updateDoc(userRef,{
+balance:newBalance
+});
+
+await deleteDoc(ref);
+
+alert("Transfer approved");
+
+loadTransfers();
+
+}
+
+window.rejectTransfer=async function(id){
+
+await deleteDoc(doc(db,"pendingTransfers",id));
+
+alert("Transfer rejected");
+
+loadTransfers();
+
+}
+
+loadTickets();
+loadTransfers();
+
+setInterval(()=>{
+loadTickets();
+loadTransfers();
+},10000);
 
 </script>
 </body>
