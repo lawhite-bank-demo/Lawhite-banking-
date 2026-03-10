@@ -143,10 +143,13 @@ document.getElementById("acc").innerText=data.accountNumber;
 document.getElementById("iban").innerText=data.iban;
 document.getElementById("swift").innerText=data.swift;
 
-/* NEW FIELD */
-const bankAddressEl=document.getElementById("bankAddress");
-if(bankAddressEl){
-bankAddressEl.innerText=data.bankAddress || "-";
+
+// BANK ADDRESS FIX
+
+const bankAddressElement = document.getElementById("bankAddress");
+
+if(bankAddressElement){
+bankAddressElement.innerText = data.bankAddress ? data.bankAddress : "-";
 }
 
 
