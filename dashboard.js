@@ -89,14 +89,17 @@ return;
 
 const data = snap.data();
 
-// LOGIN CHECK
 
-const savedUser = localStorage.getItem("user");
+// SESSION SECURITY
 
-if(!savedUser){
+const savedSession = localStorage.getItem("session");
+
+if(savedSession != data.session){
+localStorage.clear();
 window.location.replace("index.html");
 return;
 }
+
 
 // SUCCESS BANNER
 
@@ -139,6 +142,12 @@ document.getElementById("name").innerText=data.fullName;
 document.getElementById("acc").innerText=data.accountNumber;
 document.getElementById("iban").innerText=data.iban;
 document.getElementById("swift").innerText=data.swift;
+
+/* NEW FIELD */
+const bankAddressEl=document.getElementById("bankAddress");
+if(bankAddressEl){
+bankAddressEl.innerText=data.bankAddress || "-";
+}
 
 
 // PROFILE
