@@ -144,7 +144,7 @@ document.getElementById("iban").innerText=data.iban;
 document.getElementById("swift").innerText=data.swift;
 
 
-// BANK ADDRESS FIX
+// BANK ADDRESS
 
 const bankAddressElement = document.getElementById("bankAddress");
 
@@ -337,6 +337,31 @@ pendingBox.appendChild(div);
 }
 
 
+// RECEIPT FUNCTION
+
+window.showReceipt=function(ref,amount,iban){
+
+alert(`
+
+DeChase Bank
+
+Transfer Receipt
+
+Reference: ${ref}
+
+Amount: €${amount}
+
+Recipient: ${iban}
+
+Date: ${new Date().toLocaleString()}
+
+Status: Pending Approval
+
+`);
+
+}
+
+
 // TRANSFER
 
 window.askPin=async()=>{
@@ -365,17 +390,26 @@ return alert("OTP expired");
 if(enteredOTP!=currentOTP)
 return alert("Invalid OTP");
 
+
+// GENERATE REFERENCE
+
+const reference="DCB-"+Math.floor(10000000+Math.random()*90000000);
+
+
 await addDoc(collection(db,"pendingTransfers"),{
 
 sender:username,
 iban:receiverValue,
 amount:amountValue,
+reference:reference,
 date:new Date().toISOString(),
 status:"pending"
 
 });
 
 showSuccess("Transfer submitted for approval");
+
+showReceipt(reference,amountValue,receiverValue);
 
 location.reload();
 
