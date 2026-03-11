@@ -154,7 +154,7 @@ border-radius:8px;
 font-weight:600;
 }
 
-/* RECEIPT MODAL */
+/* RECEIPT */
 
 #receiptModal{
 display:none;
@@ -177,10 +177,6 @@ max-width:360px;
 text-align:center;
 }
 
-.receiptBox h3{
-margin-top:0;
-}
-
 </style>
 
 </head>
@@ -199,6 +195,7 @@ margin-top:0;
 </div>
 
 <div class="card">
+
 <b>Account Info</b><br>
 
 Name: <span id="name">-</span><br>
@@ -251,6 +248,9 @@ Bank Address: <span id="bankAddress">-</span>
 
 </div>
 
+
+<!-- CARDS -->
+
 <div id="cardsPage" style="display:none">
 
 <div class="bankCard">
@@ -276,6 +276,9 @@ CVV: <span id="cardCVV">***</span>
 
 </div>
 
+
+<!-- PAYMENTS -->
+
 <div id="paymentsPage" style="display:none">
 
 <div class="card">
@@ -294,6 +297,9 @@ CVV: <span id="cardCVV">***</span>
 
 </div>
 
+
+<!-- BILLS -->
+
 <div id="billsPage" style="display:none">
 
 <div class="card">
@@ -307,6 +313,9 @@ CVV: <span id="cardCVV">***</span>
 </div>
 
 </div>
+
+
+<!-- GIFTS -->
 
 <div id="giftPage" style="display:none">
 
@@ -322,19 +331,35 @@ CVV: <span id="cardCVV">***</span>
 
 </div>
 
+
+<!-- PROFILE -->
+
 <div id="profilePage" style="display:none">
 
 <div class="card">
+<b>Profile</b><br><br>
+
 Name: <span id="nameProfile">-</span><br>
 Email: <span id="emailProfile">-</span>
 </div>
 
-<button onclick="logout()">Logout</button>
+<div class="card">
+<b>Bank Support</b><br><br>
+
+DeChase Bank AG<br>
+<span id="bankAddressSupport">-</span><br><br>
+
+Support WhatsApp<br>
++1 331 201 6202
+</div>
+
 <button onclick="contactSupport()">Contact Bank Support</button>
+<button onclick="logout()">Logout</button>
 
 </div>
 
 </div>
+
 
 <!-- CONFIRM TRANSFER -->
 
@@ -353,7 +378,8 @@ Email: <span id="emailProfile">-</span>
 
 </div>
 
-<!-- RECEIPT MODAL -->
+
+<!-- RECEIPT -->
 
 <div id="receiptModal">
 
@@ -369,7 +395,9 @@ Email: <span id="emailProfile">-</span>
 
 </div>
 
+
 <div id="successBanner">Success</div>
+
 
 <div class="bottomNav">
 
@@ -382,17 +410,14 @@ Email: <span id="emailProfile">-</span>
 
 </div>
 
+
 <script>
+
 window.addEventListener("load",function(){
 if(window.emailjs){
 emailjs.init("Rk2d8F7sX9Q1");
 }
 });
-</script>
-
-<script type="module" src="dashboard.js"></script>
-
-<script>
 
 function openPage(page){
 
@@ -439,20 +464,17 @@ askPin();
 }
 
 function showReceipt(text){
-
 document.getElementById("receiptContent").innerHTML=text;
-
 document.getElementById("receiptModal").style.display="flex";
-
 }
 
 function closeReceipt(){
-
 document.getElementById("receiptModal").style.display="none";
-
 }
 
 </script>
+
+<script type="module" src="dashboard.js"></script>
 
 </body>
 </html>
