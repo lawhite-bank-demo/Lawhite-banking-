@@ -258,7 +258,54 @@ Date: ${new Date().toLocaleString()}
 location.reload();
 
 };
+// TRANSACTIONS
 
+const box=document.getElementById("transactions");
+
+box.innerHTML="";
+
+let txArray=[];
+
+if(data.transactions){
+txArray=Array.isArray(data.transactions)
+?data.transactions
+:Object.values(data.transactions);
+}
+
+if(txArray.length===0){
+
+box.innerHTML=`<div class="tx">No transactions yet</div>`;
+
+}else{
+
+txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+txArray.slice(0,20).forEach(tx=>{
+
+const amount=Number(tx.amount||0);
+const color=amount>=0?"#22c55e":"#ef4444";
+const sign=amount>=0?"+":"-";
+
+const reference =
+tx.reference || "DCB-"+Math.floor(10000000+Math.random()*90000000);
+
+const div=document.createElement("div");
+div.className="tx";
+
+div.innerHTML=`
+<strong>${tx.note||"Transaction"}</strong><br>
+<span style="color:${color};font-weight:600;">
+${sign}€${Math.abs(amount).toLocaleString()}
+</span>
+<div class="small">Ref: ${reference}</div>
+<div class="small">${formatDate(tx.date)}</div>
+`;
+
+box.appendChild(div);
+
+});
+
+}
 
 // PENDING TRANSFERS
 
