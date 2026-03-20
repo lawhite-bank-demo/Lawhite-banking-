@@ -150,7 +150,19 @@ document.getElementById("emailProfile").innerText=data.email;
 
 // BALANCE
 
-let balanceValue = Number(data.balance||0);
+let balanceValue = 0;
+let currencySymbol = "€";
+let balanceField = "balance";
+
+if(data.currency === "USD"){
+    balanceValue = Number(data.usdBalance || 0);
+    currencySymbol = "$";
+    balanceField = "usdBalance";
+}else{
+    balanceValue = Number(data.balance || 0);
+    currencySymbol = "€";
+    balanceField = "balance";
+}
 let hidden = false;
 
 const balanceEl = document.getElementById("balance");
@@ -162,7 +174,7 @@ if(hidden){
 balanceEl.innerText="••••••";
 toggleEl.innerText="👁 Show balance";
 }else{
-balanceEl.innerText="€"+balanceValue.toLocaleString();
+balanceEl.innerText = currencySymbol + balanceValue.toLocaleString();
 toggleEl.innerText="👁 Hide balance";
 }
 
@@ -212,14 +224,14 @@ balanceValue -= amount;
 const reference="DCB-"+Math.floor(10000000+Math.random()*90000000);
 
 await updateDoc(userRef,{
-balance:balanceValue
+[balanceField]: balanceValue
 });
 
 showSuccess(name+" bill paid");
 
 showReceipt(`
 <b>${name} Bill Payment</b><br><br>
-Amount: €${amount}<br>
+Amount: ${currencySymbol}${amount}<br>
 Reference: ${reference}<br>
 Date: ${new Date().toLocaleString()}
 `);
@@ -243,14 +255,14 @@ balanceValue -= amount;
 const reference="DCB-"+Math.floor(10000000+Math.random()*90000000);
 
 await updateDoc(userRef,{
-balance:balanceValue
+[balanceField]: balanceValue
 });
 
 showSuccess(store+" gift card purchased");
 
 showReceipt(`
 <b>${store} Gift Card</b><br><br>
-Amount: €${amount}<br>
+Amount: ${currencySymbol}${amount}<br>
 Reference: ${reference}<br>
 Date: ${new Date().toLocaleString()}
 `);
@@ -295,7 +307,7 @@ div.className="tx";
 div.innerHTML=`
 <strong>${tx.note||"Transaction"}</strong><br>
 <span style="color:${color};font-weight:600;">
-${sign}€${Math.abs(amount).toLocaleString()}
+${sign}${currencySymbol}${Math.abs(amount).toLocaleString()}}
 </span>
 <div class="small">Ref: ${reference}</div>
 <div class="small">${formatDate(tx.date)}</div>
@@ -329,7 +341,7 @@ div.className="tx";
 
 div.innerHTML=`
 <strong>🏦 Transfer Pending</strong><br>
-€${Number(p.amount).toLocaleString()} → ${p.iban}
+${currencySymbol}${Number(p.amount).toLocaleString()}} → ${p.iban}
 <div class="small">${formatDate(p.date)}</div>
 `;
 
