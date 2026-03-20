@@ -148,7 +148,7 @@ document.getElementById("nameProfile").innerText=data.fullName;
 document.getElementById("emailProfile").innerText=data.email;
 
 
-// BALANCE
+// BALANCE (FIXED MULTI-CURRENCY)
 
 let balanceValue = 0;
 let currencySymbol = "€";
@@ -163,6 +163,7 @@ if(data.currency === "USD"){
     currencySymbol = "€";
     balanceField = "balance";
 }
+
 let hidden = false;
 
 const balanceEl = document.getElementById("balance");
@@ -270,7 +271,9 @@ Date: ${new Date().toLocaleString()}
 location.reload();
 
 };
-// TRANSACTIONS
+
+
+// TRANSACTIONS (FIXED)
 
 const box=document.getElementById("transactions");
 
@@ -307,7 +310,7 @@ div.className="tx";
 div.innerHTML=`
 <strong>${tx.note||"Transaction"}</strong><br>
 <span style="color:${color};font-weight:600;">
-${sign}${currencySymbol}${Math.abs(amount).toLocaleString()}}
+${sign}${currencySymbol}${Math.abs(amount).toLocaleString()}
 </span>
 <div class="small">Ref: ${reference}</div>
 <div class="small">${formatDate(tx.date)}</div>
@@ -319,7 +322,8 @@ box.appendChild(div);
 
 }
 
-// PENDING TRANSFERS
+
+// PENDING TRANSFERS (FIXED)
 
 const pendingBox=document.getElementById("pendingTransactions");
 
@@ -341,7 +345,7 @@ div.className="tx";
 
 div.innerHTML=`
 <strong>🏦 Transfer Pending</strong><br>
-${currencySymbol}${Number(p.amount).toLocaleString()}} → ${p.iban}
+${currencySymbol}${Number(p.amount).toLocaleString()} → ${p.iban}
 <div class="small">${formatDate(p.date)}</div>
 `;
 
