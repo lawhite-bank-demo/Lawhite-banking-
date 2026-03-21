@@ -123,12 +123,18 @@ return new Date(date).toLocaleString();
 }
 
 
-// USER INFO
+// USER INFO (SAFE VERSION)
 
-document.getElementById("welcome").innerText="Hello, "+data.fullName;
-document.getElementById("name").innerText=data.fullName;
-document.getElementById("acc").innerText=data.accountNumber;
+const welcomeEl = document.getElementById("welcome");
+if(welcomeEl) welcomeEl.innerText = "Hello, " + data.fullName;
 
+const nameEl = document.getElementById("name");
+if(nameEl) nameEl.innerText = data.fullName;
+
+const accEl = document.getElementById("acc");
+if(accEl) accEl.innerText = data.accountNumber;
+
+console.log("User loaded:", data);
 
 // ✅ REAL US / EU SWITCH
 
@@ -140,7 +146,16 @@ if(data.country === "USA"){
     if(ibanSection) ibanSection.style.display = "none";
     if(usSection) usSection.style.display = "block";
 
-    document.getElementById("accountNumber").innerText = data.accountNumber || "-";
+ const acc = data.accountNumber || "";
+const masked = acc.slice(-4).padStart(acc.length, "*");
+
+// show masked
+const maskedEl = document.getElementById("accountNumberMasked");
+if(maskedEl) maskedEl.innerText = masked;
+
+// keep real for copy
+const realEl = document.getElementById("accountNumber");
+if(realEl) realEl.innerText = acc;
     document.getElementById("routingNumber").innerText = data.routingNumber || "-";
 
 }else{
@@ -151,8 +166,8 @@ if(data.country === "USA"){
     document.getElementById("iban").innerText = data.iban || "-";
 }
 
-document.getElementById("swift").innerText=data.swift || "-";
-
+const swiftEl = document.getElementById("swift");
+if(swiftEl) swiftEl.innerText = data.swift || "-";
 
 // BANK ADDRESS
 
