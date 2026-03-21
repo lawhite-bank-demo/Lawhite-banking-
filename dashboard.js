@@ -43,9 +43,9 @@ return location.replace("index.html");
 }
 
 // ===== USER INFO =====
-document.getElementById("welcome").innerText = "Hello, " + data.fullName;
-document.getElementById("nameProfile").innerText = data.fullName;
-document.getElementById("emailProfile").innerText = data.email;
+document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "User");
+document.getElementById("nameProfile").innerText = data.fullName || "-";
+document.getElementById("emailProfile").innerText = data.email || "-";
 
 // ===== ACCOUNT DETAILS =====
 document.getElementById("iban").innerText = data.iban || "-";
@@ -130,7 +130,7 @@ pendingBox.innerHTML += `
 // ===== TRANSFER =====
 let pending = null;
 
-// OPEN PIN
+// OPEN PIN MODAL
 window.openPinModal = ()=>{
 const r = document.getElementById("receiver").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
@@ -144,7 +144,7 @@ pending = {r,a};
 document.getElementById("pinModal").style.display = "flex";
 };
 
-// CLOSE PIN
+// CLOSE PIN MODAL
 window.closePin = ()=>{
 document.getElementById("pinModal").style.display = "none";
 document.getElementById("pinInput").value = "";
@@ -159,7 +159,6 @@ if(!enteredPin) return alert("Enter PIN");
 if(enteredPin !== data.pin) return alert("Incorrect PIN");
 if(!pending) return alert("No transaction");
 
-// BALANCE CHECK
 if(usdBalance < pending.a){
 alert("Insufficient funds");
 return;
@@ -172,7 +171,7 @@ await updateDoc(userRef,{
 usdBalance: usdBalance
 });
 
-// SAVE TRANSACTION
+// UPDATE TRANSACTIONS
 tx.unshift({
 amount: -pending.a,
 note: "Transfer",
@@ -192,7 +191,7 @@ date: new Date().toISOString()
 });
 
 // RESET UI
-closePin();
+window.closePin();
 
 alert("Transfer Successful");
 location.reload();
@@ -205,9 +204,7 @@ if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
 
-await updateDoc(userRef,{
-usdBalance: usdBalance
-});
+await updateDoc(userRef,{usdBalance: usdBalance});
 
 tx.unshift({
 amount:-amount,
@@ -228,9 +225,7 @@ if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
 
-await updateDoc(userRef,{
-usdBalance: usdBalance
-});
+await updateDoc(userRef,{usdBalance: usdBalance});
 
 tx.unshift({
 amount:-amount,
