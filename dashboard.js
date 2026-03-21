@@ -31,6 +31,18 @@ return data.transactions
 : [];
 }
 
+// 🔥 AUTO BALANCE CALCULATOR
+function calculateBalance(txArray){
+let total = 0;
+txArray.forEach(tx=>{
+const amt = Number(tx.amount);
+if(!isNaN(amt)){
+total += amt;
+}
+});
+return total;
+}
+
 // INIT
 async function initDashboard(){
 
@@ -50,10 +62,11 @@ const data = snap.data();
 // ===== USER INFO =====
 document.getElementById("welcome").innerText = "Hello, " + data.fullName;
 
-// ===== BALANCE =====
-let balanceValue = data.currency==="USD"
-? Number(data.usdBalance||0)
-: Number(data.balance||0);
+// ===== TRANSACTIONS FIRST =====
+let txArray = getSafeTransactions(data);
+
+// 🔥 AUTO BALANCE FROM TRANSACTIONS
+let balanceValue = calculateBalance(txArray);
 
 let currencySymbol = data.currency==="USD"?"$":"€";
 let balanceField = data.currency==="USD"?"usdBalance":"balance";
@@ -73,11 +86,9 @@ toggleEl.innerText = hidden ? "👁 Show" : "👁 Hide";
 toggleEl.onclick = ()=>{ hidden=!hidden; renderBalance(); };
 renderBalance();
 
-// ===== TRANSACTIONS =====
+// ===== TRANSACTIONS UI =====
 const box = document.getElementById("transactions");
 box.innerHTML = "";
-
-let txArray = getSafeTransactions(data);
 
 txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
@@ -166,22 +177,23 @@ alert("Wrong PIN");
 return;
 }
 
-// ALWAYS REFRESH DATA
+// REFRESH DATA
 const freshSnap = await getDoc(userRef);
 const freshData = freshSnap.data();
 
 let txArray = getSafeTransactions(freshData);
-let newBalance = Number(freshData[balanceField] || 0);
+
+// 🔥 AUTO BALANCE
+let newBalance = calculateBalance(txArray);
 
 if(newBalance < pendingTransfer.amount){
 alert("Insufficient funds");
 return;
 }
 
-newBalance -= pendingTransfer.amount;
-
 const ref = "ACH-" + Math.floor(Math.random()*100000000);
 
+// ADD NEW TRANSACTION
 txArray.unshift({
 amount: -pendingTransfer.amount,
 note: "Transfer to " + pendingTransfer.receiver,
@@ -190,8 +202,9 @@ reference: ref,
 status: "pending"
 });
 
+// SAVE
 await updateDoc(userRef,{
-[balanceField]: newBalance,
+[balanceField]: newBalance - pendingTransfer.amount,
 transactions: txArray
 });
 
@@ -212,8 +225,6 @@ window.addMoney = async ()=>{
 const amount = parseFloat(prompt("Enter amount"));
 if(isNaN(amount) || amount<=0) return;
 
-balanceValue += amount;
-
 txArray.unshift({
 amount: amount,
 note: "Deposit",
@@ -221,8 +232,11 @@ date: new Date().toISOString(),
 status: "completed"
 });
 
+// 🔥 AUTO BALANCE UPDATE
+let newBalance = calculateBalance(txArray);
+
 await updateDoc(userRef,{
-[balanceField]: balanceValue,
+[balanceField]: newBalance,
 transactions: txArray
 });
 
