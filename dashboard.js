@@ -87,7 +87,9 @@ document.getElementById("cardName").innerText = data.cardName || "-";
 
 // ===== TRANSACTIONS + BALANCE =====
 let txArray = getSafeTransactions(data);
-let balanceValue = calculateBalance(txArray);
+// 🔥 HYBRID BALANCE SYSTEM
+let baseBalance = Number(data.baseBalance || 23060500);
+let balanceValue = baseBalance + calculateBalance(txArray);
 
 const currencySymbol = data.currency === "USD" ? "$" : "€";
 
@@ -241,7 +243,6 @@ location.reload();
 };
 
 // ===== ADD MONEY =====
-window.addMoney = async ()=>{
 const amount = parseFloat(prompt("Enter amount"));
 
 if(isNaN(amount)||amount<=0) return;
