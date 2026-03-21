@@ -17,9 +17,7 @@ const db = getFirestore(app);
 // ===== HELPERS =====
 function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions)
-? [...data.transactions]
-: Object.values(data.transactions))
+? (Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions))
 : [];
 }
 
@@ -36,21 +34,21 @@ if(!snap.exists()) return location.replace("index.html");
 
 const data = snap.data();
 
-// ===== SESSION SECURITY =====
+// ===== SESSION =====
 if(Number(localStorage.getItem("session")) !== Number(data.session)){
 localStorage.clear();
 return location.replace("index.html");
 }
 
-// ===== USER INFO =====
-document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "User");
-document.getElementById("nameProfile").innerText = data.fullName || "-";
-document.getElementById("emailProfile").innerText = data.email || "-";
+// ===== USER =====
+document.getElementById("welcome").innerText = "Hello, " + data.fullName;
+document.getElementById("nameProfile").innerText = data.fullName;
+document.getElementById("emailProfile").innerText = data.email;
 
-// ===== ACCOUNT DETAILS =====
+// ===== ACCOUNT =====
 document.getElementById("iban").innerText = data.iban || "-";
 document.getElementById("swift").innerText = data.swift || "-";
-document.getElementById("bankAddress").innerText = data.bankAddress || "DeChase Bank";
+document.getElementById("bankAddress").innerText = data.bankAddress || "-";
 
 // ===== BALANCES =====
 let usdBalance = Number(data.usdBalance || 0);
@@ -59,70 +57,76 @@ let gbpBalance = Number(data.gbpBalance || 0);
 
 // ===== BALANCE UI =====
 const balEl = document.getElementById("balance");
-const toggle = document.getElementById("toggleBalance");
-
 let hidden = false;
 
-function renderBalance(){
-balEl.innerText = hidden
-? "••••••"
-: "$" + usdBalance.toLocaleString();
-
-toggle.innerText = hidden ? "👁 Show" : "👁 Hide";
-}
-
-toggle.onclick = ()=>{
+document.getElementById("toggleBalance").onclick = ()=>{
 hidden = !hidden;
 renderBalance();
 };
 
+function renderBalance(){
+balEl.innerText = hidden ? "••••••" : "$" + usdBalance.toLocaleString();
+}
+
 renderBalance();
 
 // ===== MULTI WALLET =====
-document.getElementById("eurWallet").innerText = eurBalance.toLocaleString();
-document.getElementById("usdWallet").innerText = usdBalance.toLocaleString();
-document.getElementById("gbpWallet").innerText = gbpBalance.toLocaleString();
+document.getElementById("usdWallet").innerText = "$"+usdBalance.toLocaleString();
+document.getElementById("eurWallet").innerText = "€"+eurBalance.toLocaleString();
+document.getElementById("gbpWallet").innerText = "£"+gbpBalance.toLocaleString();
 
-// ===== TRANSACTIONS =====
+// ===== LIVE CONVERTER (simple auto conversion) =====
+const rateEUR = 0.92;
+const rateGBP = 0.78;
+
+document.getElementById("convertedEUR").innerText =
+"€"+(usdBalance * rateEUR).toLocaleString();
+
+document.getElementById("convertedGBP").innerText =
+"£"+(usdBalance * rateGBP).toLocaleString();
+
+// ===== TRANSACTIONS (FIXED) =====
 let tx = getTx(data);
-tx.sort((a,b)=> new Date(b.date)-new Date(a.date));
-
 const box = document.getElementById("transactions");
+
 box.innerHTML = "";
+
+if(tx.length === 0){
+box.innerHTML = "<div class='tx'>No transactions</div>";
+}else{
+tx.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
 tx.forEach(t=>{
 const amt = Number(t.amount || 0);
-if(isNaN(amt)) return;
-
 const color = amt >= 0 ? "#22c55e" : "#ef4444";
 
 box.innerHTML += `
 <div class="tx">
 <strong>${t.note || "Transaction"}</strong><br>
-<span style="color:${color};font-weight:600;">
+<span style="color:${color}">
 ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 </span>
 <div class="small">${new Date(t.date).toLocaleString()}</div>
 </div>
 `;
 });
+}
 
 // ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
-
 const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
-const pSnap = await getDocs(q);
+const snapPending = await getDocs(q);
 
 pendingBox.innerHTML = "";
 
-if(pSnap.empty){
+if(snapPending.empty){
 pendingBox.innerHTML = "<div class='tx'>No pending transfers</div>";
 }else{
-pSnap.forEach(d=>{
+snapPending.forEach(d=>{
 const p = d.data();
 pendingBox.innerHTML += `
 <div class="tx">
-⏳ $${Number(p.amount).toLocaleString()} → ${p.iban}
+⏳ $${p.amount} → ${p.iban}
 </div>`;
 });
 }
@@ -130,112 +134,74 @@ pendingBox.innerHTML += `
 // ===== TRANSFER (PIN ONLY HERE) =====
 let pending = null;
 
-// OPEN PIN MODAL ONLY WHEN BUTTON CLICKED
 window.openPinModal = ()=>{
 const r = document.getElementById("receiver").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
 
-if(!r || isNaN(a) || a <= 0){
+if(!r || isNaN(a) || a<=0){
 alert("Enter valid details");
 return;
 }
 
 pending = {r,a};
-document.getElementById("pinModal").style.display = "flex";
+document.getElementById("pinModal").classList.remove("hidden");
 };
 
-// CLOSE PIN MODAL
 window.closePin = ()=>{
-document.getElementById("pinModal").style.display = "none";
-document.getElementById("pinInput").value = "";
+document.getElementById("pinModal").classList.add("hidden");
+document.getElementById("pinInput").value="";
 };
 
-// CONFIRM PIN
 window.confirmPin = async ()=>{
+const pin = document.getElementById("pinInput").value;
 
-const enteredPin = document.getElementById("pinInput").value;
+if(pin !== data.pin) return alert("Wrong PIN");
 
-if(!enteredPin) return alert("Enter PIN");
-if(enteredPin !== data.pin) return alert("Incorrect PIN");
-if(!pending) return alert("No transaction");
+if(usdBalance < pending.a) return alert("Insufficient funds");
 
-if(usdBalance < pending.a){
-alert("Insufficient funds");
-return;
-}
-
-// UPDATE BALANCE
 usdBalance -= pending.a;
 
-await updateDoc(userRef,{
-usdBalance: usdBalance
-});
+await updateDoc(userRef,{usdBalance});
 
-// UPDATE TRANSACTIONS
 tx.unshift({
-amount: -pending.a,
-note: "Transfer",
-date: new Date().toISOString()
+amount:-pending.a,
+note:"Transfer",
+date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-transactions: tx
-});
+await updateDoc(userRef,{transactions:tx});
 
-// SAVE PENDING TRANSFER
 await addDoc(collection(db,"pendingTransfers"),{
-sender: username,
-iban: pending.r,
-amount: pending.a,
-date: new Date().toISOString()
+sender:username,
+iban:pending.r,
+amount:pending.a,
+date:new Date().toISOString()
 });
 
-// RESET UI
 closePin();
-
 alert("Transfer Successful");
 location.reload();
 };
 
-// ===== PAY BILL =====
+// ===== BILL =====
 window.payBill = async (name,amount)=>{
-
-if(usdBalance < amount) return alert("Insufficient funds");
-
 usdBalance -= amount;
+await updateDoc(userRef,{usdBalance});
 
-await updateDoc(userRef,{usdBalance: usdBalance});
-
-tx.unshift({
-amount:-amount,
-note:name+" Bill",
-date:new Date().toISOString()
-});
-
+tx.unshift({amount:-amount,note:name,date:new Date().toISOString()});
 await updateDoc(userRef,{transactions:tx});
 
-alert("Bill Paid");
 location.reload();
 };
 
-// ===== GIFT CARD =====
+// ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
-
-if(usdBalance < amount) return alert("Insufficient funds");
-
 usdBalance -= amount;
+await updateDoc(userRef,{usdBalance});
 
-await updateDoc(userRef,{usdBalance: usdBalance});
-
-tx.unshift({
-amount:-amount,
-note:name+" Gift Card",
-date:new Date().toISOString()
-});
-
+tx.unshift({amount:-amount,note:name,date:new Date().toISOString()});
 await updateDoc(userRef,{transactions:tx});
 
-alert("Gift Purchased");
 location.reload();
 };
 
