@@ -148,9 +148,12 @@ txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
 txArray.forEach(tx=>{
 
-const amount = typeof tx.amount==="number"
-? tx.amount
-: parseFloat(tx.amount)||0;
+const amount = Number(tx.amount);
+
+if(isNaN(amount)){
+  console.log("Bad transaction:", tx);
+  return;
+}
 
 const color = amount>=0?"#22c55e":"#ef4444";
 const sign = amount>=0?"+":"-";
