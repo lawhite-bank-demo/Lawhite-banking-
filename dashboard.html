@@ -40,6 +40,16 @@ font-size:30px;
 font-weight:bold;
 }
 
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border:none;
+border-radius:10px;
+background:#1f2937;
+color:white;
+}
+
 button{
 width:100%;
 padding:12px;
@@ -95,6 +105,7 @@ display:none;
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
+<!-- ✅ MULTI WALLET -->
 <div class="card">
 <b>Multi Currency Wallet</b><br><br>
 USD: <span id="usdWallet"></span><br>
@@ -102,6 +113,7 @@ EUR: <span id="eurWallet"></span><br>
 GBP: <span id="gbpWallet"></span>
 </div>
 
+<!-- ✅ CONVERTER -->
 <div class="card">
 <b>Converted Balance</b><br><br>
 EUR: <span id="convertedEUR"></span><br>
@@ -135,9 +147,14 @@ Address: <span id="bankAddress"></span>
 <!-- PAYMENTS -->
 <div id="paymentsPage" class="hidden">
 <div class="card">
-<b>Send Money</b>
-<input id="receiver" placeholder="IBAN / Account Number">
+<b>Send Money (USA Transfer)</b>
+
+<!-- ✅ NEW FORM -->
+<input id="accountNumber" placeholder="Account Number">
+<input id="routingNumber" placeholder="Routing Number">
 <input id="amount" placeholder="Amount">
+<input id="description" placeholder="Description (optional)">
+
 <button onclick="openPinModal()">Send Transfer</button>
 </div>
 </div>
