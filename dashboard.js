@@ -58,36 +58,6 @@ let gbpBalance = Number(data.gbpBalance || 0);
 // ===== TRANSACTIONS =====
 let tx = getTx(data);
 
-// ===== SCHEDULED =====
-const schedQuery = query(
-collection(db,"scheduledTransactions"),
-where("username","==",username),
-where("executed","==",false)
-);
-
-const schedSnap = await getDocs(schedQuery);
-
-for(const docSnap of schedSnap.docs){
-const s = docSnap.data();
-
-if(new Date(s.date) <= new Date()){
-
-usdBalance += Number(s.amount);
-
-tx.unshift({
-amount:Number(s.amount),
-note:s.note,
-date:new Date().toISOString()
-});
-
-await updateDoc(userRef,{usdBalance,transactions:tx});
-
-await updateDoc(doc(db,"scheduledTransactions",docSnap.id),{
-executed:true
-});
-}
-}
-
 // ===== BALANCE UI =====
 const balEl = document.getElementById("balance");
 let hidden = false;
@@ -171,9 +141,23 @@ $${p.amount} → ${p.accountNumber || "----"}
 });
 }
 
-// ===== TRANSFER (UPDATED TO US FORMAT) =====
+// ===== PIN MODAL CONTROL (FIXED) =====
 let pending = null;
 
+function showPin(){
+const modal = document.getElementById("pinModal");
+modal.classList.remove("hidden");
+modal.style.display = "flex";
+}
+
+function hidePin(){
+const modal = document.getElementById("pinModal");
+modal.classList.add("hidden");
+modal.style.display = "none";
+document.getElementById("pinInput").value = "";
+}
+
+// ===== TRANSFER (USA FORMAT) =====
 window.openPinModal = ()=>{
 
 const acc = document.getElementById("accountNumber").value.trim();
@@ -181,7 +165,6 @@ const routing = document.getElementById("routingNumber").value.trim();
 const desc = document.getElementById("description").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
 
-// VALIDATION
 if(!acc || !routing || routing.length !== 9 || isNaN(a) || a<=0){
 alert("Enter valid account, routing (9 digits), and amount");
 return;
@@ -189,13 +172,10 @@ return;
 
 pending = {acc, routing, desc, a};
 
-document.getElementById("pinModal").classList.remove("hidden");
+showPin();
 };
 
-window.closePin = ()=>{
-document.getElementById("pinModal").classList.add("hidden");
-document.getElementById("pinInput").value="";
-};
+window.closePin = hidePin;
 
 window.confirmPin = async ()=>{
 
@@ -203,7 +183,6 @@ const pin = document.getElementById("pinInput").value;
 
 if(pin !== data.pin) return alert("Wrong PIN");
 
-// ===== SAVE AS PENDING ONLY =====
 await addDoc(collection(db,"pendingTransfers"),{
 sender:username,
 accountNumber:pending.acc,
@@ -214,7 +193,7 @@ date:new Date().toISOString(),
 status:"pending"
 });
 
-closePin();
+hidePin();
 alert("Transfer Submitted for Approval");
 location.reload();
 };
