@@ -13,6 +13,12 @@
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
 <style>
+.copyBtn{
+width:auto;
+padding:4px 8px;
+font-size:12px;
+margin-left:6px;
+}
 
 body{
 margin:0;
@@ -200,7 +206,26 @@ text-align:center;
 
 Name: <span id="name">-</span><br>
 Account: <span id="acc">-</span><br>
-<span id="ibanLabel">IBAN</span>: <span id="iban">-</span><br>
+
+<!-- EU ACCOUNT -->
+<div id="ibanSection">
+  IBAN: <span id="iban">-</span>
+  <button class="copyBtn" onclick="copyText('iban')">📋</button>
+</div>
+
+<!-- USA ACCOUNT -->
+<div id="usAccountSection" style="display:none">
+
+  Account Number: 
+  <span id="accountNumberMasked">****</span>
+  <button class="copyBtn" onclick="copyText('accountNumber')">📋</button><br>
+
+  Routing Number: 
+  <span id="routingNumber">-</span>
+  <button class="copyBtn" onclick="copyText('routingNumber')">📋</button>
+
+</div>
+
 SWIFT: <span id="swift">-</span><br>
 Bank Address: <span id="bankAddress">-</span>
 
@@ -412,6 +437,11 @@ Support WhatsApp<br>
 
 
 <script>
+function copyText(id){
+const el=document.getElementById(id);
+navigator.clipboard.writeText(el.innerText);
+alert("Copied: "+el.innerText);
+}
 
 window.addEventListener("load",function(){
 if(window.emailjs){
