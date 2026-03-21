@@ -283,23 +283,25 @@ location.reload();
 
 // TRANSACTIONS
 
-const box=document.getElementById("transactions");
-box.innerHTML="";
+const box = document.getElementById("transactions");
+box.innerHTML = "";
 
 let txArray = data.transactions
-? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
+? (Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions))
 : [];
 
-if(txArray.length===0){
-box.innerHTML=`<div class="tx">No transactions yet</div>`;
-}else{
+if(txArray.length === 0){
+
+box.innerHTML = `<div class="tx">No transactions yet</div>`;
+
+} else {
 
 txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
 txArray.slice(0,20).forEach(tx=>{
 
-const amount=Number(tx.amount||0);
-const color=amount>=0?"#22c55e":"#ef4444";
+const amount = Number(tx.amount || 0);
+const color = amount >= 0 ? "#22c55e" : "#ef4444";
 
 box.innerHTML += `
 <div class="tx">
@@ -311,14 +313,18 @@ ${amount >= 0 ? "+" : "-"}${currencySymbol}${Math.abs(amount).toLocaleString()}
 <div class="small">${formatDate(tx.date)}</div>
 </div>
 `;
+
 });
+
+} // ✅ THIS WAS YOUR MISSING FIX
+
 
 // PENDING
 
 const pendingBox = document.getElementById("pendingTransactions");
 
 const pendingSnap = await getDocs(
-  query(collection(db,"pendingTransfers"), where("sender","==",username))
+query(collection(db,"pendingTransfers"), where("sender","==",username))
 );
 
 pendingBox.innerHTML = pendingSnap.empty
@@ -326,7 +332,7 @@ pendingBox.innerHTML = pendingSnap.empty
 : "";
 
 pendingSnap.forEach(docu=>{
-const p=docu.data();
+const p = docu.data();
 
 pendingBox.innerHTML += `
 <div class="tx">
