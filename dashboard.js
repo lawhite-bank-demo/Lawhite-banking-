@@ -17,7 +17,9 @@ const db = getFirestore(app);
 // ===== HELPERS =====
 function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
+? (Array.isArray(data.transactions)
+? [...data.transactions]
+: Object.values(data.transactions))
 : [];
 }
 
@@ -34,7 +36,7 @@ if(!snap.exists()) return location.replace("index.html");
 
 const data = snap.data();
 
-// ===== SESSION =====
+// ===== SESSION SECURITY =====
 if(Number(localStorage.getItem("session")) !== Number(data.session)){
 localStorage.clear();
 return location.replace("index.html");
@@ -45,12 +47,12 @@ document.getElementById("welcome").innerText = "Hello, " + data.fullName;
 document.getElementById("nameProfile").innerText = data.fullName;
 document.getElementById("emailProfile").innerText = data.email;
 
-// ===== ACCOUNT =====
+// ===== ACCOUNT DETAILS =====
 document.getElementById("iban").innerText = data.iban || "-";
 document.getElementById("swift").innerText = data.swift || "-";
 document.getElementById("bankAddress").innerText = data.bankAddress || "DeChase Bank";
 
-// ===== 🔥 MAIN BALANCE = USD =====
+// ===== BALANCES =====
 let usdBalance = Number(data.usdBalance || 0);
 let eurBalance = Number(data.balance || 0);
 let gbpBalance = Number(data.gbpBalance || 0);
@@ -77,14 +79,9 @@ renderBalance();
 renderBalance();
 
 // ===== MULTI WALLET =====
-document.getElementById("eurWallet").innerText =
-eurBalance.toLocaleString();
-
-document.getElementById("usdWallet").innerText =
-usdBalance.toLocaleString();
-
-document.getElementById("gbpWallet").innerText =
-gbpBalance.toLocaleString();
+document.getElementById("eurWallet").innerText = eurBalance.toLocaleString();
+document.getElementById("usdWallet").innerText = usdBalance.toLocaleString();
+document.getElementById("gbpWallet").innerText = gbpBalance.toLocaleString();
 
 // ===== TRANSACTIONS =====
 let tx = getTx(data);
@@ -94,13 +91,15 @@ const box = document.getElementById("transactions");
 box.innerHTML = "";
 
 tx.forEach(t=>{
-const amt = Number(t.amount);
+const amt = Number(t.amount || 0);
+if(isNaN(amt)) return;
+
 const color = amt >= 0 ? "#22c55e" : "#ef4444";
 
 box.innerHTML += `
 <div class="tx">
-<strong>${t.note}</strong><br>
-<span style="color:${color}">
+<strong>${t.note || "Transaction"}</strong><br>
+<span style="color:${color};font-weight:600;">
 ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 </span>
 <div class="small">${new Date(t.date).toLocaleString()}</div>
@@ -123,7 +122,7 @@ pSnap.forEach(d=>{
 const p = d.data();
 pendingBox.innerHTML += `
 <div class="tx">
-⏳ $${p.amount} → ${p.iban}
+⏳ $${Number(p.amount).toLocaleString()} → ${p.iban}
 </div>`;
 });
 }
@@ -131,24 +130,27 @@ pendingBox.innerHTML += `
 // ===== TRANSFER =====
 let pending = null;
 
+// OPEN PIN
 window.openPinModal = ()=>{
 const r = document.getElementById("receiver").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
 
-if(!r || isNaN(a)){
+if(!r || isNaN(a) || a <= 0){
 alert("Enter valid details");
 return;
 }
 
 pending = {r,a};
-document.getElementById("pinModal").classList.remove("hidden");
+document.getElementById("pinModal").style.display = "flex";
 };
 
+// CLOSE PIN
 window.closePin = ()=>{
-document.getElementById("pinModal").classList.add("hidden");
+document.getElementById("pinModal").style.display = "none";
 document.getElementById("pinInput").value = "";
 };
 
+// CONFIRM PIN
 window.confirmPin = async ()=>{
 
 const enteredPin = document.getElementById("pinInput").value;
@@ -156,25 +158,32 @@ const enteredPin = document.getElementById("pinInput").value;
 if(!enteredPin) return alert("Enter PIN");
 if(enteredPin !== data.pin) return alert("Incorrect PIN");
 if(!pending) return alert("No transaction");
-if(usdBalance < pending.a) return alert("Insufficient funds");
 
-// UPDATE USD BALANCE
+// BALANCE CHECK
+if(usdBalance < pending.a){
+alert("Insufficient funds");
+return;
+}
+
+// UPDATE BALANCE
 usdBalance -= pending.a;
 
 await updateDoc(userRef,{
 usdBalance: usdBalance
 });
 
-// SAVE TX
+// SAVE TRANSACTION
 tx.unshift({
 amount: -pending.a,
 note: "Transfer",
 date: new Date().toISOString()
 });
 
-await updateDoc(userRef,{transactions:tx});
+await updateDoc(userRef,{
+transactions: tx
+});
 
-// SAVE PENDING
+// SAVE PENDING TRANSFER
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
 iban: pending.r,
@@ -182,9 +191,8 @@ amount: pending.a,
 date: new Date().toISOString()
 });
 
-// UI RESET
-document.getElementById("pinModal").classList.add("hidden");
-document.getElementById("pinInput").value = "";
+// RESET UI
+closePin();
 
 alert("Transfer Successful");
 location.reload();
@@ -192,9 +200,14 @@ location.reload();
 
 // ===== PAY BILL =====
 window.payBill = async (name,amount)=>{
+
+if(usdBalance < amount) return alert("Insufficient funds");
+
 usdBalance -= amount;
 
-await updateDoc(userRef,{usdBalance: usdBalance});
+await updateDoc(userRef,{
+usdBalance: usdBalance
+});
 
 tx.unshift({
 amount:-amount,
@@ -208,11 +221,16 @@ alert("Bill Paid");
 location.reload();
 };
 
-// ===== GIFT =====
+// ===== GIFT CARD =====
 window.buyGiftCard = async (name,amount)=>{
+
+if(usdBalance < amount) return alert("Insufficient funds");
+
 usdBalance -= amount;
 
-await updateDoc(userRef,{usdBalance: usdBalance});
+await updateDoc(userRef,{
+usdBalance: usdBalance
+});
 
 tx.unshift({
 amount:-amount,
