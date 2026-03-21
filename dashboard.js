@@ -360,6 +360,7 @@ amount:amountValue,
 date:new Date().toISOString(),
 status:"pending"
 });
+}
 
 showSuccess("Transfer submitted");
 location.reload();
