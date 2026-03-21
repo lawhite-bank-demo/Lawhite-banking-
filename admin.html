@@ -2,53 +2,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin - Add Transaction</title><style>
-body{
-  margin:0;
-  font-family:Arial;
-  background:#031427;
-  color:white;
-}
-.container{
-  max-width:420px;
-  margin:auto;
-  padding:20px;
-}
-.card{
-  background:#0a1f44;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-}
-input,button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-}
+<title>Admin Panel</title><style>
+body{margin:0;font-family:Arial;background:#031427;color:white;}
+.container{max-width:420px;margin:auto;padding:20px;}
+.card{background:#0a1f44;padding:15px;border-radius:12px;margin-bottom:15px;}
+input,button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:8px;}
 input{background:#021022;color:white;}
 button{background:#2563eb;color:white;font-weight:bold;}
-.success{
-  background:#16a34a;
-  padding:10px;
-  border-radius:8px;
-  display:none;
-  margin-bottom:10px;
-}
+.tx{background:#021022;padding:10px;border-radius:8px;margin-top:10px;}
+.delete{background:#ef4444;margin-top:8px;}
+.success{background:#16a34a;padding:10px;border-radius:8px;display:none;margin-bottom:10px;}
 </style></head>
-<body><div class="container"><h2>Admin Transaction Panel</h2><div class="success" id="success">Transaction Added ✅</div><div class="card">
-<input id="username" placeholder="Username (e.g jojosnow)">
-<input id="amount" placeholder="Amount (use - for debit)">
-<input id="note" placeholder="Note (e.g House Purchase)">
-<input id="reference" placeholder="Reference (ACH-xxxx)">
+<body><div class="container"><h2>Admin Control Panel</h2><div id="success" class="success">Success ✅</div><div class="card">
+<input id="username" placeholder="Username">
+<input id="amount" placeholder="Amount (- for debit)">
+<input id="note" placeholder="Note">
+<input id="reference" placeholder="Reference">
 <button onclick="addTransaction()">Add Transaction</button>
-</div></div><script type="module">
-
+<button onclick="loadUser()">Load User Transactions</button>
+</div><div id="transactions"></div></div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-getFirestore, doc, getDoc, updateDoc
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -65,30 +39,61 @@ return data.transactions
 : [];
 }
 
-window.addTransaction = async ()=>{
+let currentUser = null;
+let tx = [];
+let usdBalance = 0;
 
+window.loadUser = async ()=>{
 const username = document.getElementById("username").value.trim();
-const amount = parseFloat(document.getElementById("amount").value);
-const note = document.getElementById("note").value.trim();
-const reference = document.getElementById("reference").value.trim();
-
-if(!username || isNaN(amount) || !note){
-alert("Fill all fields correctly");
-return;
-}
+if(!username) return alert("Enter username");
 
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 
-if(!snap.exists()){
-alert("User not found");
+if(!snap.exists()) return alert("User not found");
+
+currentUser = userRef;
+const data = snap.data();
+
+tx = getTx(data);
+usdBalance = Number(data.usdBalance || 0);
+
+renderTx();
+};
+
+function renderTx(){
+const box = document.getElementById("transactions");
+box.innerHTML = "";
+
+if(tx.length===0){
+box.innerHTML = "<div class='tx'>No transactions</div>";
 return;
 }
 
-const data = snap.data();
-let tx = getTx(data);
+tx.forEach((t,i)=>{
+box.innerHTML += `
+<div class="tx">
+<strong>${t.note}</strong><br>
+$${t.amount}<br>
+<small>${new Date(t.date).toLocaleString()}</small>
+<button class="delete" onclick="deleteTx(${i})">Delete</button>
+</div>
+`;
+});
+}
 
-// CREATE NEW TX
+window.addTransaction = async ()=>{
+if(!currentUser) return alert("Load user first");
+
+const amount = parseFloat(document.getElementById("amount").value);
+const note = document.getElementById("note").value.trim();
+const reference = document.getElementById("reference").value.trim();
+
+if(isNaN(amount) || !note) return alert("Invalid input");
+
+// update balance
+usdBalance += amount;
+
 const newTx = {
 amount: amount,
 note: note,
@@ -96,26 +101,43 @@ date: new Date().toISOString(),
 reference: reference || "ACH-"+Math.floor(Math.random()*1000000)
 };
 
-// ADD TO TOP
 tx.unshift(newTx);
 
-// SAVE
-await updateDoc(userRef,{transactions:tx});
+await updateDoc(currentUser,{
+transactions: tx,
+usdBalance: usdBalance
+});
 
-// SUCCESS UI
-const s = document.getElementById("success");
-s.style.display="block";
-
-setTimeout(()=>{
-s.style.display="none";
-},2000);
-
-// CLEAR
-document.getElementById("amount").value="";
-document.getElementById("note").value="";
-document.getElementById("reference").value="";
-
+showSuccess("Transaction Added");
+renderTx();
 };
+
+window.deleteTx = async (index)=>{
+if(!confirm("Delete this transaction?")) return;
+
+const removed = tx[index];
+
+// reverse balance
+usdBalance -= removed.amount;
+
+// remove tx
+tx.splice(index,1);
+
+await updateDoc(currentUser,{
+transactions: tx,
+usdBalance: usdBalance
+});
+
+showSuccess("Transaction Deleted");
+renderTx();
+};
+
+function showSuccess(msg){
+const s = document.getElementById("success");
+s.innerText = msg;
+s.style.display = "block";
+setTimeout(()=>s.style.display="none",2000);
+}
 
 </script>
 </body>
