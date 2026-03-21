@@ -2,113 +2,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DeChase Admin Panel</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"><style>
+<title>Admin - Add Transaction</title><style>
 body{
-margin:0;
-font-family:'Inter',sans-serif;
-background:#021427;
-color:white;
+  margin:0;
+  font-family:Arial;
+  background:#031427;
+  color:white;
 }
-
 .container{
-max-width:700px;
-margin:auto;
-padding:20px;
+  max-width:420px;
+  margin:auto;
+  padding:20px;
 }
-
-h2{
-margin-bottom:10px;
+.card{
+  background:#0a1f44;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
 }
-
-.counter{
-font-size:13px;
-opacity:.7;
-margin-bottom:15px;
+input,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border:none;
+  border-radius:8px;
 }
-
-.ticket{
-background:#0a223d;
-padding:16px;
-border-radius:14px;
-margin-bottom:15px;
+input{background:#021022;color:white;}
+button{background:#2563eb;color:white;font-weight:bold;}
+.success{
+  background:#16a34a;
+  padding:10px;
+  border-radius:8px;
+  display:none;
+  margin-bottom:10px;
 }
-
-textarea{
-width:100%;
-margin-top:10px;
-padding:10px;
-border-radius:8px;
-border:none;
-}
-
-button{
-margin-top:8px;
-padding:10px;
-border:none;
-border-radius:8px;
-background:#2d8cff;
-color:white;
-font-weight:600;
-width:100%;
-cursor:pointer;
-}
-
-button.secondary{
-background:#444;
-}
-
-button.approve{
-background:#22c55e;
-}
-
-button.reject{
-background:#ef4444;
-}
-
-.status{
-font-size:12px;
-margin-top:5px;
-font-weight:600;
-}
-
-.open{color:#ffcc66;}
-.replied{color:#00ffb2;}
-.resolved{color:#6ed0ff;}
-
-.filter{
-display:flex;
-gap:8px;
-margin-bottom:15px;
-}
-
-.filter button{
-flex:1;
-padding:8px;
-font-size:13px;
-}
-
-.section{
-margin-top:35px;
-}
-</style></head><body><div class="container"><h2>Support Messages</h2>
-<div class="counter" id="counter"></div><div class="filter">
-<button onclick="setFilter('all')">All</button>
-<button onclick="setFilter('open')">Open</button>
-<button onclick="setFilter('replied')">Replied</button>
-<button onclick="setFilter('resolved')">Resolved</button>
-</div><div id="tickets"></div><div class="section"><h2>Pending Transfers</h2><div id="transfers"></div></div></div><script type="module">
+</style></head>
+<body><div class="container"><h2>Admin Transaction Panel</h2><div class="success" id="success">Transaction Added ✅</div><div class="card">
+<input id="username" placeholder="Username (e.g jojosnow)">
+<input id="amount" placeholder="Amount (use - for debit)">
+<input id="note" placeholder="Note (e.g House Purchase)">
+<input id="reference" placeholder="Reference (ACH-xxxx)">
+<button onclick="addTransaction()">Add Transaction</button>
+</div></div><script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-getFirestore,
-collection,
-getDocs,
-doc,
-updateDoc,
-deleteDoc,
-getDoc
+getFirestore, doc, getDoc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
 
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -116,208 +56,66 @@ authDomain: "dechase-bank.firebaseapp.com",
 projectId: "dechase-bank"
 };
 
-
-// ADMIN KEY
-
-const ADMIN_KEY = "admin123";
-
-const entered = prompt("Enter Admin Key");
-
-if(entered !== ADMIN_KEY){
-
-alert("Access denied");
-document.body.innerHTML="";
-throw new Error("Unauthorized");
-
-}
-
-
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+function getTx(data){
+return data.transactions
+? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
+: [];
+}
 
-const box = document.getElementById("tickets");
-const counter = document.getElementById("counter");
-const transferBox = document.getElementById("transfers");
+window.addTransaction = async ()=>{
 
+const username = document.getElementById("username").value.trim();
+const amount = parseFloat(document.getElementById("amount").value);
+const note = document.getElementById("note").value.trim();
+const reference = document.getElementById("reference").value.trim();
 
-let currentFilter="all";
+if(!username || isNaN(amount) || !note){
+alert("Fill all fields correctly");
+return;
+}
 
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
 
-window.setFilter=(status)=>{
-currentFilter=status;
-loadTickets();
+if(!snap.exists()){
+alert("User not found");
+return;
+}
+
+const data = snap.data();
+let tx = getTx(data);
+
+// CREATE NEW TX
+const newTx = {
+amount: amount,
+note: note,
+date: new Date().toISOString(),
+reference: reference || "ACH-"+Math.floor(Math.random()*1000000)
 };
 
+// ADD TO TOP
+tx.unshift(newTx);
 
-async function loadTickets(){
+// SAVE
+await updateDoc(userRef,{transactions:tx});
 
-const snap=await getDocs(collection(db,"support_messages"));
+// SUCCESS UI
+const s = document.getElementById("success");
+s.style.display="block";
 
-box.innerHTML="";
+setTimeout(()=>{
+s.style.display="none";
+},2000);
 
-let openCount=0;
+// CLEAR
+document.getElementById("amount").value="";
+document.getElementById("note").value="";
+document.getElementById("reference").value="";
 
-snap.forEach(docSnap=>{
-
-const d=docSnap.data();
-const id=docSnap.id;
-
-if(d.status==="open") openCount++;
-
-if(currentFilter!=="all" && d.status!==currentFilter) return;
-
-const statusClass=d.status || "open";
-
-box.innerHTML+=`
-
-<div class="ticket">
-
-<b>User:</b> ${d.user}<br>
-<b>Subject:</b> ${d.subject}<br><br>
-
-<b>Message:</b><br>
-${d.message}<br>
-
-<div class="status ${statusClass}">
-Status: ${d.status || "open"}
-</div>
-
-<div class="status">
-Date: ${d.date}
-</div>
-
-${d.reply ? `
-<hr>
-<b>Reply:</b><br>
-${d.reply}
-<div class="status">
-Reply Date: ${d.replyDate || ""}
-</div>
-` : ""}
-
-<textarea id="reply-${id}" placeholder="Type reply..."></textarea><button onclick="sendReply('${id}')">Send Reply</button>
-
-<button class="secondary" onclick="markResolved('${id}')">
-Mark Resolved
-</button></div>`;
-
-});
-
-counter.innerText=openCount+" open ticket(s)";
-
-}
-
-window.sendReply=async function(id){
-
-const text=document.getElementById("reply-"+id).value.trim();
-
-if(!text) return alert("Enter reply");
-
-await updateDoc(doc(db,"support_messages",id),{
-
-reply:text,
-replyDate:new Date().toLocaleString(),
-status:"replied"
-
-});
-
-alert("Reply sent");
-
-loadTickets();
-
-}
-
-window.markResolved=async function(id){
-
-await updateDoc(doc(db,"support_messages",id),{
-
-status:"resolved"
-
-});
-
-loadTickets();
-
-}
-
-async function loadTransfers(){
-
-const snap=await getDocs(collection(db,"pendingTransfers"));
-
-transferBox.innerHTML="";
-
-if(snap.empty){
-
-transferBox.innerHTML="No pending transfers";
-
-return;
-
-}
-
-snap.forEach(docSnap=>{
-
-const d=docSnap.data();
-const id=docSnap.id;
-
-transferBox.innerHTML+=`
-
-<div class="ticket"><b>Sender:</b> ${d.sender}<br>
-<b>IBAN:</b> ${d.iban}<br>
-<b>Amount:</b> €${d.amount}<br>
-<b>Date:</b> ${d.date}<br>
-
-<button class="approve" onclick="approveTransfer('${id}')">
-Approve Transfer
-</button><button class="reject" onclick="rejectTransfer('${id}')">
-Reject Transfer
-</button></div>`;
-
-});
-
-}
-
-window.approveTransfer=async function(id){
-
-const ref=doc(db,"pendingTransfers",id);
-const snap=await getDoc(ref);
-const data=snap.data();
-
-const userRef=doc(db,"users",data.sender);
-const userSnap=await getDoc(userRef);
-
-const userData=userSnap.data();
-
-const newBalance=userData.balance - data.amount;
-
-await updateDoc(userRef,{
-balance:newBalance
-});
-
-await deleteDoc(ref);
-
-alert("Transfer approved");
-
-loadTransfers();
-
-}
-
-window.rejectTransfer=async function(id){
-
-await deleteDoc(doc(db,"pendingTransfers",id));
-
-alert("Transfer rejected");
-
-loadTransfers();
-
-}
-
-loadTickets();
-loadTransfers();
-
-setInterval(()=>{
-loadTickets();
-loadTransfers();
-},10000);
+};
 
 </script>
 </body>
