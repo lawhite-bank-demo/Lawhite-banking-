@@ -1,60 +1,45 @@
-<!-- ONLY MAIN PARTS CHANGED — FULL FILE -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
 margin:0;
-font-family:'Inter',sans-serif;
-background:linear-gradient(180deg,#020617,#031427);
+font-family:Arial;
+background:#020617;
 color:white;
-padding-bottom:90px;
+padding-bottom:80px;
 }
-
 .container{max-width:420px;margin:auto;padding:20px;}
-
 .card{
-background:rgba(255,255,255,0.05);
-border-radius:20px;
-padding:16px;
-margin-bottom:16px;
+background:#111827;
+padding:15px;
+border-radius:15px;
+margin-bottom:15px;
 }
-
 .balance-card{
 background:linear-gradient(135deg,#2563eb,#0ea5e9);
 padding:25px;
-border-radius:25px;
+border-radius:20px;
 text-align:center;
-margin-bottom:16px;
 }
-
-.balance{font-size:36px;font-weight:700;}
-
-button,input{
+button{
 width:100%;
 padding:12px;
 margin-top:10px;
 border:none;
-border-radius:12px;
+border-radius:10px;
+background:#2563eb;
+color:white;
 }
-
-button{background:#2563eb;color:white;}
-
 .tx{
-background:rgba(255,255,255,0.06);
-padding:12px;
-border-radius:12px;
+background:#1f2937;
+padding:10px;
+border-radius:10px;
 margin-top:10px;
 }
-
 .bottomNav{
 position:fixed;
 bottom:0;
@@ -62,12 +47,7 @@ width:100%;
 display:flex;
 justify-content:space-around;
 background:#021a35;
-padding:12px;
-}
-
-.bottomNav button{
-background:none;
-color:white;
+padding:10px;
 }
 </style>
 </head>
@@ -78,31 +58,28 @@ color:white;
 
 <h3 id="welcome"></h3>
 
-<!-- HOME -->
-<div id="homePage">
-
 <div class="balance-card">
 <div>Total Balance</div>
-<div class="balance" id="balance"></div>
+<div id="balance"></div>
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
 <div class="card">
-<button onclick="openPinModal()">💸 Send Money</button>
-<button onclick="addMoney()">➕ Add Money</button>
-<button onclick="downloadStatement()">📄 Bank Statement</button>
+<button onclick="openPinModal()">Send Money</button>
+<button onclick="payBill('Electricity',120)">Pay Bills</button>
+<button onclick="buyGiftCard('Amazon',100)">Gift Cards</button>
+<button onclick="contactSupport()">WhatsApp Support</button>
 </div>
 
-<!-- ACCOUNT DETAILS -->
 <div class="card">
-<b>Account Details</b><br><br>
+<b>Account</b><br>
 IBAN: <span id="iban"></span><br>
 SWIFT: <span id="swift"></span><br>
-Bank Address: <span id="bankAddress"></span>
+Address: <span id="bankAddress"></span>
 </div>
 
 <div class="card">
-<b>Pending Transfers</b>
+<b>Pending</b>
 <div id="pendingTransactions"></div>
 </div>
 
@@ -111,66 +88,15 @@ Bank Address: <span id="bankAddress"></span>
 <div id="transactions"></div>
 </div>
 
-</div>
-
-<!-- CARDS -->
-<div id="cardsPage" style="display:none">
-<div class="card">
-<b>Card</b><br>
-Number: <span id="cardNumber"></span><br>
-Name: <span id="cardName"></span>
-</div>
-</div>
-
-<!-- PAYMENTS -->
-<div id="paymentsPage" style="display:none">
-<div class="card">
-<b>Transfer</b>
-
-<input id="receiverName" placeholder="Recipient Name">
-<input id="receiver" placeholder="IBAN / Account Number">
-<input id="swiftCode" placeholder="SWIFT Code">
-<input id="amount" placeholder="Amount">
-
-<button onclick="openPinModal()">Send Transfer</button>
-</div>
-</div>
-
-<!-- BILLS -->
-<div id="billsPage" style="display:none">
-<div class="card">
-<button onclick="payBill('Electricity',120)">Electricity €120</button>
-<button onclick="payBill('Netflix',15)">Netflix €15</button>
-<button onclick="payBill('Internet',60)">Internet €60</button>
-</div>
-</div>
-
-<!-- GIFTS -->
-<div id="giftPage" style="display:none">
-<div class="card">
-<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
-<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
-<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
-</div>
-</div>
-
-<!-- PROFILE -->
-<div id="profilePage" style="display:none">
 <div class="card">
 Name: <span id="nameProfile"></span><br>
 Email: <span id="emailProfile"></span>
-</div>
-
-<div class="card">
-<button onclick="contactSupport()">📞 Contact WhatsApp Support</button>
 <button onclick="logout()">Logout</button>
 </div>
-</div>
 
 </div>
 
-<!-- PIN MODAL -->
-<div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;align-items:center;justify-content:center;">
+<div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;justify-content:center;align-items:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
 <button onclick="confirmPin()">Confirm</button>
@@ -178,23 +104,11 @@ Email: <span id="emailProfile"></span>
 </div>
 </div>
 
-<!-- NAV -->
 <div class="bottomNav">
-<button onclick="openPage('homePage')">Home</button>
-<button onclick="openPage('cardsPage')">Cards</button>
-<button onclick="openPage('paymentsPage')">Payments</button>
-<button onclick="openPage('billsPage')">Bills</button>
-<button onclick="openPage('giftPage')">Gift</button>
-<button onclick="openPage('profilePage')">Profile</button>
+<button>Home</button>
 </div>
 
 <script>
-function openPage(page){
-["homePage","cardsPage","paymentsPage","billsPage","giftPage","profilePage"]
-.forEach(p=>document.getElementById(p).style.display="none");
-document.getElementById(page).style.display="block";
-}
-
 function contactSupport(){
 window.open("https://wa.me/13312016202");
 }
