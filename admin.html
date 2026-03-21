@@ -17,8 +17,8 @@ button{background:#2563eb;color:white;font-weight:bold;}
 .success{background:#16a34a;padding:10px;border-radius:8px;display:none;margin-bottom:10px;}
 .approve{background:#22c55e;margin-top:8px;}
 </style>
-
 </head>
+
 <body>
 
 <div class="container">
@@ -27,7 +27,6 @@ button{background:#2563eb;color:white;font-weight:bold;}
 
 <div id="success" class="success">Success ✅</div>
 
-<!-- USER CONTROL -->
 <div class="card">
 <input id="username" placeholder="Username">
 <input id="amount" placeholder="Amount (- for debit)">
@@ -39,7 +38,6 @@ button{background:#2563eb;color:white;font-weight:bold;}
 <button onclick="loadPending()">Load Pending Transfers</button>
 </div>
 
-<!-- OUTPUT -->
 <div id="transactions"></div>
 
 </div>
@@ -64,7 +62,7 @@ const db = getFirestore(app);
 // ===== HELPERS =====
 function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
+? (Array.isArray(data.transactions)?[...data.transactions]:Object.values(data.transactions))
 : [];
 }
 
@@ -91,7 +89,7 @@ usdBalance = Number(data.usdBalance || 0);
 renderTx();
 };
 
-// ===== RENDER USER TX =====
+// ===== RENDER =====
 function renderTx(){
 const box = document.getElementById("transactions");
 box.innerHTML = "";
@@ -113,7 +111,7 @@ $${t.amount}<br>
 });
 }
 
-// ===== ADD TRANSACTION =====
+// ===== ADD TX =====
 window.addTransaction = async ()=>{
 if(!currentUser) return alert("Load user first");
 
@@ -161,7 +159,7 @@ showSuccess("Transaction Deleted");
 renderTx();
 };
 
-// ===== 🔥 LOAD PENDING TRANSFERS =====
+// ===== LOAD PENDING =====
 window.loadPending = async ()=>{
 
 const box = document.getElementById("transactions");
@@ -186,49 +184,85 @@ box.innerHTML += `
 $${p.amount} → ${p.accountNumber || "----"}<br>
 Status: ${p.status || "pending"}<br>
 
-<button class="approve" onclick="approveTx('${id}','${p.sender}','${p.amount}','${p.accountNumber}')">Approve</button>
-
+<button class="approve" onclick="approveTx('${id}')">Approve</button>
 <button class="delete" onclick="rejectTx('${id}')">Reject</button>
 </div>
 `;
 });
 };
 
-// ===== APPROVE =====
-window.approveTx = async (id, username, amount, accountNumber)=>{
+// ===== 🔥 APPROVE (FULL FIX) =====
+window.approveTx = async (id)=>{
 
-const userRef = doc(db,"users",username);
-const snap = await getDoc(userRef);
-
-if(!snap.exists()) return alert("User not found");
-
+const ref = doc(db,"pendingTransfers",id);
+const snap = await getDoc(ref);
 const data = snap.data();
 
-let balance = Number(data.usdBalance || 0);
-let userTx = getTx(data);
+// sender
+const senderRef = doc(db,"users",data.sender);
+const senderSnap = await getDoc(senderRef);
+const senderData = senderSnap.data();
 
-// deduct
-balance -= Number(amount);
+if(senderData.usdBalance < data.amount){
+alert("Insufficient funds");
+return;
+}
 
-// add tx
-userTx.unshift({
-amount: -Number(amount),
-note: "Transfer to " + accountNumber,
-date: new Date().toISOString()
+// find receiver
+const usersSnap = await getDocs(collection(db,"users"));
+
+let receiverRef = null;
+
+usersSnap.forEach(d=>{
+if(d.data().accountNumber === data.accountNumber){
+receiverRef = doc(db,"users",d.id);
+}
 });
 
-// update user
-await updateDoc(userRef,{
-usdBalance: balance,
-transactions: userTx
+if(!receiverRef){
+alert("Receiver not found");
+return;
+}
+
+const receiverSnap = await getDoc(receiverRef);
+const receiverData = receiverSnap.data();
+
+// ===== BALANCE UPDATE =====
+await updateDoc(senderRef,{
+usdBalance: senderData.usdBalance - data.amount
 });
 
-// update status
-await updateDoc(doc(db,"pendingTransfers",id),{
-status:"completed"
+await updateDoc(receiverRef,{
+usdBalance: Number(receiverData.usdBalance || 0) + data.amount
 });
 
-showSuccess("Approved ✅");
+// ===== TRANSACTIONS =====
+await updateDoc(senderRef,{
+transactions:[
+...(senderData.transactions || []),
+{
+amount:-data.amount,
+note:"Transfer to " + data.accountNumber,
+date:new Date().toISOString()
+}
+]
+});
+
+await updateDoc(receiverRef,{
+transactions:[
+...(receiverData.transactions || []),
+{
+amount:data.amount,
+note:"Received from " + data.sender,
+date:new Date().toISOString()
+}
+]
+});
+
+// ===== STATUS =====
+await updateDoc(ref,{status:"completed"});
+
+showSuccess("Approved & Completed ✅");
 loadPending();
 };
 
@@ -242,7 +276,7 @@ showSuccess("Rejected ❌");
 loadPending();
 };
 
-// ===== SUCCESS UI =====
+// ===== SUCCESS =====
 function showSuccess(msg){
 const s = document.getElementById("success");
 s.innerText = msg;
