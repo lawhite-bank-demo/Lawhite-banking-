@@ -23,9 +23,8 @@ return data.transactions
 : [];
 }
 
-// ===== RENDER TRANSACTIONS (NEW CLEAN SYSTEM) =====
+// ===== RENDER TRANSACTIONS =====
 function renderTransactions(list){
-
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
@@ -150,6 +149,48 @@ $${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 });
 }
 
+// ===== 💳 CARD SYSTEM =====
+document.getElementById("cardNumber").innerText =
+data.cardNumber || "**** **** **** 1234";
+
+document.getElementById("cardName").innerText =
+data.fullName || "User";
+
+document.getElementById("cardExpiry").innerText =
+data.cardExpiry || "12/28";
+
+const cvvEl = document.getElementById("cardCVV");
+cvvEl.innerText = "***";
+
+// reveal CVV
+window.revealCVV = ()=>{
+cvvEl.innerText = data.cardCVV || "***";
+
+setTimeout(()=>{
+cvvEl.innerText = "***";
+},5000);
+};
+
+// freeze toggle
+const cardBtn = document.getElementById("cardBtn");
+
+if(cardBtn){
+cardBtn.innerText = data.cardFrozen ? "Unfreeze Card" : "Freeze Card";
+}
+
+window.toggleCard = async ()=>{
+
+const newStatus = !data.cardFrozen;
+
+await updateDoc(userRef,{
+cardFrozen: newStatus
+});
+
+alert(newStatus ? "Card Frozen ❄" : "Card Unfrozen ✅");
+
+initDashboard();
+};
+
 // ===== PIN MODAL =====
 let pending = null;
 
@@ -168,6 +209,12 @@ document.getElementById("pinInput").value = "";
 
 // ===== TRANSFER =====
 window.openPinModal = ()=>{
+
+// ❄ BLOCK IF FROZEN
+if(data.cardFrozen){
+alert("Card is frozen ❄");
+return;
+}
 
 const acc = document.getElementById("accountNumber").value.trim();
 const routing = document.getElementById("routingNumber").value.trim();
@@ -205,7 +252,6 @@ status: "pending"
 hidePin();
 alert("Transfer Submitted for Approval");
 
-// 🔥 no full reload needed
 initDashboard();
 };
 
