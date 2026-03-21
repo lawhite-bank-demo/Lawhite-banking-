@@ -201,7 +201,7 @@ txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
 txArray.slice(0,20).forEach(tx=>{
 
-const amount=Number(tx.amount||0);
+const amount = parseFloat(tx.amount) || 0;
 const color=amount>=0?"#22c55e":"#ef4444";
 const sign=amount>=0?"+":"-";
 
