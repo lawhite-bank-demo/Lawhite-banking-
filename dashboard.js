@@ -281,29 +281,6 @@ showSuccess("Transfer Successful");
 location.reload();
 };
 
-// ===== ADD MONEY =====
-const amount = parseFloat(prompt("Enter amount"));
-
-if(isNaN(amount)||amount<=0) return;
-
-txArray.unshift({
-amount: amount,
-note: "Deposit",
-date: new Date().toISOString(),
-reference: "DEP-"+Math.floor(Math.random()*100000000),
-status: "completed"
-});
-
-const newBalance = calculateBalance(txArray);
-
-await updateDoc(userRef,{
-transactions: txArray,
-balance: newBalance
-});
-
-showSuccess("Money added");
-location.reload();
-};
 
 // ===== PAY BILL =====
 window.payBill = async (name, amount)=>{
