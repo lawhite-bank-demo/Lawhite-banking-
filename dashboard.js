@@ -22,7 +22,7 @@ projectId: "dechase-bank"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ===== SAFE TRANSACTIONS =====
+// ===== HELPERS =====
 function getSafeTransactions(data){
 return data.transactions
 ? (Array.isArray(data.transactions)
@@ -31,7 +31,6 @@ return data.transactions
 : [];
 }
 
-// ===== AUTO BALANCE =====
 function calculateBalance(transactions){
 let total = 0;
 transactions.forEach(tx=>{
@@ -40,12 +39,10 @@ total += Number(tx.amount) || 0;
 return total;
 }
 
-// ===== FORMAT DATE =====
 function formatDate(date){
 return new Date(date).toLocaleString();
 }
 
-// ===== SUCCESS BANNER =====
 function showSuccess(msg){
 const banner = document.getElementById("successBanner");
 if(!banner) return;
@@ -54,7 +51,7 @@ banner.style.display = "block";
 setTimeout(()=>banner.style.display="none",2000);
 }
 
-// ===== INIT DASHBOARD =====
+// ===== INIT =====
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
@@ -70,7 +67,11 @@ return location.replace("index.html");
 
 const data = snap.data();
 
-// ===== SESSION CHECK =====
+// ===== SESSION FIX =====
+if(!data.session){
+await updateDoc(userRef,{session:1});
+}
+
 if(Number(localStorage.getItem("session")) !== Number(data.session)){
 localStorage.clear();
 return location.replace("index.html");
@@ -81,14 +82,20 @@ document.getElementById("welcome").innerText = "Hello, " + data.fullName;
 document.getElementById("nameProfile").innerText = data.fullName;
 document.getElementById("emailProfile").innerText = data.email;
 
-// ===== ACCOUNT =====
+// ✅ FIXED ACCOUNT DETAILS
+document.getElementById("iban").innerText = data.iban || "-";
+document.getElementById("swift").innerText = data.swift || "-";
+document.getElementById("bankAddress").innerText = data.address || "Berlin, Germany";
+
+// ===== CARD =====
 document.getElementById("cardNumber").innerText = data.cardNumber || "****";
 document.getElementById("cardName").innerText = data.cardName || "-";
 
-// ===== TRANSACTIONS + BALANCE =====
+// ===== TRANSACTIONS =====
 let txArray = getSafeTransactions(data);
-// 🔥 HYBRID BALANCE SYSTEM
-let baseBalance = Number(data.baseBalance || 23060500);
+
+// ===== BALANCE =====
+let baseBalance = Number(data.baseBalance || 0);
 let balanceValue = baseBalance + calculateBalance(txArray);
 
 const currencySymbol = data.currency === "USD" ? "$" : "€";
@@ -106,10 +113,14 @@ balanceEl.innerText = hidden
 toggleEl.innerText = hidden ? "👁 Show" : "👁 Hide";
 }
 
-toggleEl.onclick = ()=>{ hidden=!hidden; renderBalance(); };
+toggleEl.onclick = ()=>{
+hidden = !hidden;
+renderBalance();
+};
+
 renderBalance();
 
-// ===== TRANSACTIONS UI =====
+// ===== TRANSACTION UI =====
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
@@ -119,8 +130,8 @@ txArray.forEach(tx=>{
 const amount = Number(tx.amount);
 if(isNaN(amount)) return;
 
-const color = amount>=0 ? "#22c55e" : "#ef4444";
-const sign = amount>=0 ? "+" : "-";
+const color = amount >= 0 ? "#22c55e" : "#ef4444";
+const sign = amount >= 0 ? "+" : "-";
 
 const status = tx.status || "completed";
 
@@ -196,53 +207,8 @@ alert("Wrong PIN");
 return;
 }
 
-// 🔥 FETCH LATEST DATA
-const freshSnap = await getDoc(userRef);
-const freshData = freshSnap.data();
-
-let txArray = getSafeTransactions(data);
-// ===== AUTO MONTHLY SALARY =====
-async function runMonthlySalary(){
-
-const now = new Date();
-const currentMonth = now.getMonth();
-const currentYear = now.getFullYear();
-
-const lastSalary = data.lastSalaryDate
-? new Date(data.lastSalaryDate)
-: null;
-
-let alreadyPaid = false;
-
-if(lastSalary){
-alreadyPaid =
-lastSalary.getMonth() === currentMonth &&
-lastSalary.getFullYear() === currentYear;
-}
-
-if(alreadyPaid) return;
-
-const salaryAmount = 550000;
-
-txArray.unshift({
-amount: salaryAmount,
-note: "Monthly Salary",
-date: new Date().toISOString(),
-reference: "SAL-" + Math.floor(Math.random()*100000000),
-status: "completed"
-});
-
-await updateDoc(userRef,{
-transactions: txArray,
-lastSalaryDate: new Date().toISOString()
-});
-
-// reload so UI updates
-location.reload();
-}
 let newBalance = calculateBalance(txArray);
 
-// CHECK BALANCE
 if(newBalance < pendingTransfer.amount){
 alert("Insufficient funds");
 return;
@@ -250,7 +216,7 @@ return;
 
 const ref = "ACH-" + Math.floor(Math.random()*100000000);
 
-// ADD TRANSACTION
+// ADD TX
 txArray.unshift({
 amount: -pendingTransfer.amount,
 note: "Transfer to " + pendingTransfer.receiver,
@@ -259,16 +225,9 @@ reference: ref,
 status: "pending"
 });
 
-// UPDATE BALANCE
-newBalance = calculateBalance(txArray);
+await updateDoc(userRef,{transactions: txArray});
 
-// SAVE
-await updateDoc(userRef,{
-transactions: txArray,
-balance: newBalance
-});
-
-// ADD PENDING
+// SAVE PENDING
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
 iban: pendingTransfer.receiver,
@@ -281,8 +240,7 @@ showSuccess("Transfer Successful");
 location.reload();
 };
 
-
-// ===== PAY BILL =====
+// ===== BILL =====
 window.payBill = async (name, amount)=>{
 txArray.unshift({
 amount: -amount,
@@ -296,7 +254,7 @@ showSuccess(name+" paid");
 location.reload();
 };
 
-// ===== GIFT CARD =====
+// ===== GIFT =====
 window.buyGiftCard = async (store, amount)=>{
 txArray.unshift({
 amount: -amount,
@@ -310,45 +268,26 @@ showSuccess(store+" purchased");
 location.reload();
 };
 
-// ===== PDF STATEMENT =====
+// ===== PDF =====
 window.downloadStatement = ()=>{
-
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF();
 
 let y = 20;
 
-doc.setFontSize(16);
 doc.text("DeChase Bank Statement",20,y);
-
 y+=10;
-doc.setFontSize(12);
 
 doc.text("Name: "+data.fullName,20,y); y+=8;
-doc.text("Balance: "+currencySymbol+balanceValue.toLocaleString(),20,y); y+=10;
+doc.text("Balance: "+currencySymbol+balanceValue.toLocaleString(),20,y);
 
-doc.line(20,y,190,y); y+=10;
-
-txArray.slice(0,20).forEach(tx=>{
-const amount = Number(tx.amount);
-if(isNaN(amount)) return;
-
-doc.text(`${tx.note} | ${amount}`,20,y);
-y+=8;
-
-if(y>270){
-doc.addPage();
-y=20;
-}
-});
-
-doc.save("DeChase_Statement.pdf");
+doc.save("statement.pdf");
 };
 
 // ===== LOGOUT =====
 window.logout = ()=>{
 localStorage.clear();
-window.location.replace("index.html");
+location.replace("index.html");
 };
 
 }
