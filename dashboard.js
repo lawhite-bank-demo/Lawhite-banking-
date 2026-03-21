@@ -1,18 +1,10 @@
-// ===== FIREBASE IMPORTS =====
+// ===== FIREBASE =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-getFirestore,
-doc,
-getDoc,
-updateDoc,
-collection,
-getDocs,
-addDoc,
-query,
-where
+getFirestore, doc, getDoc, updateDoc,
+collection, getDocs, addDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// ===== CONFIG =====
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
 authDomain: "dechase-bank.firebaseapp.com",
@@ -23,32 +15,22 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ===== HELPERS =====
-function getSafeTransactions(data){
+function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions)
-? [...data.transactions]
-: Object.values(data.transactions))
+? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
 : [];
 }
 
-function calculateBalance(transactions){
-let total = 0;
-transactions.forEach(tx=>{
-total += Number(tx.amount) || 0;
-});
-return total;
-}
-
-function formatDate(date){
-return new Date(date).toLocaleString();
+function calcBalance(tx){
+let t=0; tx.forEach(x=>t+=Number(x.amount)||0); return t;
 }
 
 function showSuccess(msg){
-const banner = document.getElementById("successBanner");
-if(!banner) return;
-banner.innerText = "✅ " + msg;
-banner.style.display = "block";
-setTimeout(()=>banner.style.display="none",2000);
+const b=document.getElementById("successBanner");
+if(!b) return;
+b.innerText="✅ "+msg;
+b.style.display="block";
+setTimeout(()=>b.style.display="none",2000);
 }
 
 // ===== INIT =====
@@ -60,232 +42,175 @@ if(!username) return location.replace("index.html");
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 
-if(!snap.exists()){
-alert("User not found");
-return location.replace("index.html");
-}
+if(!snap.exists()) return location.replace("index.html");
 
 const data = snap.data();
 
-// ===== SESSION FIX =====
+// ===== AUTO FIX ACCOUNT =====
+if(!data.iban || !data.accountNumber){
+await updateDoc(userRef,{
+accountNumber:"DCB-"+Math.floor(10000000+Math.random()*90000000),
+iban:"DE"+Math.floor(10000000000000000000+Math.random()*90000000000000000000),
+bankAddress:"DeChase Bank, Berlin, Germany",
+swift:data.swift||"DEUTDEFF"
+});
+location.reload();
+return;
+}
+
+// ===== SESSION =====
 if(!data.session){
 await updateDoc(userRef,{session:1});
 }
 
-if(Number(localStorage.getItem("session")) !== Number(data.session)){
+if(Number(localStorage.getItem("session"))!==Number(data.session)){
 localStorage.clear();
 return location.replace("index.html");
 }
 
 // ===== USER INFO =====
-document.getElementById("welcome").innerText = "Hello, " + data.fullName;
-document.getElementById("nameProfile").innerText = data.fullName;
-document.getElementById("emailProfile").innerText = data.email;
+document.getElementById("welcome").innerText="Hello, "+data.fullName;
+document.getElementById("nameProfile").innerText=data.fullName;
+document.getElementById("emailProfile").innerText=data.email;
 
-// ✅ FIXED ACCOUNT DETAILS
-document.getElementById("iban").innerText = data.iban || "-";
-document.getElementById("swift").innerText = data.swift || "-";
-document.getElementById("bankAddress").innerText = data.address || "Berlin, Germany";
+// ===== ACCOUNT DETAILS =====
+document.getElementById("iban").innerText=data.iban;
+document.getElementById("swift").innerText=data.swift;
+document.getElementById("bankAddress").innerText=data.bankAddress;
 
 // ===== CARD =====
-document.getElementById("cardNumber").innerText = data.cardNumber || "****";
-document.getElementById("cardName").innerText = data.cardName || "-";
+document.getElementById("cardNumber").innerText=data.cardNumber||"****";
+document.getElementById("cardName").innerText=data.cardName||"-";
 
 // ===== TRANSACTIONS =====
-let txArray = getSafeTransactions(data);
+let tx = getTx(data);
+tx.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+let balance = calcBalance(tx);
+const symbol = data.currency==="USD"?"$":"€";
 
 // ===== BALANCE =====
-let baseBalance = Number(data.baseBalance || 0);
-let balanceValue = baseBalance + calculateBalance(txArray);
+const balEl=document.getElementById("balance");
+const toggle=document.getElementById("toggleBalance");
 
-const currencySymbol = data.currency === "USD" ? "$" : "€";
-
-// ===== BALANCE TOGGLE =====
-const balanceEl = document.getElementById("balance");
-const toggleEl = document.getElementById("toggleBalance");
-
-let hidden = false;
-
-function renderBalance(){
-balanceEl.innerText = hidden
-? "••••••"
-: currencySymbol + balanceValue.toLocaleString();
-toggleEl.innerText = hidden ? "👁 Show" : "👁 Hide";
+let hidden=false;
+function render(){
+balEl.innerText=hidden?"••••":symbol+balance.toLocaleString();
+toggle.innerText=hidden?"👁 Show":"👁 Hide";
 }
+toggle.onclick=()=>{hidden=!hidden;render();}
+render();
 
-toggleEl.onclick = ()=>{
-hidden = !hidden;
-renderBalance();
-};
+// ===== TX UI =====
+const box=document.getElementById("transactions");
+box.innerHTML="";
 
-renderBalance();
+tx.forEach(t=>{
+const amt=Number(t.amount);
+const color=amt>=0?"#22c55e":"#ef4444";
+const sign=amt>=0?"+":"-";
 
-// ===== TRANSACTION UI =====
-const box = document.getElementById("transactions");
-box.innerHTML = "";
-
-txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
-
-txArray.forEach(tx=>{
-const amount = Number(tx.amount);
-if(isNaN(amount)) return;
-
-const color = amount >= 0 ? "#22c55e" : "#ef4444";
-const sign = amount >= 0 ? "+" : "-";
-
-const status = tx.status || "completed";
-
-let statusText = "✅ Completed";
-if(status==="pending") statusText="⏳ Pending";
-if(status==="failed") statusText="❌ Failed";
-
-const div = document.createElement("div");
-div.className = "tx";
-
-div.innerHTML = `
-<strong>${tx.note || "Transaction"}</strong><br>
-<span style="color:${color};font-weight:600;">
-${sign}${currencySymbol}${Math.abs(amount).toLocaleString()}
+box.innerHTML+=`
+<div class="tx">
+<strong>${t.note}</strong><br>
+<span style="color:${color}">
+${sign}${symbol}${Math.abs(amt).toLocaleString()}
 </span>
-<div class="small">${statusText}</div>
-<div class="small">Ref: ${tx.reference || "-"}</div>
-<div class="small">${formatDate(tx.date)}</div>
+<div class="small">${t.status||"completed"}</div>
+<div class="small">${new Date(t.date).toLocaleString()}</div>
+</div>
 `;
-
-box.appendChild(div);
 });
 
 // ===== PENDING =====
-const pendingBox = document.getElementById("pendingTransactions");
+const pendingBox=document.getElementById("pendingTransactions");
 
-const q = query(collection(db,"pendingTransfers"),where("sender","==",username));
-const snapPending = await getDocs(q);
+const q=query(collection(db,"pendingTransfers"),where("sender","==",username));
+const pSnap=await getDocs(q);
 
-pendingBox.innerHTML = "";
-
-if(snapPending.empty){
-pendingBox.innerHTML = `<div class="tx">No pending transfers</div>`;
+if(pSnap.empty){
+pendingBox.innerHTML="<div class='tx'>No pending transfers</div>";
 }else{
-snapPending.forEach(d=>{
-const p = d.data();
-
-pendingBox.innerHTML += `
+pSnap.forEach(d=>{
+const p=d.data();
+pendingBox.innerHTML+=`
 <div class="tx">
-⏳ ${currencySymbol}${Number(p.amount).toLocaleString()} → ${p.iban}
-<br><small>${formatDate(p.date)}</small>
-</div>
-`;
+⏳ ${symbol}${p.amount} → ${p.iban}
+</div>`;
 });
 }
 
 // ===== TRANSFER =====
-let pendingTransfer = null;
+let pending=null;
 
-window.openPinModal = ()=>{
-const receiver = document.getElementById("receiver").value.trim();
-const amount = parseFloat(document.getElementById("amount").value);
+window.openPinModal=()=>{
+const r=document.getElementById("receiver").value.trim();
+const a=parseFloat(document.getElementById("amount").value);
 
-if(!receiver || isNaN(amount) || amount<=0){
-alert("Enter valid details");
-return;
-}
+if(!r||!a) return alert("Enter details");
 
-pendingTransfer = {receiver, amount};
+pending={r,a};
 document.getElementById("pinModal").style.display="flex";
 };
 
-window.closePin = ()=>{
+window.closePin=()=>{
 document.getElementById("pinModal").style.display="none";
 };
 
-window.confirmPin = async ()=>{
+window.confirmPin=async()=>{
 
-const enteredPin = document.getElementById("pinInput").value;
+const pin=document.getElementById("pinInput").value;
 
-if(enteredPin !== data.pin){
-alert("Wrong PIN");
-return;
-}
+if(pin!==data.pin) return alert("Wrong PIN");
 
-let newBalance = calculateBalance(txArray);
+if(balance<pending.a) return alert("Insufficient funds");
 
-if(newBalance < pendingTransfer.amount){
-alert("Insufficient funds");
-return;
-}
-
-const ref = "ACH-" + Math.floor(Math.random()*100000000);
-
-// ADD TX
-txArray.unshift({
-amount: -pendingTransfer.amount,
-note: "Transfer to " + pendingTransfer.receiver,
-date: new Date().toISOString(),
-reference: ref,
-status: "pending"
+tx.unshift({
+amount:-pending.a,
+note:"Transfer",
+date:new Date().toISOString(),
+status:"pending"
 });
 
-await updateDoc(userRef,{transactions: txArray});
+await updateDoc(userRef,{transactions:tx});
 
-// SAVE PENDING
 await addDoc(collection(db,"pendingTransfers"),{
-sender: username,
-iban: pendingTransfer.receiver,
-amount: pendingTransfer.amount,
-date: new Date().toISOString(),
-status: "pending"
+sender:username,
+iban:pending.r,
+amount:pending.a,
+date:new Date().toISOString()
 });
 
-showSuccess("Transfer Successful");
+showSuccess("Transfer Sent");
 location.reload();
 };
 
-// ===== BILL =====
-window.payBill = async (name, amount)=>{
-txArray.unshift({
-amount: -amount,
-note: name + " Bill",
-date: new Date().toISOString(),
-status: "completed"
+// ===== PAY BILLS =====
+window.payBill=async(name,amount)=>{
+tx.unshift({
+amount:-amount,
+note:name+" Bill",
+date:new Date().toISOString()
 });
-
-await updateDoc(userRef,{transactions: txArray});
-showSuccess(name+" paid");
+await updateDoc(userRef,{transactions:tx});
+showSuccess("Bill Paid");
 location.reload();
 };
 
 // ===== GIFT =====
-window.buyGiftCard = async (store, amount)=>{
-txArray.unshift({
-amount: -amount,
-note: store + " Gift Card",
-date: new Date().toISOString(),
-status: "completed"
+window.buyGiftCard=async(name,amount)=>{
+tx.unshift({
+amount:-amount,
+note:name+" Gift Card",
+date:new Date().toISOString()
 });
-
-await updateDoc(userRef,{transactions: txArray});
-showSuccess(store+" purchased");
+await updateDoc(userRef,{transactions:tx});
+showSuccess("Gift Purchased");
 location.reload();
 };
 
-// ===== PDF =====
-window.downloadStatement = ()=>{
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-let y = 20;
-
-doc.text("DeChase Bank Statement",20,y);
-y+=10;
-
-doc.text("Name: "+data.fullName,20,y); y+=8;
-doc.text("Balance: "+currencySymbol+balanceValue.toLocaleString(),20,y);
-
-doc.save("statement.pdf");
-};
-
 // ===== LOGOUT =====
-window.logout = ()=>{
+window.logout=()=>{
 localStorage.clear();
 location.replace("index.html");
 };
