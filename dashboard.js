@@ -25,14 +25,6 @@ function calcBalance(tx){
 let t=0; tx.forEach(x=>t+=Number(x.amount)||0); return t;
 }
 
-function showSuccess(msg){
-const b=document.getElementById("successBanner");
-if(!b) return;
-b.innerText="✅ "+msg;
-b.style.display="block";
-setTimeout(()=>b.style.display="none",2000);
-}
-
 // ===== INIT =====
 async function initDashboard(){
 
@@ -46,50 +38,30 @@ if(!snap.exists()) return location.replace("index.html");
 
 const data = snap.data();
 
-// ===== AUTO FIX ACCOUNT =====
-if(!data.iban || !data.accountNumber){
-await updateDoc(userRef,{
-accountNumber:"DCB-"+Math.floor(10000000+Math.random()*90000000),
-iban:"DE"+Math.floor(10000000000000000000+Math.random()*90000000000000000000),
-bankAddress:"DeChase Bank, Berlin, Germany",
-swift:data.swift||"DEUTDEFF"
-});
-location.reload();
-return;
-}
-
-// ===== SESSION =====
-if(!data.session){
-await updateDoc(userRef,{session:1});
-}
-
-if(Number(localStorage.getItem("session"))!==Number(data.session)){
+// SESSION
+if(Number(localStorage.getItem("session")) !== Number(data.session)){
 localStorage.clear();
 return location.replace("index.html");
 }
 
-// ===== USER INFO =====
+// USER INFO
 document.getElementById("welcome").innerText="Hello, "+data.fullName;
 document.getElementById("nameProfile").innerText=data.fullName;
 document.getElementById("emailProfile").innerText=data.email;
 
-// ===== ACCOUNT DETAILS =====
-document.getElementById("iban").innerText=data.iban;
-document.getElementById("swift").innerText=data.swift;
-document.getElementById("bankAddress").innerText=data.bankAddress;
+// ACCOUNT
+document.getElementById("iban").innerText=data.iban || "-";
+document.getElementById("swift").innerText=data.swift || "-";
+document.getElementById("bankAddress").innerText=data.bankAddress || "DeChase Bank, Berlin";
 
-// ===== CARD =====
-document.getElementById("cardNumber").innerText=data.cardNumber||"****";
-document.getElementById("cardName").innerText=data.cardName||"-";
-
-// ===== TRANSACTIONS =====
+// TRANSACTIONS
 let tx = getTx(data);
 tx.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
 let balance = calcBalance(tx);
 const symbol = data.currency==="USD"?"$":"€";
 
-// ===== BALANCE =====
+// BALANCE
 const balEl=document.getElementById("balance");
 const toggle=document.getElementById("toggleBalance");
 
@@ -101,30 +73,25 @@ toggle.innerText=hidden?"👁 Show":"👁 Hide";
 toggle.onclick=()=>{hidden=!hidden;render();}
 render();
 
-// ===== TX UI =====
+// TX UI
 const box=document.getElementById("transactions");
 box.innerHTML="";
 
 tx.forEach(t=>{
 const amt=Number(t.amount);
 const color=amt>=0?"#22c55e":"#ef4444";
-const sign=amt>=0?"+":"-";
 
 box.innerHTML+=`
 <div class="tx">
 <strong>${t.note}</strong><br>
 <span style="color:${color}">
-${sign}${symbol}${Math.abs(amt).toLocaleString()}
+${amt>=0?"+":"-"}${symbol}${Math.abs(amt).toLocaleString()}
 </span>
-<div class="small">${t.status||"completed"}</div>
-<div class="small">${new Date(t.date).toLocaleString()}</div>
-</div>
-`;
+</div>`;
 });
 
-// ===== PENDING =====
+// PENDING
 const pendingBox=document.getElementById("pendingTransactions");
-
 const q=query(collection(db,"pendingTransfers"),where("sender","==",username));
 const pSnap=await getDocs(q);
 
@@ -133,14 +100,11 @@ pendingBox.innerHTML="<div class='tx'>No pending transfers</div>";
 }else{
 pSnap.forEach(d=>{
 const p=d.data();
-pendingBox.innerHTML+=`
-<div class="tx">
-⏳ ${symbol}${p.amount} → ${p.iban}
-</div>`;
+pendingBox.innerHTML+=`<div class="tx">⏳ ${symbol}${p.amount}</div>`;
 });
 }
 
-// ===== TRANSFER =====
+// TRANSFER
 let pending=null;
 
 window.openPinModal=()=>{
@@ -150,11 +114,11 @@ const a=parseFloat(document.getElementById("amount").value);
 if(!r||!a) return alert("Enter details");
 
 pending={r,a};
-document.getElementById("pinModal").style.display="flex";
+document.getElementById("pinModal").classList.remove("hidden");
 };
 
 window.closePin=()=>{
-document.getElementById("pinModal").style.display="none";
+document.getElementById("pinModal").classList.add("hidden");
 };
 
 window.confirmPin=async()=>{
@@ -168,8 +132,7 @@ if(balance<pending.a) return alert("Insufficient funds");
 tx.unshift({
 amount:-pending.a,
 note:"Transfer",
-date:new Date().toISOString(),
-status:"pending"
+date:new Date().toISOString()
 });
 
 await updateDoc(userRef,{transactions:tx});
@@ -181,11 +144,11 @@ amount:pending.a,
 date:new Date().toISOString()
 });
 
-showSuccess("Transfer Sent");
+alert("Transfer Sent");
 location.reload();
 };
 
-// ===== PAY BILLS =====
+// PAY BILL
 window.payBill=async(name,amount)=>{
 tx.unshift({
 amount:-amount,
@@ -193,11 +156,11 @@ note:name+" Bill",
 date:new Date().toISOString()
 });
 await updateDoc(userRef,{transactions:tx});
-showSuccess("Bill Paid");
+alert("Bill Paid");
 location.reload();
 };
 
-// ===== GIFT =====
+// GIFT
 window.buyGiftCard=async(name,amount)=>{
 tx.unshift({
 amount:-amount,
@@ -205,11 +168,11 @@ note:name+" Gift Card",
 date:new Date().toISOString()
 });
 await updateDoc(userRef,{transactions:tx});
-showSuccess("Gift Purchased");
+alert("Gift Purchased");
 location.reload();
 };
 
-// ===== LOGOUT =====
+// LOGOUT
 window.logout=()=>{
 localStorage.clear();
 location.replace("index.html");
