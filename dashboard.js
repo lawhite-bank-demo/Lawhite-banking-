@@ -315,9 +315,11 @@ ${amount >= 0 ? "+" : "-"}${currencySymbol}${Math.abs(amount).toLocaleString()}
 
 // PENDING
 
-const pendingBox=document.getElementById("pendingTransactions");
+const pendingBox = document.getElementById("pendingTransactions");
 
-const pendingSnap=await getDocs(query(collection(db,"pendingTransfers"),where("sender","==",username)));
+const pendingSnap = await getDocs(
+  query(collection(db,"pendingTransfers"), where("sender","==",username))
+);
 
 pendingBox.innerHTML = pendingSnap.empty
 ? `<div class="tx">No pending transfers</div>`
