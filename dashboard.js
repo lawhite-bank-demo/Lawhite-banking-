@@ -307,10 +307,10 @@ box.innerHTML += `
 <span style="color:${color};font-weight:600;">
 ${amount>=0?"+":"-"}${currencySymbol}${Math.abs(amount).toLocaleString()}
 </span>
+<div class="small">Ref: ${tx.reference || "N/A"}</div>
 <div class="small">${formatDate(tx.date)}</div>
 </div>
 `;
-});
 }
 
 
