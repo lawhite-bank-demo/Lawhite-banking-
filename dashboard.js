@@ -23,6 +23,37 @@ return data.transactions
 : [];
 }
 
+// ===== RENDER TRANSACTIONS (NEW CLEAN SYSTEM) =====
+function renderTransactions(list){
+
+const box = document.getElementById("transactions");
+box.innerHTML = "";
+
+if(!list || list.length === 0){
+box.innerHTML = "<div class='tx'>No transactions</div>";
+return;
+}
+
+list.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+list.forEach(t=>{
+const amt = Number(t.amount || 0);
+if(isNaN(amt)) return;
+
+const color = amt >= 0 ? "#22c55e" : "#ef4444";
+
+box.innerHTML += `
+<div class="tx">
+<strong>${t.note || "Transaction"}</strong><br>
+<span style="color:${color};font-weight:600;">
+${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
+</span>
+<div class="small">${new Date(t.date).toLocaleString()}</div>
+</div>
+`;
+});
+}
+
 // ===== INIT =====
 async function initDashboard(){
 
@@ -57,9 +88,6 @@ let usdBalance = Number(data.usdBalance || 0);
 let eurBalance = Number(data.balance || 0);
 let gbpBalance = Number(data.gbpBalance || 0);
 
-// ===== TRANSACTIONS =====
-let tx = getTx(data);
-
 // ===== BALANCE UI =====
 const balEl = document.getElementById("balance");
 let hidden = false;
@@ -90,33 +118,9 @@ document.getElementById("convertedEUR").innerText =
 document.getElementById("convertedGBP").innerText =
 "£" + (usdBalance * rateGBP).toLocaleString();
 
-// ===== TRANSACTIONS UI (FIXED STRONG) =====
-const box = document.getElementById("transactions");
-box.innerHTML = "";
-
-if(tx.length === 0){
-box.innerHTML = "<div class='tx'>No transactions</div>";
-}else{
-
-tx.sort((a,b)=> new Date(b.date) - new Date(a.date));
-
-tx.forEach(t=>{
-const amt = Number(t.amount || 0);
-if(isNaN(amt)) return;
-
-const color = amt >= 0 ? "#22c55e" : "#ef4444";
-
-box.innerHTML += `
-<div class="tx">
-<strong>${t.note || "Transaction"}</strong><br>
-<span style="color:${color};font-weight:600;">
-${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
-</span>
-<div class="small">${new Date(t.date).toLocaleString()}</div>
-</div>
-`;
-});
-}
+// ===== TRANSACTIONS =====
+let tx = getTx(data);
+renderTransactions(tx);
 
 // ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
@@ -146,7 +150,7 @@ $${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 });
 }
 
-// ===== PIN MODAL CONTROL =====
+// ===== PIN MODAL =====
 let pending = null;
 
 function showPin(){
@@ -162,7 +166,7 @@ modal.style.display = "none";
 document.getElementById("pinInput").value = "";
 }
 
-// ===== TRANSFER (PIN ONLY HERE) =====
+// ===== TRANSFER =====
 window.openPinModal = ()=>{
 
 const acc = document.getElementById("accountNumber").value.trim();
@@ -188,7 +192,6 @@ const pin = document.getElementById("pinInput").value;
 
 if(pin !== data.pin) return alert("Wrong PIN");
 
-// SAVE ONLY AS PENDING (ADMIN WILL APPROVE)
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
 accountNumber: pending.acc,
@@ -201,7 +204,9 @@ status: "pending"
 
 hidePin();
 alert("Transfer Submitted for Approval");
-location.reload();
+
+// 🔥 no full reload needed
+initDashboard();
 };
 
 // ===== BILL =====
@@ -222,7 +227,7 @@ usdBalance,
 transactions:tx
 });
 
-location.reload();
+initDashboard();
 };
 
 // ===== GIFT =====
@@ -243,7 +248,7 @@ usdBalance,
 transactions:tx
 });
 
-location.reload();
+initDashboard();
 };
 
 // ===== LOGOUT =====
