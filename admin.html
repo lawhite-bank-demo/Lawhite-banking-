@@ -1,8 +1,11 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel</title><style>
+<title>Admin Panel</title>
+
+<style>
 body{margin:0;font-family:Arial;background:#031427;color:white;}
 .container{max-width:420px;margin:auto;padding:20px;}
 .card{background:#0a1f44;padding:15px;border-radius:12px;margin-bottom:15px;}
@@ -12,17 +15,42 @@ button{background:#2563eb;color:white;font-weight:bold;}
 .tx{background:#021022;padding:10px;border-radius:8px;margin-top:10px;}
 .delete{background:#ef4444;margin-top:8px;}
 .success{background:#16a34a;padding:10px;border-radius:8px;display:none;margin-bottom:10px;}
-</style></head>
-<body><div class="container"><h2>Admin Control Panel</h2><div id="success" class="success">Success ✅</div><div class="card">
+.approve{background:#22c55e;margin-top:8px;}
+</style>
+
+</head>
+<body>
+
+<div class="container">
+
+<h2>Admin Control Panel</h2>
+
+<div id="success" class="success">Success ✅</div>
+
+<!-- USER CONTROL -->
+<div class="card">
 <input id="username" placeholder="Username">
 <input id="amount" placeholder="Amount (- for debit)">
 <input id="note" placeholder="Note">
 <input id="reference" placeholder="Reference">
+
 <button onclick="addTransaction()">Add Transaction</button>
 <button onclick="loadUser()">Load User Transactions</button>
-</div><div id="transactions"></div></div><script type="module">
+<button onclick="loadPending()">Load Pending Transfers</button>
+</div>
+
+<!-- OUTPUT -->
+<div id="transactions"></div>
+
+</div>
+
+<script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+getFirestore, doc, getDoc, updateDoc,
+collection, getDocs
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
@@ -33,6 +61,7 @@ projectId: "dechase-bank"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ===== HELPERS =====
 function getTx(data){
 return data.transactions
 ? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
@@ -43,6 +72,7 @@ let currentUser = null;
 let tx = [];
 let usdBalance = 0;
 
+// ===== LOAD USER =====
 window.loadUser = async ()=>{
 const username = document.getElementById("username").value.trim();
 if(!username) return alert("Enter username");
@@ -61,6 +91,7 @@ usdBalance = Number(data.usdBalance || 0);
 renderTx();
 };
 
+// ===== RENDER USER TX =====
 function renderTx(){
 const box = document.getElementById("transactions");
 box.innerHTML = "";
@@ -82,6 +113,7 @@ $${t.amount}<br>
 });
 }
 
+// ===== ADD TRANSACTION =====
 window.addTransaction = async ()=>{
 if(!currentUser) return alert("Load user first");
 
@@ -91,12 +123,11 @@ const reference = document.getElementById("reference").value.trim();
 
 if(isNaN(amount) || !note) return alert("Invalid input");
 
-// update balance
 usdBalance += amount;
 
 const newTx = {
-amount: amount,
-note: note,
+amount,
+note,
 date: new Date().toISOString(),
 reference: reference || "ACH-"+Math.floor(Math.random()*1000000)
 };
@@ -105,33 +136,113 @@ tx.unshift(newTx);
 
 await updateDoc(currentUser,{
 transactions: tx,
-usdBalance: usdBalance
+usdBalance
 });
 
 showSuccess("Transaction Added");
 renderTx();
 };
 
+// ===== DELETE =====
 window.deleteTx = async (index)=>{
 if(!confirm("Delete this transaction?")) return;
 
 const removed = tx[index];
 
-// reverse balance
 usdBalance -= removed.amount;
-
-// remove tx
 tx.splice(index,1);
 
 await updateDoc(currentUser,{
 transactions: tx,
-usdBalance: usdBalance
+usdBalance
 });
 
 showSuccess("Transaction Deleted");
 renderTx();
 };
 
+// ===== 🔥 LOAD PENDING TRANSFERS =====
+window.loadPending = async ()=>{
+
+const box = document.getElementById("transactions");
+box.innerHTML = "<div class='tx'>Loading...</div>";
+
+const snap = await getDocs(collection(db,"pendingTransfers"));
+
+box.innerHTML = "";
+
+if(snap.empty){
+box.innerHTML = "<div class='tx'>No pending transfers</div>";
+return;
+}
+
+snap.forEach(docSnap=>{
+const p = docSnap.data();
+const id = docSnap.id;
+
+box.innerHTML += `
+<div class="tx">
+<b>${p.sender}</b><br>
+$${p.amount} → ${p.accountNumber || "----"}<br>
+Status: ${p.status || "pending"}<br>
+
+<button class="approve" onclick="approveTx('${id}','${p.sender}','${p.amount}','${p.accountNumber}')">Approve</button>
+
+<button class="delete" onclick="rejectTx('${id}')">Reject</button>
+</div>
+`;
+});
+};
+
+// ===== APPROVE =====
+window.approveTx = async (id, username, amount, accountNumber)=>{
+
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
+
+if(!snap.exists()) return alert("User not found");
+
+const data = snap.data();
+
+let balance = Number(data.usdBalance || 0);
+let userTx = getTx(data);
+
+// deduct
+balance -= Number(amount);
+
+// add tx
+userTx.unshift({
+amount: -Number(amount),
+note: "Transfer to " + accountNumber,
+date: new Date().toISOString()
+});
+
+// update user
+await updateDoc(userRef,{
+usdBalance: balance,
+transactions: userTx
+});
+
+// update status
+await updateDoc(doc(db,"pendingTransfers",id),{
+status:"completed"
+});
+
+showSuccess("Approved ✅");
+loadPending();
+};
+
+// ===== REJECT =====
+window.rejectTx = async (id)=>{
+await updateDoc(doc(db,"pendingTransfers",id),{
+status:"failed"
+});
+
+showSuccess("Rejected ❌");
+loadPending();
+};
+
+// ===== SUCCESS UI =====
 function showSuccess(msg){
 const s = document.getElementById("success");
 s.innerText = msg;
@@ -140,5 +251,6 @@ setTimeout(()=>s.style.display="none",2000);
 }
 
 </script>
+
 </body>
 </html>
