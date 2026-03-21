@@ -68,7 +68,6 @@ where("executed","==",false)
 const schedSnap = await getDocs(schedQuery);
 
 for(const docSnap of schedSnap.docs){
-
 const s = docSnap.data();
 
 if(new Date(s.date) <= new Date()){
@@ -81,10 +80,7 @@ note:s.note,
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
+await updateDoc(userRef,{usdBalance,transactions:tx});
 
 await updateDoc(doc(db,"scheduledTransactions",docSnap.id),{
 executed:true
@@ -122,14 +118,13 @@ document.getElementById("convertedEUR").innerText =
 document.getElementById("convertedGBP").innerText =
 "£"+(usdBalance * rateGBP).toLocaleString();
 
-// ===== TRANSACTIONS =====
+// ===== TRANSACTIONS UI =====
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
 if(tx.length === 0){
 box.innerHTML = "<div class='tx'>No transactions</div>";
 }else{
-
 tx.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
 tx.forEach(t=>{
@@ -148,7 +143,7 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 });
 }
 
-// ===== PENDING (IMPROVED) =====
+// ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
 
 const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
@@ -171,24 +166,29 @@ if(status === "failed") label = "❌ Rejected";
 pendingBox.innerHTML += `
 <div class="tx">
 ${label}<br>
-$${p.amount} → ${p.iban}
+$${p.amount} → ${p.accountNumber || "----"}
 </div>`;
 });
 }
 
-// ===== TRANSFER =====
+// ===== TRANSFER (UPDATED TO US FORMAT) =====
 let pending = null;
 
 window.openPinModal = ()=>{
-const r = document.getElementById("receiver").value.trim();
+
+const acc = document.getElementById("accountNumber").value.trim();
+const routing = document.getElementById("routingNumber").value.trim();
+const desc = document.getElementById("description").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
 
-if(!r || isNaN(a) || a<=0){
-alert("Enter valid details");
+// VALIDATION
+if(!acc || !routing || routing.length !== 9 || isNaN(a) || a<=0){
+alert("Enter valid account, routing (9 digits), and amount");
 return;
 }
 
-pending = {r,a};
+pending = {acc, routing, desc, a};
+
 document.getElementById("pinModal").classList.remove("hidden");
 };
 
@@ -198,15 +198,17 @@ document.getElementById("pinInput").value="";
 };
 
 window.confirmPin = async ()=>{
+
 const pin = document.getElementById("pinInput").value;
 
 if(pin !== data.pin) return alert("Wrong PIN");
 
-// 🔥 NO BALANCE DEDUCTION HERE
-
+// ===== SAVE AS PENDING ONLY =====
 await addDoc(collection(db,"pendingTransfers"),{
 sender:username,
-iban:pending.r,
+accountNumber:pending.acc,
+routingNumber:pending.routing,
+description:pending.desc || "Transfer",
 amount:pending.a,
 date:new Date().toISOString(),
 status:"pending"
@@ -219,6 +221,8 @@ location.reload();
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
+if(usdBalance < amount) return alert("Insufficient funds");
+
 usdBalance -= amount;
 
 tx.unshift({
@@ -233,6 +237,8 @@ location.reload();
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
+if(usdBalance < amount) return alert("Insufficient funds");
+
 usdBalance -= amount;
 
 tx.unshift({
