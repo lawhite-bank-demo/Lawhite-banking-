@@ -314,10 +314,6 @@ ${amount >= 0 ? "+" : "-"}${currencySymbol}${Math.abs(amount).toLocaleString()}
 </div>
 `;
 
-});
-
-} // ✅ THIS WAS YOUR MISSING FIX
-
 
 // PENDING
 
