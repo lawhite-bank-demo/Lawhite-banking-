@@ -132,7 +132,22 @@ document.getElementById("welcome").innerText="Hello, "+data.fullName;
 
 document.getElementById("name").innerText=data.fullName;
 document.getElementById("acc").innerText=data.accountNumber;
-document.getElementById("iban").innerText=data.iban;
+
+
+// ✅ IBAN / ROUTING SWITCH
+
+const ibanEl = document.getElementById("iban");
+const ibanLabel = document.getElementById("ibanLabel");
+
+if(data.country === "USA"){
+    ibanEl.innerText = data.routingNumber || "-";
+    if(ibanLabel) ibanLabel.innerText = "Routing Number";
+}else{
+    ibanEl.innerText = data.iban || "-";
+    if(ibanLabel) ibanLabel.innerText = "IBAN";
+}
+
+
 document.getElementById("swift").innerText=data.swift;
 
 
@@ -148,7 +163,7 @@ document.getElementById("nameProfile").innerText=data.fullName;
 document.getElementById("emailProfile").innerText=data.email;
 
 
-// BALANCE (FIXED MULTI-CURRENCY)
+// BALANCE (MULTI-CURRENCY)
 
 let balanceValue = 0;
 let currencySymbol = "€";
@@ -273,7 +288,7 @@ location.reload();
 };
 
 
-// TRANSACTIONS (FIXED)
+// TRANSACTIONS
 
 const box=document.getElementById("transactions");
 
@@ -323,7 +338,7 @@ box.appendChild(div);
 }
 
 
-// PENDING TRANSFERS (FIXED)
+// PENDING TRANSFERS
 
 const pendingBox=document.getElementById("pendingTransactions");
 
