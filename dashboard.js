@@ -134,21 +134,11 @@ document.getElementById("name").innerText=data.fullName;
 document.getElementById("acc").innerText=data.accountNumber;
 
 
-// ✅ IBAN / ROUTING SWITCH
+// SIMPLE ACCOUNT DISPLAY (NO SWITCH)
 
-const ibanEl = document.getElementById("iban");
-const ibanLabel = document.getElementById("ibanLabel");
-
-if(data.country === "USA"){
-    ibanEl.innerText = data.routingNumber || "-";
-    if(ibanLabel) ibanLabel.innerText = "Routing Number";
-}else{
-    ibanEl.innerText = data.iban || "-";
-    if(ibanLabel) ibanLabel.innerText = "IBAN";
-}
-
-
-document.getElementById("swift").innerText=data.swift;
+document.getElementById("iban").innerText = data.accountNumber || "-";
+document.getElementById("swift").innerText = data.swift || "-";
+document.getElementById("bankAddress").innerText = data.bankAddress || "-";
 
 
 // BANK ADDRESS
