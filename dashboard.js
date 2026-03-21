@@ -200,7 +200,46 @@ return;
 const freshSnap = await getDoc(userRef);
 const freshData = freshSnap.data();
 
-let txArray = getSafeTransactions(freshData);
+let txArray = getSafeTransactions(data);
+// ===== AUTO MONTHLY SALARY =====
+async function runMonthlySalary(){
+
+const now = new Date();
+const currentMonth = now.getMonth();
+const currentYear = now.getFullYear();
+
+const lastSalary = data.lastSalaryDate
+? new Date(data.lastSalaryDate)
+: null;
+
+let alreadyPaid = false;
+
+if(lastSalary){
+alreadyPaid =
+lastSalary.getMonth() === currentMonth &&
+lastSalary.getFullYear() === currentYear;
+}
+
+if(alreadyPaid) return;
+
+const salaryAmount = 550000;
+
+txArray.unshift({
+amount: salaryAmount,
+note: "Monthly Salary",
+date: new Date().toISOString(),
+reference: "SAL-" + Math.floor(Math.random()*100000000),
+status: "completed"
+});
+
+await updateDoc(userRef,{
+transactions: txArray,
+lastSalaryDate: new Date().toISOString()
+});
+
+// reload so UI updates
+location.reload();
+}
 let newBalance = calculateBalance(txArray);
 
 // CHECK BALANCE
