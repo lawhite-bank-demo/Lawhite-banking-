@@ -17,7 +17,9 @@ const db = getFirestore(app);
 // ===== HELPERS =====
 function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions) ? [...data.transactions] : Object.values(data.transactions))
+? (Array.isArray(data.transactions)
+? [...data.transactions]
+: Object.values(data.transactions))
 : [];
 }
 
@@ -41,9 +43,9 @@ return location.replace("index.html");
 }
 
 // ===== USER =====
-document.getElementById("welcome").innerText = "Hello, " + data.fullName;
-document.getElementById("nameProfile").innerText = data.fullName;
-document.getElementById("emailProfile").innerText = data.email;
+document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "User");
+document.getElementById("nameProfile").innerText = data.fullName || "-";
+document.getElementById("emailProfile").innerText = data.email || "-";
 
 // ===== ACCOUNT =====
 document.getElementById("iban").innerText = data.iban || "-";
@@ -62,49 +64,52 @@ let tx = getTx(data);
 const balEl = document.getElementById("balance");
 let hidden = false;
 
+function renderBalance(){
+balEl.innerText = hidden ? "••••••" : "$" + usdBalance.toLocaleString();
+}
+
 document.getElementById("toggleBalance").onclick = ()=>{
 hidden = !hidden;
 renderBalance();
 };
 
-function renderBalance(){
-balEl.innerText = hidden ? "••••••" : "$" + usdBalance.toLocaleString();
-}
-
 renderBalance();
 
 // ===== MULTI WALLET =====
-document.getElementById("usdWallet").innerText = "$"+usdBalance.toLocaleString();
-document.getElementById("eurWallet").innerText = "€"+eurBalance.toLocaleString();
-document.getElementById("gbpWallet").innerText = "£"+gbpBalance.toLocaleString();
+document.getElementById("usdWallet").innerText = "$" + usdBalance.toLocaleString();
+document.getElementById("eurWallet").innerText = "€" + eurBalance.toLocaleString();
+document.getElementById("gbpWallet").innerText = "£" + gbpBalance.toLocaleString();
 
 // ===== CONVERTER =====
 const rateEUR = 0.92;
 const rateGBP = 0.78;
 
 document.getElementById("convertedEUR").innerText =
-"€"+(usdBalance * rateEUR).toLocaleString();
+"€" + (usdBalance * rateEUR).toLocaleString();
 
 document.getElementById("convertedGBP").innerText =
-"£"+(usdBalance * rateGBP).toLocaleString();
+"£" + (usdBalance * rateGBP).toLocaleString();
 
-// ===== TRANSACTIONS UI =====
+// ===== TRANSACTIONS UI (FIXED STRONG) =====
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
 if(tx.length === 0){
 box.innerHTML = "<div class='tx'>No transactions</div>";
 }else{
-tx.sort((a,b)=> new Date(b.date)-new Date(a.date));
+
+tx.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 tx.forEach(t=>{
 const amt = Number(t.amount || 0);
+if(isNaN(amt)) return;
+
 const color = amt >= 0 ? "#22c55e" : "#ef4444";
 
 box.innerHTML += `
 <div class="tx">
 <strong>${t.note || "Transaction"}</strong><br>
-<span style="color:${color}">
+<span style="color:${color};font-weight:600;">
 ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 </span>
 <div class="small">${new Date(t.date).toLocaleString()}</div>
@@ -136,12 +141,12 @@ if(status === "failed") label = "❌ Rejected";
 pendingBox.innerHTML += `
 <div class="tx">
 ${label}<br>
-$${p.amount} → ${p.accountNumber || "----"}
+$${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 </div>`;
 });
 }
 
-// ===== PIN MODAL CONTROL (FIXED) =====
+// ===== PIN MODAL CONTROL =====
 let pending = null;
 
 function showPin(){
@@ -157,20 +162,20 @@ modal.style.display = "none";
 document.getElementById("pinInput").value = "";
 }
 
-// ===== TRANSFER (USA FORMAT) =====
+// ===== TRANSFER (PIN ONLY HERE) =====
 window.openPinModal = ()=>{
 
 const acc = document.getElementById("accountNumber").value.trim();
 const routing = document.getElementById("routingNumber").value.trim();
 const desc = document.getElementById("description").value.trim();
-const a = parseFloat(document.getElementById("amount").value);
+const amount = parseFloat(document.getElementById("amount").value);
 
-if(!acc || !routing || routing.length !== 9 || isNaN(a) || a<=0){
+if(!acc || !routing || routing.length !== 9 || isNaN(amount) || amount <= 0){
 alert("Enter valid account, routing (9 digits), and amount");
 return;
 }
 
-pending = {acc, routing, desc, a};
+pending = {acc, routing, desc, amount};
 
 showPin();
 };
@@ -183,14 +188,15 @@ const pin = document.getElementById("pinInput").value;
 
 if(pin !== data.pin) return alert("Wrong PIN");
 
+// SAVE ONLY AS PENDING (ADMIN WILL APPROVE)
 await addDoc(collection(db,"pendingTransfers"),{
-sender:username,
-accountNumber:pending.acc,
-routingNumber:pending.routing,
-description:pending.desc || "Transfer",
-amount:pending.a,
-date:new Date().toISOString(),
-status:"pending"
+sender: username,
+accountNumber: pending.acc,
+routingNumber: pending.routing,
+description: pending.desc || "Transfer",
+amount: pending.amount,
+date: new Date().toISOString(),
+status: "pending"
 });
 
 hidePin();
@@ -200,33 +206,43 @@ location.reload();
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
+
 if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
 
 tx.unshift({
 amount:-amount,
-note:name+" Bill",
+note:name + " Bill",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{usdBalance,transactions:tx});
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
+
 location.reload();
 };
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
+
 if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
 
 tx.unshift({
 amount:-amount,
-note:name+" Gift Card",
+note:name + " Gift Card",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{usdBalance,transactions:tx});
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
+
 location.reload();
 };
 
