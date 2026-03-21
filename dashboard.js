@@ -58,7 +58,7 @@ let gbpBalance = Number(data.gbpBalance || 0);
 // ===== TRANSACTIONS =====
 let tx = getTx(data);
 
-// ===== 🔥 SCHEDULED TRANSACTIONS =====
+// ===== SCHEDULED =====
 const schedQuery = query(
 collection(db,"scheduledTransactions"),
 where("username","==",username),
@@ -112,7 +112,7 @@ document.getElementById("usdWallet").innerText = "$"+usdBalance.toLocaleString()
 document.getElementById("eurWallet").innerText = "€"+eurBalance.toLocaleString();
 document.getElementById("gbpWallet").innerText = "£"+gbpBalance.toLocaleString();
 
-// ===== LIVE CONVERTER =====
+// ===== CONVERTER =====
 const rateEUR = 0.92;
 const rateGBP = 0.78;
 
@@ -122,7 +122,7 @@ document.getElementById("convertedEUR").innerText =
 document.getElementById("convertedGBP").innerText =
 "£"+(usdBalance * rateGBP).toLocaleString();
 
-// ===== TRANSACTION UI (FIXED STRONG) =====
+// ===== TRANSACTIONS =====
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
@@ -148,7 +148,7 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 });
 }
 
-// ===== PENDING =====
+// ===== PENDING (IMPROVED) =====
 const pendingBox = document.getElementById("pendingTransactions");
 
 const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
@@ -161,14 +161,22 @@ pendingBox.innerHTML = "<div class='tx'>No pending transfers</div>";
 }else{
 snapPending.forEach(d=>{
 const p = d.data();
+
+let status = p.status || "pending";
+let label = "⏳ Pending";
+
+if(status === "completed") label = "✅ Approved";
+if(status === "failed") label = "❌ Rejected";
+
 pendingBox.innerHTML += `
 <div class="tx">
-⏳ $${p.amount} → ${p.iban}
+${label}<br>
+$${p.amount} → ${p.iban}
 </div>`;
 });
 }
 
-// ===== TRANSFER (PIN ONLY HERE) =====
+// ===== TRANSFER =====
 let pending = null;
 
 window.openPinModal = ()=>{
@@ -194,37 +202,23 @@ const pin = document.getElementById("pinInput").value;
 
 if(pin !== data.pin) return alert("Wrong PIN");
 
-if(usdBalance < pending.a) return alert("Insufficient funds");
-
-usdBalance -= pending.a;
-
-tx.unshift({
-amount:-pending.a,
-note:"Transfer",
-date:new Date().toISOString()
-});
-
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
+// 🔥 NO BALANCE DEDUCTION HERE
 
 await addDoc(collection(db,"pendingTransfers"),{
 sender:username,
 iban:pending.r,
 amount:pending.a,
-date:new Date().toISOString()
+date:new Date().toISOString(),
+status:"pending"
 });
 
 closePin();
-alert("Transfer Successful");
+alert("Transfer Submitted for Approval");
 location.reload();
 };
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
-if(usdBalance < amount) return alert("Insufficient funds");
-
 usdBalance -= amount;
 
 tx.unshift({
@@ -233,18 +227,12 @@ note:name+" Bill",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
-
+await updateDoc(userRef,{usdBalance,transactions:tx});
 location.reload();
 };
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
-if(usdBalance < amount) return alert("Insufficient funds");
-
 usdBalance -= amount;
 
 tx.unshift({
@@ -253,11 +241,7 @@ note:name+" Gift Card",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
-
+await updateDoc(userRef,{usdBalance,transactions:tx});
 location.reload();
 };
 
