@@ -23,6 +23,16 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 
+// ===== SAFE TRANSACTION HELPER =====
+function getSafeTransactions(data){
+return data.transactions
+? (Array.isArray(data.transactions)
+? [...data.transactions]
+: Object.values(data.transactions))
+: [];
+}
+
+
 // INIT DASHBOARD
 async function initDashboard(){
 
@@ -45,8 +55,7 @@ return;
 const data = snap.data();
 
 // SESSION CHECK
-const savedSession = Number(localStorage.getItem("session"));
-if(savedSession !== Number(data.session)){
+if(Number(localStorage.getItem("session")) !== Number(data.session)){
 localStorage.clear();
 window.location.replace("index.html");
 return;
@@ -56,15 +65,6 @@ return;
 // ===== HELPERS =====
 function formatDate(date){
 return new Date(date).toLocaleString();
-}
-
-function showSuccess(msg){
-const banner = document.getElementById("successBanner");
-if(banner){
-banner.innerText = "✅ " + msg;
-banner.style.display="block";
-setTimeout(()=>banner.style.display="none",2000);
-}
 }
 
 
@@ -84,17 +84,12 @@ document.getElementById("emailProfile").innerText=data.email;
 
 
 // ===== BALANCE =====
-let balanceValue = 0;
-let currencySymbol = "€";
-let balanceField = "balance";
+let balanceValue = data.currency === "USD"
+? Number(data.usdBalance || 0)
+: Number(data.balance || 0);
 
-if(data.currency === "USD"){
-balanceValue = Number(data.usdBalance || 0);
-currencySymbol = "$";
-balanceField = "usdBalance";
-}else{
-balanceValue = Number(data.balance || 0);
-}
+let currencySymbol = data.currency === "USD" ? "$" : "€";
+let balanceField = data.currency === "USD" ? "usdBalance" : "balance";
 
 const balanceEl = document.getElementById("balance");
 const toggleEl = document.getElementById("toggleBalance");
@@ -120,20 +115,7 @@ document.getElementById("gbpWallet").innerText=Number(data.gbpBalance||0).toLoca
 document.getElementById("audWallet").innerText=Number(data.audBalance||0).toLocaleString();
 
 
-// ===== CARD =====
-document.getElementById("cardNumber").innerText=data.cardNumber||"****";
-document.getElementById("cardName").innerText=data.cardName||"-";
-document.getElementById("cardExpiry").innerText=data.cardExpiry||"--/--";
-
-const cvvEl=document.getElementById("cardCVV");
-window.revealCVV=()=>{
-cvvEl.innerText=data.cardCVV;
-setTimeout(()=>cvvEl.innerText="***",5000);
-};
-
-
 // ===== TRANSACTIONS =====
-
 const box=document.getElementById("transactions");
 box.innerHTML="";
 
@@ -203,12 +185,20 @@ pendingBox.appendChild(div);
 }
 
 
-// ===== ADD MONEY =====
+// ===== ADD MONEY (FIXED) =====
 window.addMoney = async ()=>{
+
 const amount=parseFloat(prompt("Amount to add"));
 if(isNaN(amount)||amount<=0)return;
 
-balanceValue+=amount;
+// fresh data
+const freshSnap = await getDoc(userRef);
+const freshData = freshSnap.data();
+
+let txArray = getSafeTransactions(freshData);
+let newBalance = Number(freshData[balanceField] || 0);
+
+newBalance += amount;
 
 txArray.unshift({
 amount:amount,
@@ -219,7 +209,7 @@ status:"completed"
 });
 
 await updateDoc(userRef,{
-[balanceField]:balanceValue,
+[balanceField]:newBalance,
 transactions:txArray
 });
 
@@ -228,7 +218,7 @@ location.reload();
 };
 
 
-// ===== TRANSFER =====
+// ===== TRANSFER (FINAL FIXED) =====
 let pendingTransfer = null;
 
 window.openPinModal = ()=>{
@@ -258,14 +248,21 @@ alert("Wrong PIN");
 return;
 }
 
+// fresh data
+const freshSnap = await getDoc(userRef);
+const freshData = freshSnap.data();
+
+let txArray = getSafeTransactions(freshData);
+let newBalance = Number(freshData[balanceField] || 0);
+
 const {receiver,amount}=pendingTransfer;
 
-if(balanceValue<amount){
+if(newBalance<amount){
 alert("Insufficient funds");
 return;
 }
 
-balanceValue-=amount;
+newBalance -= amount;
 
 const ref="ACH-"+Math.floor(Math.random()*100000000);
 
@@ -278,7 +275,7 @@ status:"pending"
 });
 
 await updateDoc(userRef,{
-[balanceField]:balanceValue,
+[balanceField]:newBalance,
 transactions:txArray
 });
 
@@ -290,7 +287,7 @@ date:new Date().toISOString(),
 status:"pending"
 });
 
-alert("Transfer Successful");
+alert("Transfer Successful ✅");
 location.reload();
 };
 
@@ -302,4 +299,5 @@ window.location.replace("index.html");
 };
 
 }
+
 initDashboard();
