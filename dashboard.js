@@ -198,54 +198,6 @@ pendingBox.appendChild(div);
 }
 
 
-// ===== TRANSFER =====
-window.askPin = async ()=>{
-
-const receiver=document.getElementById("receiver").value.trim();
-const amount=parseFloat(document.getElementById("amount").value);
-
-if(!receiver || isNaN(amount) || amount<=0){
-alert("Invalid input");
-return;
-}
-
-if(prompt("Enter PIN")!==data.pin){
-alert("Wrong PIN");
-return;
-}
-
-if(balanceValue<amount){
-alert("Insufficient funds");
-return;
-}
-
-balanceValue -= amount;
-
-const ref="ACH-"+Math.floor(Math.random()*100000000);
-
-txArray.unshift({
-amount:-amount,
-note:"Transfer to "+receiver,
-date:new Date().toISOString(),
-reference:ref
-});
-
-await updateDoc(userRef,{
-[balanceField]:balanceValue,
-transactions:txArray
-});
-
-await addDoc(collection(db,"pendingTransfers"),{
-sender:username,
-iban:receiver,
-amount:amount,
-date:new Date().toISOString(),
-status:"pending"
-});
-
-alert("Transfer Successful");
-location.reload();
-};
 
 
 // ===== ADD MONEY =====
@@ -290,6 +242,79 @@ alert(data.cardFrozen?"Unfrozen":"Frozen");
 location.reload();
 };
 
+let pendingTransfer = null;
+
+// OPEN PIN MODAL
+window.openPinModal = () => {
+
+const receiver = document.getElementById("receiver").value.trim();
+const amount = parseFloat(document.getElementById("amount").value);
+
+if(!receiver || isNaN(amount) || amount <= 0){
+alert("Enter valid details");
+return;
+}
+
+pendingTransfer = { receiver, amount };
+
+document.getElementById("pinModal").style.display = "flex";
+};
+
+
+// CLOSE PIN
+window.closePin = () => {
+document.getElementById("pinModal").style.display = "none";
+pendingTransfer = null;
+};
+
+
+// CONFIRM PIN + SEND MONEY
+window.confirmPin = async () => {
+
+const enteredPin = document.getElementById("pinInput").value;
+
+if(enteredPin !== data.pin){
+alert("Wrong PIN");
+return;
+}
+
+const { receiver, amount } = pendingTransfer;
+
+if(balanceValue < amount){
+alert("Insufficient funds");
+return;
+}
+
+balanceValue -= amount;
+
+const ref = "ACH-" + Math.floor(Math.random()*100000000);
+
+txArray.unshift({
+amount: -amount,
+note: "Transfer to " + receiver,
+date: new Date().toISOString(),
+reference: ref
+});
+
+await updateDoc(userRef,{
+[balanceField]: balanceValue,
+transactions: txArray
+});
+
+await addDoc(collection(db,"pendingTransfers"),{
+sender: username,
+iban: receiver,
+amount: amount,
+date: new Date().toISOString(),
+status: "pending"
+});
+
+document.getElementById("pinModal").style.display = "none";
+
+alert("Transfer Successful ✅");
+location.reload();
+
+};
 
 // ===== LOGOUT =====
 window.logout=()=>{
