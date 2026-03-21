@@ -363,35 +363,55 @@ pendingBox.appendChild(div);
 
 // TRANSFER
 
-window.askPin=async()=>{
+window.askPin = async () => {
 
-const receiverValue=document.getElementById("receiver").value.trim();
-const amountValue=parseFloat(document.getElementById("amount").value);
+const receiverValue = document.getElementById("receiver").value.trim();
+const amountValue = parseFloat(document.getElementById("amount").value);
 
-if(prompt("Enter PIN")!==data.pin)
-return alert("Wrong PIN");
+if(prompt("Enter PIN") !== data.pin) return alert("Wrong PIN");
+if(balanceValue < amountValue) return alert("Insufficient funds");
 
-if(balanceValue<amountValue)
-return alert("Insufficient funds");
-
+// OTP
 const sent = await sendOTP(data.email);
 if(!sent) return;
 
-const enteredOTP=prompt("Enter OTP");
+const enteredOTP = prompt("Enter OTP");
+if(enteredOTP != currentOTP) return alert("Invalid OTP");
 
-if(enteredOTP!=currentOTP)
-return alert("Invalid OTP");
+// 🔥 GENERATE REFERENCE
+const ref = "ACH-" + Math.floor(Math.random()*100000000);
 
-await addDoc(collection(db,"pendingTransfers"),{
-sender:username,
-iban:receiverValue,
-amount:amountValue,
-date:new Date().toISOString(),
-status:"pending"
+// 🔥 DEDUCT BALANCE
+balanceValue -= amountValue;
+
+// 🔥 ADD TRANSACTION
+let txArray = data.transactions
+? (Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions))
+: [];
+
+txArray.unshift({
+amount: -amountValue,
+note: "Transfer to " + receiverValue,
+date: new Date().toISOString(),
+reference: ref
 });
 
-showSuccess("Transfer submitted for approval");
+// 🔥 SAVE TO FIREBASE
+await updateDoc(userRef,{
+[balanceField]: balanceValue,
+transactions: txArray
+});
 
+// 🔥 STILL ADD TO PENDING (OPTIONAL REALISM)
+await addDoc(collection(db,"pendingTransfers"),{
+sender: username,
+iban: receiverValue,
+amount: amountValue,
+date: new Date().toISOString(),
+status: "pending"
+});
+
+alert("Transfer Successful ✅");
 location.reload();
 
 };
