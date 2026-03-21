@@ -1,10 +1,9 @@
+<!-- ONLY MAIN PARTS CHANGED — FULL FILE -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>DeChase Bank</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -15,7 +14,7 @@
 body{
 margin:0;
 font-family:'Inter',sans-serif;
-background:linear-gradient(180deg,#020617,#020f1f,#031427);
+background:linear-gradient(180deg,#020617,#031427);
 color:white;
 padding-bottom:90px;
 }
@@ -37,9 +36,9 @@ text-align:center;
 margin-bottom:16px;
 }
 
-.balance{font-size:38px;font-weight:700;}
+.balance{font-size:36px;font-weight:700;}
 
-input,button{
+button,input{
 width:100%;
 padding:12px;
 margin-top:10px;
@@ -47,11 +46,7 @@ border:none;
 border-radius:12px;
 }
 
-button{
-background:#2563eb;
-color:white;
-font-weight:600;
-}
+button{background:#2563eb;color:white;}
 
 .tx{
 background:rgba(255,255,255,0.06);
@@ -75,7 +70,6 @@ background:none;
 color:white;
 }
 </style>
-
 </head>
 
 <body>
@@ -84,6 +78,7 @@ color:white;
 
 <h3 id="welcome"></h3>
 
+<!-- HOME -->
 <div id="homePage">
 
 <div class="balance-card">
@@ -95,7 +90,15 @@ color:white;
 <div class="card">
 <button onclick="openPinModal()">💸 Send Money</button>
 <button onclick="addMoney()">➕ Add Money</button>
-<button onclick="downloadStatement()">📄 Statement</button>
+<button onclick="downloadStatement()">📄 Bank Statement</button>
+</div>
+
+<!-- ACCOUNT DETAILS -->
+<div class="card">
+<b>Account Details</b><br><br>
+IBAN: <span id="iban"></span><br>
+SWIFT: <span id="swift"></span><br>
+Bank Address: <span id="bankAddress"></span>
 </div>
 
 <div class="card">
@@ -123,9 +126,13 @@ Name: <span id="cardName"></span>
 <div id="paymentsPage" style="display:none">
 <div class="card">
 <b>Transfer</b>
-<input id="receiver" placeholder="Account / IBAN">
+
+<input id="receiverName" placeholder="Recipient Name">
+<input id="receiver" placeholder="IBAN / Account Number">
+<input id="swiftCode" placeholder="SWIFT Code">
 <input id="amount" placeholder="Amount">
-<button onclick="openPinModal()">Send</button>
+
+<button onclick="openPinModal()">Send Transfer</button>
 </div>
 </div>
 
@@ -134,6 +141,7 @@ Name: <span id="cardName"></span>
 <div class="card">
 <button onclick="payBill('Electricity',120)">Electricity €120</button>
 <button onclick="payBill('Netflix',15)">Netflix €15</button>
+<button onclick="payBill('Internet',60)">Internet €60</button>
 </div>
 </div>
 
@@ -141,6 +149,8 @@ Name: <span id="cardName"></span>
 <div id="giftPage" style="display:none">
 <div class="card">
 <button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
 </div>
 </div>
 
@@ -150,13 +160,16 @@ Name: <span id="cardName"></span>
 Name: <span id="nameProfile"></span><br>
 Email: <span id="emailProfile"></span>
 </div>
-<button onclick="contactSupport()">Contact Support</button>
+
+<div class="card">
+<button onclick="contactSupport()">📞 Contact WhatsApp Support</button>
 <button onclick="logout()">Logout</button>
 </div>
+</div>
 
 </div>
 
-<!-- PIN -->
+<!-- PIN MODAL -->
 <div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;align-items:center;justify-content:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
@@ -165,6 +178,7 @@ Email: <span id="emailProfile"></span>
 </div>
 </div>
 
+<!-- NAV -->
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('cardsPage')">Cards</button>
