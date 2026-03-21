@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
 <style>
@@ -12,19 +13,33 @@ background:#020617;
 color:white;
 padding-bottom:80px;
 }
-.container{max-width:420px;margin:auto;padding:20px;}
+
+.container{
+max-width:420px;
+margin:auto;
+padding:20px;
+}
+
 .card{
 background:#111827;
 padding:15px;
 border-radius:15px;
 margin-bottom:15px;
 }
+
 .balance-card{
 background:linear-gradient(135deg,#2563eb,#0ea5e9);
 padding:25px;
 border-radius:20px;
 text-align:center;
+margin-bottom:15px;
 }
+
+.balance{
+font-size:30px;
+font-weight:bold;
+}
+
 button{
 width:100%;
 padding:12px;
@@ -33,13 +48,16 @@ border:none;
 border-radius:10px;
 background:#2563eb;
 color:white;
+font-weight:bold;
 }
+
 .tx{
 background:#1f2937;
 padding:10px;
 border-radius:10px;
 margin-top:10px;
 }
+
 .bottomNav{
 position:fixed;
 bottom:0;
@@ -48,6 +66,16 @@ display:flex;
 justify-content:space-around;
 background:#021a35;
 padding:10px;
+}
+
+.bottomNav button{
+background:none;
+color:white;
+font-size:12px;
+}
+
+.hidden{
+display:none;
 }
 </style>
 </head>
@@ -58,28 +86,29 @@ padding:10px;
 
 <h3 id="welcome"></h3>
 
+<!-- HOME -->
+<div id="homePage">
+
 <div class="balance-card">
 <div>Total Balance</div>
-<div id="balance"></div>
+<div id="balance" class="balance"></div>
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
 <div class="card">
-<button onclick="openPinModal()">Send Money</button>
-<button onclick="payBill('Electricity',120)">Pay Bills</button>
-<button onclick="buyGiftCard('Amazon',100)">Gift Cards</button>
-<button onclick="contactSupport()">WhatsApp Support</button>
+<button onclick="openPinModal()">💸 Send Money</button>
+<button onclick="downloadStatement()">📄 Bank Statement</button>
 </div>
 
 <div class="card">
-<b>Account</b><br>
+<b>Account Details</b><br><br>
 IBAN: <span id="iban"></span><br>
 SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
 
 <div class="card">
-<b>Pending</b>
+<b>Pending Transfers</b>
 <div id="pendingTransactions"></div>
 </div>
 
@@ -88,15 +117,55 @@ Address: <span id="bankAddress"></span>
 <div id="transactions"></div>
 </div>
 
+</div>
+
+<!-- PAYMENTS -->
+<div id="paymentsPage" class="hidden">
+<div class="card">
+<b>Send Money</b>
+<input id="receiver" placeholder="IBAN / Account Number">
+<input id="amount" placeholder="Amount">
+<button onclick="openPinModal()">Send Transfer</button>
+</div>
+</div>
+
+<!-- BILLS -->
+<div id="billsPage" class="hidden">
+<div class="card">
+<b>Pay Bills</b>
+<button onclick="payBill('Electricity',120)">Electricity €120</button>
+<button onclick="payBill('Netflix',15)">Netflix €15</button>
+<button onclick="payBill('Internet',60)">Internet €60</button>
+</div>
+</div>
+
+<!-- GIFT -->
+<div id="giftPage" class="hidden">
+<div class="card">
+<b>Gift Cards</b>
+<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
+</div>
+</div>
+
+<!-- PROFILE -->
+<div id="profilePage" class="hidden">
 <div class="card">
 Name: <span id="nameProfile"></span><br>
 Email: <span id="emailProfile"></span>
+</div>
+
+<div class="card">
+<button onclick="contactSupport()">📞 WhatsApp Support</button>
 <button onclick="logout()">Logout</button>
 </div>
+</div>
 
 </div>
 
-<div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;justify-content:center;align-items:center;">
+<!-- PIN MODAL -->
+<div id="pinModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
 <button onclick="confirmPin()">Confirm</button>
@@ -104,11 +173,23 @@ Email: <span id="emailProfile"></span>
 </div>
 </div>
 
+<!-- NAV -->
 <div class="bottomNav">
-<button>Home</button>
+<button onclick="openPage('homePage')">Home</button>
+<button onclick="openPage('paymentsPage')">Payments</button>
+<button onclick="openPage('billsPage')">Bills</button>
+<button onclick="openPage('giftPage')">Gift</button>
+<button onclick="openPage('profilePage')">Profile</button>
 </div>
 
 <script>
+function openPage(page){
+["homePage","paymentsPage","billsPage","giftPage","profilePage"]
+.forEach(p=>document.getElementById(p).classList.add("hidden"));
+
+document.getElementById(page).classList.remove("hidden");
+}
+
 function contactSupport(){
 window.open("https://wa.me/13312016202");
 }
