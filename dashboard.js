@@ -311,6 +311,7 @@ ${amount >= 0 ? "+" : "-"}${currencySymbol}${Math.abs(amount).toLocaleString()}
 <div class="small">${formatDate(tx.date)}</div>
 </div>
 `;
+});
 
 // PENDING
 
