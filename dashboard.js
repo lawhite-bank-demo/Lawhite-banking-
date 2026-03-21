@@ -1,4 +1,4 @@
-// FIREBASE IMPORTS
+// ===== FIREBASE IMPORTS =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore,
@@ -12,7 +12,7 @@ query,
 where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// CONFIG
+// ===== CONFIG =====
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
 authDomain: "dechase-bank.firebaseapp.com",
@@ -22,7 +22,7 @@ projectId: "dechase-bank"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// SAFE TRANSACTIONS
+// ===== SAFE TRANSACTIONS =====
 function getSafeTransactions(data){
 return data.transactions
 ? (Array.isArray(data.transactions)
@@ -31,19 +31,30 @@ return data.transactions
 : [];
 }
 
-// 🔥 AUTO BALANCE CALCULATOR
-function calculateBalance(txArray){
+// ===== AUTO BALANCE =====
+function calculateBalance(transactions){
 let total = 0;
-txArray.forEach(tx=>{
-const amt = Number(tx.amount);
-if(!isNaN(amt)){
-total += amt;
-}
+transactions.forEach(tx=>{
+total += Number(tx.amount) || 0;
 });
 return total;
 }
 
-// INIT
+// ===== FORMAT DATE =====
+function formatDate(date){
+return new Date(date).toLocaleString();
+}
+
+// ===== SUCCESS BANNER =====
+function showSuccess(msg){
+const banner = document.getElementById("successBanner");
+if(!banner) return;
+banner.innerText = "✅ " + msg;
+banner.style.display = "block";
+setTimeout(()=>banner.style.display="none",2000);
+}
+
+// ===== INIT DASHBOARD =====
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
@@ -59,18 +70,28 @@ return location.replace("index.html");
 
 const data = snap.data();
 
+// ===== SESSION CHECK =====
+if(Number(localStorage.getItem("session")) !== Number(data.session)){
+localStorage.clear();
+return location.replace("index.html");
+}
+
 // ===== USER INFO =====
 document.getElementById("welcome").innerText = "Hello, " + data.fullName;
+document.getElementById("nameProfile").innerText = data.fullName;
+document.getElementById("emailProfile").innerText = data.email;
 
-// ===== TRANSACTIONS FIRST =====
+// ===== ACCOUNT =====
+document.getElementById("cardNumber").innerText = data.cardNumber || "****";
+document.getElementById("cardName").innerText = data.cardName || "-";
+
+// ===== TRANSACTIONS + BALANCE =====
 let txArray = getSafeTransactions(data);
-
-// 🔥 AUTO BALANCE FROM TRANSACTIONS
 let balanceValue = calculateBalance(txArray);
 
-let currencySymbol = data.currency==="USD"?"$":"€";
-let balanceField = data.currency==="USD"?"usdBalance":"balance";
+const currencySymbol = data.currency === "USD" ? "$" : "€";
 
+// ===== BALANCE TOGGLE =====
 const balanceEl = document.getElementById("balance");
 const toggleEl = document.getElementById("toggleBalance");
 
@@ -96,24 +117,26 @@ txArray.forEach(tx=>{
 const amount = Number(tx.amount);
 if(isNaN(amount)) return;
 
-const color = amount>=0?"#22c55e":"#ef4444";
-const sign = amount>=0?"+":"-";
+const color = amount>=0 ? "#22c55e" : "#ef4444";
+const sign = amount>=0 ? "+" : "-";
+
+const status = tx.status || "completed";
+
+let statusText = "✅ Completed";
+if(status==="pending") statusText="⏳ Pending";
+if(status==="failed") statusText="❌ Failed";
 
 const div = document.createElement("div");
 div.className = "tx";
 
 div.innerHTML = `
-<div style="display:flex;justify-content:space-between;">
-<div>
 <strong>${tx.note || "Transaction"}</strong><br>
-<span class="small">${new Date(tx.date).toLocaleString()}</span>
-</div>
-<div style="text-align:right;">
-<span style="color:${color};font-weight:700;">
+<span style="color:${color};font-weight:600;">
 ${sign}${currencySymbol}${Math.abs(amount).toLocaleString()}
 </span>
-</div>
-</div>
+<div class="small">${statusText}</div>
+<div class="small">Ref: ${tx.reference || "-"}</div>
+<div class="small">${formatDate(tx.date)}</div>
 `;
 
 box.appendChild(div);
@@ -122,7 +145,6 @@ box.appendChild(div);
 // ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
 
-if(pendingBox){
 const q = query(collection(db,"pendingTransfers"),where("sender","==",username));
 const snapPending = await getDocs(q);
 
@@ -134,18 +156,13 @@ pendingBox.innerHTML = `<div class="tx">No pending transfers</div>`;
 snapPending.forEach(d=>{
 const p = d.data();
 
-const div = document.createElement("div");
-div.className = "tx";
-
-div.innerHTML = `
-<strong>⏳ Pending</strong><br>
-${currencySymbol}${Number(p.amount).toLocaleString()} → ${p.iban}
-<div class="small">${new Date(p.date).toLocaleString()}</div>
+pendingBox.innerHTML += `
+<div class="tx">
+⏳ ${currencySymbol}${Number(p.amount).toLocaleString()} → ${p.iban}
+<br><small>${formatDate(p.date)}</small>
+</div>
 `;
-
-pendingBox.appendChild(div);
 });
-}
 }
 
 // ===== TRANSFER =====
@@ -177,15 +194,14 @@ alert("Wrong PIN");
 return;
 }
 
-// REFRESH DATA
+// 🔥 FETCH LATEST DATA
 const freshSnap = await getDoc(userRef);
 const freshData = freshSnap.data();
 
 let txArray = getSafeTransactions(freshData);
-
-// 🔥 AUTO BALANCE
 let newBalance = calculateBalance(txArray);
 
+// CHECK BALANCE
 if(newBalance < pendingTransfer.amount){
 alert("Insufficient funds");
 return;
@@ -193,7 +209,7 @@ return;
 
 const ref = "ACH-" + Math.floor(Math.random()*100000000);
 
-// ADD NEW TRANSACTION
+// ADD TRANSACTION
 txArray.unshift({
 amount: -pendingTransfer.amount,
 note: "Transfer to " + pendingTransfer.receiver,
@@ -202,12 +218,16 @@ reference: ref,
 status: "pending"
 });
 
+// UPDATE BALANCE
+newBalance = calculateBalance(txArray);
+
 // SAVE
 await updateDoc(userRef,{
-[balanceField]: newBalance - pendingTransfer.amount,
-transactions: txArray
+transactions: txArray,
+balance: newBalance
 });
 
+// ADD PENDING
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
 iban: pendingTransfer.receiver,
@@ -216,54 +236,96 @@ date: new Date().toISOString(),
 status: "pending"
 });
 
-alert("Transfer Successful ✅");
+showSuccess("Transfer Successful");
 location.reload();
 };
 
 // ===== ADD MONEY =====
 window.addMoney = async ()=>{
 const amount = parseFloat(prompt("Enter amount"));
-if(isNaN(amount) || amount<=0) return;
+
+if(isNaN(amount)||amount<=0) return;
 
 txArray.unshift({
 amount: amount,
 note: "Deposit",
 date: new Date().toISOString(),
+reference: "DEP-"+Math.floor(Math.random()*100000000),
 status: "completed"
 });
 
-// 🔥 AUTO BALANCE UPDATE
-let newBalance = calculateBalance(txArray);
+const newBalance = calculateBalance(txArray);
 
 await updateDoc(userRef,{
-[balanceField]: newBalance,
-transactions: txArray
+transactions: txArray,
+balance: newBalance
 });
 
+showSuccess("Money added");
 location.reload();
 };
 
-// ===== PDF =====
+// ===== PAY BILL =====
+window.payBill = async (name, amount)=>{
+txArray.unshift({
+amount: -amount,
+note: name + " Bill",
+date: new Date().toISOString(),
+status: "completed"
+});
+
+await updateDoc(userRef,{transactions: txArray});
+showSuccess(name+" paid");
+location.reload();
+};
+
+// ===== GIFT CARD =====
+window.buyGiftCard = async (store, amount)=>{
+txArray.unshift({
+amount: -amount,
+note: store + " Gift Card",
+date: new Date().toISOString(),
+status: "completed"
+});
+
+await updateDoc(userRef,{transactions: txArray});
+showSuccess(store+" purchased");
+location.reload();
+};
+
+// ===== PDF STATEMENT =====
 window.downloadStatement = ()=>{
 
 const { jsPDF } = window.jspdf;
 const doc = new jsPDF();
 
+let y = 20;
+
 doc.setFontSize(16);
-doc.text("DeChase Bank Statement",20,20);
+doc.text("DeChase Bank Statement",20,y);
 
+y+=10;
 doc.setFontSize(12);
-doc.text("Name: "+data.fullName,20,30);
-doc.text("Balance: "+currencySymbol+balanceValue,20,40);
 
-let y = 50;
+doc.text("Name: "+data.fullName,20,y); y+=8;
+doc.text("Balance: "+currencySymbol+balanceValue.toLocaleString(),20,y); y+=10;
+
+doc.line(20,y,190,y); y+=10;
 
 txArray.slice(0,20).forEach(tx=>{
-doc.text(`${tx.note} (${tx.amount})`,20,y);
+const amount = Number(tx.amount);
+if(isNaN(amount)) return;
+
+doc.text(`${tx.note} | ${amount}`,20,y);
 y+=8;
+
+if(y>270){
+doc.addPage();
+y=20;
+}
 });
 
-doc.save("statement.pdf");
+doc.save("DeChase_Statement.pdf");
 };
 
 // ===== LOGOUT =====
