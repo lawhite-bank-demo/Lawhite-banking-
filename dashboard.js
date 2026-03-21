@@ -23,6 +23,12 @@ return data.transactions
 : [];
 }
 
+// ===== MASK CARD =====
+function maskCard(num){
+if(!num) return "**** **** **** ****";
+return "**** **** **** " + num.replace(/\s/g,"").slice(-4);
+}
+
 // ===== RENDER TRANSACTIONS =====
 function renderTransactions(list){
 const box = document.getElementById("transactions");
@@ -53,6 +59,43 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 });
 }
 
+// ===== GLOBAL CARD ACTIONS =====
+window.flipCard = ()=>{
+document.getElementById("cardInner").classList.toggle("flipped");
+};
+
+window.revealCVV = async ()=>{
+const username = localStorage.getItem("user");
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
+if(!snap.exists()) return;
+
+const data = snap.data();
+const el = document.getElementById("cardCVV");
+
+el.innerText = data.cardCVV || "***";
+
+setTimeout(()=>{
+el.innerText = "***";
+},5000);
+};
+
+window.toggleCard = async ()=>{
+const username = localStorage.getItem("user");
+const userRef = doc(db,"users",username);
+const snap = await getDoc(userRef);
+if(!snap.exists()) return;
+
+const data = snap.data();
+const newStatus = !data.cardFrozen;
+
+await updateDoc(userRef,{cardFrozen:newStatus});
+
+alert(newStatus ? "Card Frozen ❄️" : "Card Active ✅");
+
+initDashboard();
+};
+
 // ===== INIT =====
 async function initDashboard(){
 
@@ -61,7 +104,6 @@ if(!username) return location.replace("index.html");
 
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
-
 if(!snap.exists()) return location.replace("index.html");
 
 const data = snap.data();
@@ -123,7 +165,6 @@ renderTransactions(tx);
 
 // ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
-
 const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
 const snapPending = await getDocs(q);
 
@@ -137,7 +178,6 @@ const p = d.data();
 
 let status = p.status || "pending";
 let label = "⏳ Pending";
-
 if(status === "completed") label = "✅ Approved";
 if(status === "failed") label = "❌ Rejected";
 
@@ -149,47 +189,16 @@ $${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 });
 }
 
-// ===== 💳 CARD SYSTEM =====
-document.getElementById("cardNumber").innerText =
-data.cardNumber || "**** **** **** 1234";
+// ===== 💳 CARD UI =====
+document.getElementById("cardNumber").innerText = maskCard(data.cardNumber);
+document.getElementById("cardName").innerText = data.fullName || "USER";
+document.getElementById("cardExpiry").innerText = data.cardExpiry || "--/--";
+document.getElementById("cardCVV").innerText = "***";
 
-document.getElementById("cardName").innerText =
-data.fullName || "User";
-
-document.getElementById("cardExpiry").innerText =
-data.cardExpiry || "12/28";
-
-const cvvEl = document.getElementById("cardCVV");
-cvvEl.innerText = "***";
-
-// reveal CVV
-window.revealCVV = ()=>{
-cvvEl.innerText = data.cardCVV || "***";
-
-setTimeout(()=>{
-cvvEl.innerText = "***";
-},5000);
-};
-
-// freeze toggle
-const cardBtn = document.getElementById("cardBtn");
-
-if(cardBtn){
-cardBtn.innerText = data.cardFrozen ? "Unfreeze Card" : "Freeze Card";
+const btn = document.getElementById("cardBtn");
+if(btn){
+btn.innerText = data.cardFrozen ? "Unfreeze Card" : "Freeze Card";
 }
-
-window.toggleCard = async ()=>{
-
-const newStatus = !data.cardFrozen;
-
-await updateDoc(userRef,{
-cardFrozen: newStatus
-});
-
-alert(newStatus ? "Card Frozen ❄" : "Card Unfrozen ✅");
-
-initDashboard();
-};
 
 // ===== PIN MODAL =====
 let pending = null;
@@ -210,9 +219,8 @@ document.getElementById("pinInput").value = "";
 // ===== TRANSFER =====
 window.openPinModal = ()=>{
 
-// ❄ BLOCK IF FROZEN
 if(data.cardFrozen){
-alert("Card is frozen ❄");
+alert("Card is frozen ❄️");
 return;
 }
 
@@ -227,7 +235,6 @@ return;
 }
 
 pending = {acc, routing, desc, amount};
-
 showPin();
 };
 
@@ -236,7 +243,6 @@ window.closePin = hidePin;
 window.confirmPin = async ()=>{
 
 const pin = document.getElementById("pinInput").value;
-
 if(pin !== data.pin) return alert("Wrong PIN");
 
 await addDoc(collection(db,"pendingTransfers"),{
@@ -257,7 +263,6 @@ initDashboard();
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
-
 if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
@@ -268,17 +273,12 @@ note:name + " Bill",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
-
+await updateDoc(userRef,{usdBalance,transactions:tx});
 initDashboard();
 };
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
-
 if(usdBalance < amount) return alert("Insufficient funds");
 
 usdBalance -= amount;
@@ -289,11 +289,7 @@ note:name + " Gift Card",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions:tx
-});
-
+await updateDoc(userRef,{usdBalance,transactions:tx});
 initDashboard();
 };
 
