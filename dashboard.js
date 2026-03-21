@@ -127,10 +127,10 @@ pendingBox.innerHTML += `
 });
 }
 
-// ===== TRANSFER =====
+// ===== TRANSFER (PIN ONLY HERE) =====
 let pending = null;
 
-// OPEN PIN MODAL
+// OPEN PIN MODAL ONLY WHEN BUTTON CLICKED
 window.openPinModal = ()=>{
 const r = document.getElementById("receiver").value.trim();
 const a = parseFloat(document.getElementById("amount").value);
@@ -191,7 +191,7 @@ date: new Date().toISOString()
 });
 
 // RESET UI
-window.closePin();
+closePin();
 
 alert("Transfer Successful");
 location.reload();
