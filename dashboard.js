@@ -303,5 +303,4 @@ window.location.replace("index.html");
 };
 
 }
-
 initDashboard();
