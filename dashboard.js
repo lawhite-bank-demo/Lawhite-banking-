@@ -1,20 +1,11 @@
 // FIREBASE IMPORTS
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-getFirestore,
-doc,
-getDoc,
-updateDoc,
-collection,
-getDocs,
-addDoc,
-query,
-where
+getFirestore, doc, getDoc, updateDoc,
+collection, getDocs, addDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // FIREBASE CONFIG
-
 const firebaseConfig = {
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
 authDomain: "dechase-bank.firebaseapp.com",
@@ -24,177 +15,101 @@ projectId: "dechase-bank"
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// OTP SYSTEM
-
+// OTP
 let currentOTP = null;
 let otpExpiry = null;
 
 async function sendOTP(email){
-
-if(!window.emailjs){
-alert("Email system not loaded");
-return false;
-}
+if(!window.emailjs) return false;
 
 const otp = Math.floor(100000 + Math.random()*900000);
-
 currentOTP = otp;
 otpExpiry = Date.now() + 180000;
 
 try{
-
-await emailjs.send(
-"service_ab123cd",
-"template_x9k21a",
-{
-to_email: email,
-otp: otp
-}
-);
-
+await emailjs.send("service_ab123cd","template_x9k21a",{to_email:email,otp});
 return true;
-
-}catch(err){
-
-console.error(err);
-alert("Failed to send OTP email");
+}catch{
 return false;
-
+}
 }
 
-}
-
-// INIT DASHBOARD
-
+// INIT
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
-
-if(!username){
-window.location.replace("index.html");
-return;
-}
+if(!username) return location.href="index.html";
 
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
-
-if(!snap.exists()){
-alert("User not found");
-window.location.replace("index.html");
-return;
-}
+if(!snap.exists()) return location.href="index.html";
 
 const data = snap.data();
 
-const savedSession = Number(localStorage.getItem("session"));
-const firebaseSession = Number(data.session);
-
-if(savedSession !== firebaseSession){
-localStorage.removeItem("user");
-localStorage.removeItem("session");
-window.location.replace("index.html");
-return;
+// SESSION
+if(Number(localStorage.getItem("session")) !== Number(data.session)){
+localStorage.clear();
+return location.href="index.html";
 }
 
-// SUCCESS BANNER
-
-function showSuccess(message){
-
-const banner = document.getElementById("successBanner");
-
-banner.innerText = "✅ " + message;
-banner.style.display = "block";
-
-setTimeout(()=>{
-banner.style.display = "none";
-},2000);
-
+// HELPERS
+function showSuccess(msg){
+const b=document.getElementById("successBanner");
+b.innerText="✅ "+msg;
+b.style.display="block";
+setTimeout(()=>b.style.display="none",2000);
 }
 
-// DATE FORMAT
-
-function formatDate(date){
-return new Date(date).toLocaleString();
+function formatDate(d){
+return new Date(d).toLocaleString();
 }
 
-// USER INFO (SAFE VERSION)
+// USER INFO
+document.getElementById("welcome").innerText="Hello, "+data.fullName;
+document.getElementById("name").innerText=data.fullName;
+document.getElementById("acc").innerText=data.accountNumber;
 
-const welcomeEl = document.getElementById("welcome");
-if(welcomeEl) welcomeEl.innerText = "Hello, " + data.fullName;
+// USA / EU SWITCH
+if((data.country||"").toUpperCase()==="USA"){
+document.getElementById("ibanSection").style.display="none";
+document.getElementById("usAccountSection").style.display="block";
 
-const nameEl = document.getElementById("name");
-if(nameEl) nameEl.innerText = data.fullName;
+const acc=data.accountNumber||"";
+document.getElementById("accountNumberMasked").innerText =
+acc.slice(-4).padStart(acc.length,"*");
 
-const accEl = document.getElementById("acc");
-if(accEl) accEl.innerText = data.accountNumber;
-
-console.log("User loaded:", data);
-
-// ✅ REAL US / EU SWITCH
-
-const ibanSection = document.getElementById("ibanSection");
-const usSection = document.getElementById("usAccountSection");
-
-if(data.country === "USA"){
-
-if(ibanSection) ibanSection.style.display = "none"; if(usSection) usSection.style.display = "block"; 
-
-const acc = data.accountNumber || "";
-const masked = acc.slice(-4).padStart(acc.length, "*");
-
-// show masked
-const maskedEl = document.getElementById("accountNumberMasked");
-if(maskedEl) maskedEl.innerText = masked;
-
-// keep real for copy
-const realEl = document.getElementById("accountNumber");
-if(realEl) realEl.innerText = acc;
-document.getElementById("routingNumber").innerText = data.routingNumber || "-";
+document.getElementById("accountNumber").innerText=acc;
+document.getElementById("routingNumber").innerText=data.routingNumber||"-";
 
 }else{
-
-if(ibanSection) ibanSection.style.display = "block"; if(usSection) usSection.style.display = "none"; document.getElementById("iban").innerText = data.iban || "-"; 
-
+document.getElementById("iban").innerText=data.iban||"-";
 }
 
-const swiftEl = document.getElementById("swift");
-if(swiftEl) swiftEl.innerText = data.swift || "-";
-
-// BANK ADDRESS
-
-document.getElementById("bankAddress").innerText=data.bankAddress || "-";
-document.getElementById("bankAddressSupport").innerText=data.bankAddress || "-";
+document.getElementById("swift").innerText=data.swift||"-";
+document.getElementById("bankAddress").innerText=data.bankAddress||"-";
+document.getElementById("bankAddressSupport").innerText=data.bankAddress||"-";
 
 // PROFILE
-
 document.getElementById("nameProfile").innerText=data.fullName;
 document.getElementById("emailProfile").innerText=data.email;
 
 // BALANCE
+let currency = (data.currency||"EUR").toUpperCase();
+let balanceValue = currency==="USD"
+? Number(data.usdBalance||0)
+: Number(data.balance||0);
 
-let balanceValue = 0;
-let currencySymbol = "€";
-let balanceField = "balance";
+let symbol = currency==="USD" ? "$" : "€";
+let field = currency==="USD" ? "usdBalance" : "balance";
 
-if(data.currency === "USD"){
-balanceValue = Number(data.usdBalance || 0);
-currencySymbol = "$";
-balanceField = "usdBalance";
-}else{
-balanceValue = Number(data.balance || 0);
-}
-
-let hidden = false;
-
-const balanceEl = document.getElementById("balance");
-const toggleEl = document.getElementById("toggleBalance");
+let hidden=false;
 
 function renderBalance(){
-balanceEl.innerText = hidden ? "••••••" : currencySymbol + balanceValue.toLocaleString();
-toggleEl.innerText = hidden ? "👁 Show balance" : "👁 Hide balance";
+document.getElementById("balance").innerText =
+hidden ? "••••••" : symbol+balanceValue.toLocaleString();
 }
 
-toggleEl.onclick=()=>{
+document.getElementById("toggleBalance").onclick=()=>{
 hidden=!hidden;
 renderBalance();
 };
@@ -202,154 +117,125 @@ renderBalance();
 renderBalance();
 
 // WALLET
-
 document.getElementById("eurWallet").innerText=Number(data.balance||0).toLocaleString();
 document.getElementById("usdWallet").innerText=Number(data.usdBalance||0).toLocaleString();
-document.getElementById("gbpWallet").innerText=Number(data.gbpBalance||0).toLocaleString();
-document.getElementById("audWallet").innerText=Number(data.audBalance||0).toLocaleString();
 
 // CARD
-
-document.getElementById("cardNumber").innerText=data.cardNumber||"0000 0000 0000 0000";
+document.getElementById("cardNumber").innerText=data.cardNumber||"";
 document.getElementById("cardName").innerText=data.cardName||"-";
 document.getElementById("cardExpiry").innerText=data.cardExpiry||"--/--";
 
-const cvvElement=document.getElementById("cardCVV");
-
 window.revealCVV=()=>{
-cvvElement.innerText=data.cardCVV;
-setTimeout(()=>{cvvElement.innerText="***";},5000);
-};
-
-// PAY BILL
-
-window.payBill = async function(name, amount){
-
-if(balanceValue < amount) return alert("Insufficient balance");
-
-balanceValue -= amount;
-
-await updateDoc(userRef,{ [balanceField]: balanceValue });
-
-showSuccess(name+" bill paid");
-
-showReceipt( <b>${name} Bill Payment</b><br><br> Amount: ${currencySymbol}${amount}<br> Date: ${new Date().toLocaleString()} );
-
-location.reload();
-
-};
-
-// BUY GIFT CARD
-
-window.buyGiftCard = async function(store, amount){
-
-if(balanceValue < amount) return alert("Insufficient balance");
-
-balanceValue -= amount;
-
-await updateDoc(userRef,{ [balanceField]: balanceValue });
-
-showSuccess(store+" gift card purchased");
-
-showReceipt( <b>${store} Gift Card</b><br><br> Amount: ${currencySymbol}${amount}<br> Date: ${new Date().toLocaleString()} );
-
-location.reload();
-
+const el=document.getElementById("cardCVV");
+el.innerText=data.cardCVV;
+setTimeout(()=>el.innerText="***",5000);
 };
 
 // TRANSACTIONS
+const box=document.getElementById("transactions");
+box.innerHTML="";
 
-const box = document.getElementById("transactions");
-box.innerHTML = "";
-
-let txArray = data.transactions
-? (Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions))
+let txArray=data.transactions
+? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
 : [];
 
-if(txArray.length === 0){
-
-box.innerHTML = <div class="tx">No transactions yet</div>;
-
-} else {
-
+if(txArray.length===0){
+box.innerHTML=`<div class="tx">No transactions yet</div>`;
+}else{
 txArray.sort((a,b)=>new Date(b.date)-new Date(a.date));
 
-txArray.slice(0,20).forEach(tx=>{
+txArray.forEach(tx=>{
+const amount=Number(tx.amount||0);
+const color=amount>=0?"#22c55e":"#ef4444";
 
-const amount = Number(tx.amount || 0);
-const color = amount >= 0 ? "#22c55e" : "#ef4444";
-
-box.innerHTML += `
-
-${tx.note || "Transaction"}
-${amount >= 0 ? "+" : "-"}${currencySymbol}${Math.abs(amount).toLocaleString()} 
-
-Ref: ${tx.reference || "N/A"}
-
-${formatDate(tx.date)}
-
-`; 
-
-// PENDING
-
-const pendingBox = document.getElementById("pendingTransactions");
-
-const pendingSnap = await getDocs(
-query(collection(db,"pendingTransfers"), where("sender","==",username))
-);
-
-pendingBox.innerHTML = pendingSnap.empty
-? <div class="tx">No pending transfers</div>
-: "";
-
-pendingSnap.forEach(docu=>{
-const p = docu.data();
-
-pendingBox.innerHTML += `
-
-🏦 Transfer Pending
-${currencySymbol}${Number(p.amount).toLocaleString()} → ${p.iban} 
-
-${formatDate(p.date)}
-
-`; }); 
-
-// TRANSFER
-
-window.askPin=async()=>{
-
-const receiverValue=document.getElementById("receiver").value.trim();
-const amountValue=parseFloat(document.getElementById("amount").value);
-
-if(prompt("Enter PIN")!==data.pin) return alert("Wrong PIN");
-if(balanceValue<amountValue) return alert("Insufficient funds");
-
-const sent = await sendOTP(data.email);
-if(!sent) return;
-
-if(prompt("Enter OTP")!=currentOTP) return alert("Invalid OTP");
-
-await addDoc(collection(db,"pendingTransfers"),{
-sender:username,
-iban:receiverValue,
-amount:amountValue,
-date:new Date().toISOString(),
-status:"pending"
+box.innerHTML+=`
+<div class="tx">
+<strong>${tx.note}</strong><br>
+<span style="color:${color}">
+${amount>=0?"+":"-"}${symbol}${Math.abs(amount).toLocaleString()}
+</span>
+<div class="small">Ref: ${tx.reference||"DCB-"+Math.floor(Math.random()*99999999)}</div>
+<div class="small">${formatDate(tx.date)}</div>
+</div>
+`;
 });
 }
 
-showSuccess("Transfer submitted");
-location.reload();
+// PENDING
+const pendingBox=document.getElementById("pendingTransactions");
 
+const pendingSnap=await getDocs(
+query(collection(db,"pendingTransfers"),where("sender","==",username))
+);
+
+pendingBox.innerHTML = pendingSnap.empty
+? `<div class="tx">No pending transfers</div>`
+: "";
+
+pendingSnap.forEach(d=>{
+const p=d.data();
+
+pendingBox.innerHTML+=`
+<div class="tx">
+<strong>🏦 Transfer Pending</strong><br>
+${symbol}${Number(p.amount).toLocaleString()} → ${p.iban}
+<div class="small">${formatDate(p.date)}</div>
+</div>
+`;
+});
+
+// PAY BILL
+window.payBill=async(name,amount)=>{
+if(balanceValue<amount) return alert("Insufficient");
+
+balanceValue-=amount;
+await updateDoc(userRef,{[field]:balanceValue});
+
+showSuccess(name+" paid");
+location.reload();
+};
+
+// GIFT
+window.buyGiftCard=async(name,amount)=>{
+if(balanceValue<amount) return alert("Insufficient");
+
+balanceValue-=amount;
+await updateDoc(userRef,{[field]:balanceValue});
+
+showSuccess(name+" purchased");
+location.reload();
+};
+
+// TRANSFER
+window.askPin=async()=>{
+const receiver=document.getElementById("receiver").value;
+const amount=parseFloat(document.getElementById("amount").value);
+
+if(prompt("PIN")!=data.pin) return alert("Wrong PIN");
+
+const sent=await sendOTP(data.email);
+if(!sent) return;
+
+if(prompt("OTP")!=currentOTP) return alert("Wrong OTP");
+
+await addDoc(collection(db,"pendingTransfers"),{
+sender:username,
+iban:receiver,
+amount,
+date:new Date().toISOString(),
+status:"pending"
+});
+
+showSuccess("Transfer sent");
+location.reload();
 };
 
 // LOGOUT
-
 window.logout=()=>{
 localStorage.clear();
-window.location.replace("index.html");
+location.href="index.html";
 };
 
 }
 
-initDashboard()
+initDashboard();
