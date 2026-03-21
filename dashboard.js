@@ -17,7 +17,7 @@ const db = getFirestore(app);
 // ===== HELPERS =====
 function getTx(data){
 return data.transactions
-? (Array.isArray(data.transactions) ? data.transactions : Object.values(data.transactions))
+? (Array.isArray(data.transactions) ? [...data.transactions] : Object.values(data.transactions))
 : [];
 }
 
@@ -55,6 +55,43 @@ let usdBalance = Number(data.usdBalance || 0);
 let eurBalance = Number(data.balance || 0);
 let gbpBalance = Number(data.gbpBalance || 0);
 
+// ===== TRANSACTIONS =====
+let tx = getTx(data);
+
+// ===== 🔥 SCHEDULED TRANSACTIONS =====
+const schedQuery = query(
+collection(db,"scheduledTransactions"),
+where("username","==",username),
+where("executed","==",false)
+);
+
+const schedSnap = await getDocs(schedQuery);
+
+for(const docSnap of schedSnap.docs){
+
+const s = docSnap.data();
+
+if(new Date(s.date) <= new Date()){
+
+usdBalance += Number(s.amount);
+
+tx.unshift({
+amount:Number(s.amount),
+note:s.note,
+date:new Date().toISOString()
+});
+
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
+
+await updateDoc(doc(db,"scheduledTransactions",docSnap.id),{
+executed:true
+});
+}
+}
+
 // ===== BALANCE UI =====
 const balEl = document.getElementById("balance");
 let hidden = false;
@@ -75,7 +112,7 @@ document.getElementById("usdWallet").innerText = "$"+usdBalance.toLocaleString()
 document.getElementById("eurWallet").innerText = "€"+eurBalance.toLocaleString();
 document.getElementById("gbpWallet").innerText = "£"+gbpBalance.toLocaleString();
 
-// ===== LIVE CONVERTER (simple auto conversion) =====
+// ===== LIVE CONVERTER =====
 const rateEUR = 0.92;
 const rateGBP = 0.78;
 
@@ -85,15 +122,14 @@ document.getElementById("convertedEUR").innerText =
 document.getElementById("convertedGBP").innerText =
 "£"+(usdBalance * rateGBP).toLocaleString();
 
-// ===== TRANSACTIONS (FIXED) =====
-let tx = getTx(data);
+// ===== TRANSACTION UI (FIXED STRONG) =====
 const box = document.getElementById("transactions");
-
 box.innerHTML = "";
 
 if(tx.length === 0){
 box.innerHTML = "<div class='tx'>No transactions</div>";
 }else{
+
 tx.sort((a,b)=> new Date(b.date)-new Date(a.date));
 
 tx.forEach(t=>{
@@ -114,6 +150,7 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 
 // ===== PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
+
 const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
 const snapPending = await getDocs(q);
 
@@ -161,15 +198,16 @@ if(usdBalance < pending.a) return alert("Insufficient funds");
 
 usdBalance -= pending.a;
 
-await updateDoc(userRef,{usdBalance});
-
 tx.unshift({
 amount:-pending.a,
 note:"Transfer",
 date:new Date().toISOString()
 });
 
-await updateDoc(userRef,{transactions:tx});
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
 
 await addDoc(collection(db,"pendingTransfers"),{
 sender:username,
@@ -185,22 +223,40 @@ location.reload();
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
-usdBalance -= amount;
-await updateDoc(userRef,{usdBalance});
+if(usdBalance < amount) return alert("Insufficient funds");
 
-tx.unshift({amount:-amount,note:name,date:new Date().toISOString()});
-await updateDoc(userRef,{transactions:tx});
+usdBalance -= amount;
+
+tx.unshift({
+amount:-amount,
+note:name+" Bill",
+date:new Date().toISOString()
+});
+
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
 
 location.reload();
 };
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
-usdBalance -= amount;
-await updateDoc(userRef,{usdBalance});
+if(usdBalance < amount) return alert("Insufficient funds");
 
-tx.unshift({amount:-amount,note:name,date:new Date().toISOString()});
-await updateDoc(userRef,{transactions:tx});
+usdBalance -= amount;
+
+tx.unshift({
+amount:-amount,
+note:name+" Gift Card",
+date:new Date().toISOString()
+});
+
+await updateDoc(userRef,{
+usdBalance,
+transactions:tx
+});
 
 location.reload();
 };
