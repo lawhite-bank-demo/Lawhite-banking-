@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
 
 <meta charset="UTF-8">
@@ -10,29 +9,19 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<!-- ✅ PDF LIBRARY -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-.copyBtn{
-width:auto;
-padding:4px 8px;
-font-size:12px;
-margin-left:6px;
-}
-
 body{
 margin:0;
 font-family:'Inter',sans-serif;
-background:linear-gradient(180deg,#020617,#031427,#021a35);
+background:#031427;
 color:white;
 padding-bottom:90px;
 }
 
-.container{
-max-width:420px;
-margin:auto;
-padding:20px;
-}
+.container{max-width:420px;margin:auto;padding:20px;}
 
 .card{
 background:rgba(255,255,255,0.05);
@@ -49,17 +38,16 @@ text-align:center;
 margin-bottom:18px;
 }
 
-.balance{
-font-size:36px;
-font-weight:700;
+.balance{font-size:36px;font-weight:700;}
+
+.tx{
+background:rgba(255,255,255,0.06);
+padding:12px;
+border-radius:10px;
+margin-top:10px;
 }
 
-.eye{
-font-size:13px;
-opacity:.8;
-margin-top:6px;
-cursor:pointer;
-}
+.small{font-size:12px;opacity:.8;}
 
 button,input{
 width:100%;
@@ -75,116 +63,17 @@ color:white;
 font-weight:600;
 }
 
-.wallet-chip{
-display:flex;
-justify-content:space-between;
-padding:10px 0;
-border-bottom:1px solid rgba(255,255,255,0.08);
-}
-
-.tx{
-background:rgba(255,255,255,0.06);
-padding:12px;
-border-radius:10px;
-margin-top:10px;
-font-size:14px;
-}
-
-.small{
-font-size:12px;
-opacity:.8;
-}
-
 .bottomNav{
 position:fixed;
 bottom:0;
-left:0;
 width:100%;
 background:#021a35;
 display:flex;
 justify-content:space-around;
-padding:14px 0;
-border-top:1px solid rgba(255,255,255,0.1);
-}
-
-.bottomNav button{
-background:none;
-border:none;
-color:white;
-font-size:13px;
-}
-
-.bankCard{
-background:linear-gradient(135deg,#1d4ed8,#2563eb,#0ea5e9);
-border-radius:20px;
-padding:22px;
-box-shadow:0 15px 40px rgba(0,0,0,0.4);
-margin-bottom:16px;
-}
-
-.cardNumber{
-font-size:22px;
-letter-spacing:3px;
-margin:20px 0;
-}
-
-#confirmTransfer{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.6);
-align-items:center;
-justify-content:center;
-}
-
-.modalBox{
-background:#031427;
-padding:25px;
-border-radius:15px;
-width:90%;
-max-width:350px;
-}
-
-#successBanner{
-display:none;
-position:fixed;
-top:20px;
-left:50%;
-transform:translateX(-50%);
-background:#22c55e;
-padding:12px 18px;
-border-radius:8px;
-font-weight:600;
-}
-
-/* RECEIPT */
-
-#receiptModal{
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.7);
-align-items:center;
-justify-content:center;
-}
-
-.receiptBox{
-background:#031427;
-padding:25px;
-border-radius:16px;
-width:90%;
-max-width:360px;
-text-align:center;
+padding:12px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -193,317 +82,45 @@ text-align:center;
 
 <h3 id="welcome">Loading...</h3>
 
-<div id="homePage">
-
 <div class="balance-card">
 <div class="balance" id="balance">€0</div>
-<div id="toggleBalance" class="eye">👁 Hide balance</div>
+<div id="toggleBalance">👁 Hide</div>
 </div>
 
 <div class="card">
-
 <b>Account Info</b><br>
-
-Name: <span id="name">-</span><br>
-Account: <span id="acc">-</span><br>
-
-<!-- EU ACCOUNT -->
-<div id="ibanSection">
-  IBAN: <span id="iban">-</span>
-  <button class="copyBtn" onclick="copyText('iban')">📋</button>
-</div>
-
-<!-- USA ACCOUNT -->
-<div id="usAccountSection" style="display:none">
-
-  Account Number: 
-  <span id="accountNumberMasked">****</span>
-<span id="accountNumber" style="display:none"></span>
-  <button class="copyBtn" onclick="copyText('accountNumber')">📋</button><br>
-
-  Routing Number: 
-  <span id="routingNumber">-</span>
-  <button class="copyBtn" onclick="copyText('routingNumber')">📋</button>
-
-</div>
-
-SWIFT: <span id="swift">-</span><br>
-Bank Address: <span id="bankAddress">-</span>
-
+Name: <span id="name"></span><br>
+Account: <span id="acc"></span>
 </div>
 
 <div class="card">
-
-<b>Multi Currency Wallet</b>
-
-<div class="wallet-chip">
-<span>🇪🇺 EUR</span>
-<span>€<span id="eurWallet">0</span></span>
-</div>
-
-<div class="wallet-chip">
-<span>🇺🇸 USD</span>
-<span>$<span id="usdWallet">0</span></span>
-</div>
-
-<div class="wallet-chip">
-<span>🇬🇧 GBP</span>
-<span>£<span id="gbpWallet">0</span></span>
-</div>
-
-<div class="wallet-chip">
-<span>🇦🇺 AUD</span>
-<span>A$<span id="audWallet">0</span></span>
-</div>
-
-</div>
-
-<div class="card">
-<b>Pending Transactions</b>
-<div id="pendingTransactions">
-<div class="tx">No pending transactions</div>
-</div>
+<b>Transfer</b>
+<input id="receiver" placeholder="Account / IBAN">
+<input id="amount" placeholder="Amount">
+<button onclick="openPinModal()">Send</button>
 </div>
 
 <div class="card">
 <b>Transactions</b>
-<div id="transactions">
-<div class="tx">No transactions yet</div>
-</div>
-</div>
-
-</div>
-
-
-<!-- CARDS -->
-
-<div id="cardsPage" style="display:none">
-
-<div class="bankCard">
-
-<div>DeChase Bank</div>
-
-<div class="cardNumber" id="cardNumber">
-4532 7845 9823 4451
-</div>
-
-<div>
-Holder: <span id="cardName">---</span><br>
-Expiry: <span id="cardExpiry">--/--</span><br>
-CVV: <span id="cardCVV">***</span>
-</div>
-
+<div id="transactions"></div>
 </div>
 
 <div class="card">
-<button onclick="revealCVV()">Show CVV</button>
-<button onclick="toggleCard()">Freeze / Unfreeze Card</button>
-</div>
-
-</div>
-
-
-<!-- PAYMENTS -->
-
-<div id="paymentsPage" style="display:none">
-
-<div class="card">
-
-<b>International Transfer</b>
-
-<input id="receiverName" placeholder="Recipient Name">
-<input id="receiver" placeholder="Account Number / IBAN">
-<input id="swiftCode" placeholder="SWIFT / BIC">
-<input id="postcode" placeholder="Postcode / ZIP">
-<input id="amount" placeholder="Amount">
-
-<button onclick="previewTransfer()">Send Transfer</button>
-
-</div>
-
-</div>
-
-
-<!-- BILLS -->
-
-<div id="billsPage" style="display:none">
-
-<div class="card">
-
-<b>Pay Bills</b>
-
-<button onclick="payBill('Electricity',120)">Electricity €120</button>
-<button onclick="payBill('Netflix',15)">Netflix €15</button>
-<button onclick="payBill('Internet',60)">Internet €60</button>
-
-</div>
-
-</div>
-
-
-<!-- GIFTS -->
-
-<div id="giftPage" style="display:none">
-
-<div class="card">
-
-<b>Gift Cards</b>
-
-<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
-<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
-<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
-
-</div>
-
-</div>
-
-
-<!-- PROFILE -->
-
-<div id="profilePage" style="display:none">
-
-<div class="card">
-<b>Profile</b><br><br>
-
-Name: <span id="nameProfile">-</span><br>
-Email: <span id="emailProfile">-</span>
-</div>
-
-<div class="card">
-<b>Bank Support</b><br><br>
-
-DeChase Bank AG<br>
-<span id="bankAddressSupport">-</span><br><br>
-
-Support WhatsApp<br>
-+1 331 201 6202
-</div>
-
-<button onclick="contactSupport()">Contact Bank Support</button>
+<button onclick="downloadStatement()">Download Statement</button>
 <button onclick="logout()">Logout</button>
-
 </div>
 
 </div>
 
-
-<!-- CONFIRM TRANSFER -->
-
-<div id="confirmTransfer">
-
-<div class="modalBox">
-
-<h3>Confirm Transfer</h3>
-
-<p id="confirmDetails"></p>
-
-<button onclick="cancelTransfer()">Cancel</button>
-<button onclick="confirmTransfer()">Confirm Transfer</button>
-
+<!-- PIN MODAL -->
+<div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
+<div class="card">
+<h3>Enter PIN</h3>
+<input id="pinInput" type="password">
+<button onclick="confirmPin()">Confirm</button>
+<button onclick="closePin()">Cancel</button>
 </div>
-
 </div>
-
-
-<!-- RECEIPT -->
-
-<div id="receiptModal">
-
-<div class="receiptBox">
-
-<h3>Transfer Receipt</h3>
-
-<p id="receiptContent"></p>
-
-<button onclick="closeReceipt()">Close</button>
-
-</div>
-
-</div>
-
-
-<div id="successBanner">Success</div>
-
-
-<div class="bottomNav">
-
-<button onclick="openPage('homePage')">Home</button>
-<button onclick="openPage('cardsPage')">Cards</button>
-<button onclick="openPage('paymentsPage')">Payments</button>
-<button onclick="openPage('billsPage')">Bills</button>
-<button onclick="openPage('giftPage')">Gift</button>
-<button onclick="openPage('profilePage')">Profile</button>
-
-</div>
-
-
-<script>
-function copyText(id){
-const el=document.getElementById(id);
-navigator.clipboard.writeText(el.innerText);
-alert("Copied: "+el.innerText);
-}
-
-window.addEventListener("load",function(){
-if(window.emailjs){
-emailjs.init("Rk2d8F7sX9Q1");
-}
-});
-
-function openPage(page){
-
-["homePage","cardsPage","paymentsPage","billsPage","giftPage","profilePage"]
-.forEach(p=>document.getElementById(p).style.display="none");
-
-document.getElementById(page).style.display="block";
-
-}
-
-function contactSupport(){
-
-const phone="13312016202";
-const msg=encodeURIComponent("Hello DeChase Bank Support");
-
-window.open(`https://wa.me/${phone}?text=${msg}`);
-
-}
-
-let transferData={};
-
-function previewTransfer(){
-
-const name=document.getElementById("receiverName").value;
-const iban=document.getElementById("receiver").value;
-const amount=document.getElementById("amount").value;
-
-transferData={name,iban,amount};
-
-document.getElementById("confirmDetails").innerHTML=
-`Recipient: ${name}<br>IBAN: ${iban}<br>Amount: €${amount}`;
-
-document.getElementById("confirmTransfer").style.display="flex";
-
-}
-
-function cancelTransfer(){
-document.getElementById("confirmTransfer").style.display="none";
-}
-
-function confirmTransfer(){
-document.getElementById("confirmTransfer").style.display="none";
-askPin();
-}
-
-function showReceipt(text){
-document.getElementById("receiptContent").innerHTML=text;
-document.getElementById("receiptModal").style.display="flex";
-}
-
-function closeReceipt(){
-document.getElementById("receiptModal").style.display="none";
-}
-
-</script>
 
 <script type="module" src="dashboard.js"></script>
 
