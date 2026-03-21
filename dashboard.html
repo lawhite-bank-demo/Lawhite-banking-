@@ -85,7 +85,7 @@ font-size:12px;
 }
 
 .hidden{
-display:none;
+display:none !important;
 }
 </style>
 </head>
@@ -105,7 +105,7 @@ display:none;
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
-<!-- ✅ MULTI WALLET -->
+<!-- MULTI WALLET -->
 <div class="card">
 <b>Multi Currency Wallet</b><br><br>
 USD: <span id="usdWallet"></span><br>
@@ -113,7 +113,7 @@ EUR: <span id="eurWallet"></span><br>
 GBP: <span id="gbpWallet"></span>
 </div>
 
-<!-- ✅ CONVERTER -->
+<!-- CONVERTER -->
 <div class="card">
 <b>Converted Balance</b><br><br>
 EUR: <span id="convertedEUR"></span><br>
@@ -121,7 +121,7 @@ GBP: <span id="convertedGBP"></span>
 </div>
 
 <div class="card">
-<button onclick="openPinModal()">💸 Send Money</button>
+<button onclick="openPage('paymentsPage')">💸 Send Money</button>
 <button onclick="downloadStatement()">📄 Bank Statement</button>
 </div>
 
@@ -149,9 +149,8 @@ Address: <span id="bankAddress"></span>
 <div class="card">
 <b>Send Money (USA Transfer)</b>
 
-<!-- ✅ NEW FORM -->
 <input id="accountNumber" placeholder="Account Number">
-<input id="routingNumber" placeholder="Routing Number">
+<input id="routingNumber" placeholder="Routing Number (9 digits)">
 <input id="amount" placeholder="Amount">
 <input id="description" placeholder="Description (optional)">
 
@@ -194,8 +193,8 @@ Email: <span id="emailProfile"></span>
 
 </div>
 
-<!-- PIN MODAL -->
-<div id="pinModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
+<!-- PIN MODAL (FIXED) -->
+<div id="pinModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;justify-content:center;align-items:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
 <button onclick="confirmPin()">Confirm</button>
@@ -221,11 +220,12 @@ document.getElementById(page).classList.remove("hidden");
 }
 
 function contactSupport(){
-window.open("https://wa.me/13312016202");
+window.open("https://wa.me/13312016202?text=Hello%20DeChase%20Support");
 }
 </script>
 
-<script type="module" src="dashboard.js"></script>
+<!-- ✅ CACHE FIX -->
+<script type="module" src="dashboard.js?v=5"></script>
 
 </body>
 </html>
