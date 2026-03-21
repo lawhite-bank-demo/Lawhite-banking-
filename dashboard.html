@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
+<!-- 🔥 HARD CACHE BLOCK -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <style>
 body{
 margin:0;
@@ -96,7 +101,7 @@ display:none !important;
 
 <h3 id="welcome"></h3>
 
-<!-- HOME -->
+<!-- ================= HOME ================= -->
 <div id="homePage">
 
 <div class="balance-card">
@@ -120,11 +125,13 @@ EUR: <span id="convertedEUR"></span><br>
 GBP: <span id="convertedGBP"></span>
 </div>
 
+<!-- ACTIONS -->
 <div class="card">
 <button onclick="openPage('paymentsPage')">💸 Send Money</button>
 <button onclick="downloadStatement()">📄 Bank Statement</button>
 </div>
 
+<!-- ACCOUNT -->
 <div class="card">
 <b>Account Details</b><br><br>
 IBAN: <span id="iban"></span><br>
@@ -132,11 +139,13 @@ SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
 
+<!-- PENDING -->
 <div class="card">
 <b>Pending Transfers</b>
 <div id="pendingTransactions"></div>
 </div>
 
+<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
@@ -144,7 +153,7 @@ Address: <span id="bankAddress"></span>
 
 </div>
 
-<!-- PAYMENTS -->
+<!-- ================= PAYMENTS ================= -->
 <div id="paymentsPage" class="hidden">
 <div class="card">
 <b>Send Money (USA Transfer)</b>
@@ -158,7 +167,7 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- BILLS -->
+<!-- ================= BILLS ================= -->
 <div id="billsPage" class="hidden">
 <div class="card">
 <b>Pay Bills</b>
@@ -168,7 +177,7 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- GIFT -->
+<!-- ================= GIFT ================= -->
 <div id="giftPage" class="hidden">
 <div class="card">
 <b>Gift Cards</b>
@@ -178,7 +187,7 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- PROFILE -->
+<!-- ================= PROFILE ================= -->
 <div id="profilePage" class="hidden">
 <div class="card">
 Name: <span id="nameProfile"></span><br>
@@ -193,8 +202,18 @@ Email: <span id="emailProfile"></span>
 
 </div>
 
-<!-- PIN MODAL (FIXED) -->
-<div id="pinModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;justify-content:center;align-items:center;">
+<!-- ================= PIN MODAL ================= -->
+<div id="pinModal" class="hidden" style="
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#0008;
+display:flex;
+justify-content:center;
+align-items:center;
+">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
 <button onclick="confirmPin()">Confirm</button>
@@ -202,7 +221,7 @@ Email: <span id="emailProfile"></span>
 </div>
 </div>
 
-<!-- NAV -->
+<!-- ================= NAV ================= -->
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('paymentsPage')">Payments</button>
@@ -211,6 +230,7 @@ Email: <span id="emailProfile"></span>
 <button onclick="openPage('profilePage')">Profile</button>
 </div>
 
+<!-- ================= NAV SCRIPT ================= -->
 <script>
 function openPage(page){
 ["homePage","paymentsPage","billsPage","giftPage","profilePage"]
@@ -224,8 +244,13 @@ window.open("https://wa.me/13312016202?text=Hello%20DeChase%20Support");
 }
 </script>
 
-<!-- ✅ CACHE FIX -->
-<script type="module" src="dashboard.js?v=5"></script>
+<!-- ================= CACHE-BUSTED DASHBOARD ================= -->
+<script type="module">
+const script = document.createElement("script");
+script.type = "module";
+script.src = "dashboard.js?v=" + Date.now(); // 🔥 always fresh
+document.body.appendChild(script);
+</script>
 
 </body>
 </html>
