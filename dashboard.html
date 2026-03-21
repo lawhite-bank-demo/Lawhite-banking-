@@ -9,14 +9,14 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
-<!-- ✅ PDF LIBRARY -->
+<!-- PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
 margin:0;
 font-family:'Inter',sans-serif;
-background:#031427;
+background:linear-gradient(180deg,#020617,#020f1f,#031427);
 color:white;
 padding-bottom:90px;
 }
@@ -24,56 +24,68 @@ padding-bottom:90px;
 .container{max-width:420px;margin:auto;padding:20px;}
 
 .card{
-background:rgba(255,255,255,0.05);
-border-radius:18px;
+background:rgba(255,255,255,0.06);
+backdrop-filter:blur(12px);
+border-radius:20px;
 padding:18px;
 margin-bottom:16px;
 }
 
 .balance-card{
-background:linear-gradient(135deg,#2f80ed,#56ccf2);
-border-radius:22px;
-padding:24px;
+background:linear-gradient(135deg,#1d4ed8,#2563eb,#0ea5e9);
+border-radius:25px;
+padding:26px;
 text-align:center;
 margin-bottom:18px;
 }
 
-.balance{font-size:36px;font-weight:700;}
+.balance{font-size:40px;font-weight:700;}
 
-.tx{
-background:rgba(255,255,255,0.06);
-padding:12px;
-border-radius:10px;
-margin-top:10px;
-}
+.eye{font-size:13px;margin-top:8px;cursor:pointer;}
 
-.small{font-size:12px;opacity:.8;}
-
-button,input{
+input{
 width:100%;
-padding:12px;
+padding:13px;
+border-radius:14px;
 border:none;
-border-radius:12px;
 margin-top:10px;
+background:rgba(255,255,255,0.08);
+color:white;
 }
 
 button{
-background:#1d4ed8;
+width:100%;
+padding:13px;
+border:none;
+border-radius:14px;
+margin-top:10px;
+background:linear-gradient(135deg,#2563eb,#3b82f6);
 color:white;
 font-weight:600;
 }
 
-.bottomNav{
-position:fixed;
-bottom:0;
-width:100%;
-background:#021a35;
-display:flex;
-justify-content:space-around;
-padding:12px;
+.tx{
+background:rgba(255,255,255,0.05);
+padding:14px;
+border-radius:14px;
+margin-top:10px;
 }
 
+.small{font-size:12px;opacity:.7;}
+
+#pinModal{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+align-items:center;
+justify-content:center;
+}
 </style>
+
 </head>
 
 <body>
@@ -83,21 +95,22 @@ padding:12px;
 <h3 id="welcome">Loading...</h3>
 
 <div class="balance-card">
+<div style="opacity:.8;font-size:13px;">Total Balance</div>
 <div class="balance" id="balance">€0</div>
-<div id="toggleBalance">👁 Hide</div>
+<div id="toggleBalance" class="eye">👁 Hide balance</div>
 </div>
 
 <div class="card">
-<b>Account Info</b><br>
-Name: <span id="name"></span><br>
-Account: <span id="acc"></span>
+<b>Quick Actions</b>
+<button onclick="openPinModal()">💸 Send Money</button>
+<button onclick="addMoney()">➕ Add Money</button>
+<button onclick="downloadStatement()">📄 Bank Statement</button>
 </div>
 
 <div class="card">
 <b>Transfer</b>
 <input id="receiver" placeholder="Account / IBAN">
 <input id="amount" placeholder="Amount">
-<button onclick="openPinModal()">Send</button>
 </div>
 
 <div class="card">
@@ -106,15 +119,14 @@ Account: <span id="acc"></span>
 </div>
 
 <div class="card">
-<button onclick="downloadStatement()">Download Statement</button>
 <button onclick="logout()">Logout</button>
 </div>
 
 </div>
 
 <!-- PIN MODAL -->
-<div id="pinModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;">
-<div class="card">
+<div id="pinModal">
+<div class="card" style="width:90%;max-width:320px;">
 <h3>Enter PIN</h3>
 <input id="pinInput" type="password">
 <button onclick="confirmPin()">Confirm</button>
