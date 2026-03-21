@@ -133,12 +133,11 @@ setTimeout(()=>cvvEl.innerText="***",5000);
 
 
 // ===== TRANSACTIONS =====
+
 const box=document.getElementById("transactions");
 box.innerHTML="";
 
-let txArray = data.transactions
-? (Array.isArray(data.transactions)?data.transactions:Object.values(data.transactions))
-: [];
+let txArray = getSafeTransactions(data);
 
 if(txArray.length===0){
 box.innerHTML=`<div class="tx">No transactions yet</div>`;
