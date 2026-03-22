@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore, doc, getDoc, updateDoc,
-collection, addDoc, query, where,
+collection, addDoc, query,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -33,7 +33,7 @@ function setText(id,val){
 if(el(id)) el(id).innerText = val;
 }
 
-// ===== RENDER TX =====
+// ===== RENDER =====
 function renderTransactions(list){
 const box = el("transactions");
 if(!box) return;
@@ -44,7 +44,6 @@ list.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 list.forEach(t=>{
 const amt = Number(t.amount || 0);
-if(isNaN(amt)) return;
 
 box.innerHTML += `
 <div class="tx">
@@ -103,12 +102,12 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
-// ===== ADMIN PANEL SHOW =====
+// ===== ADMIN PANEL =====
 if(username === "admin"){
 if(el("adminPanel")) el("adminPanel").classList.remove("hidden");
 }
 
-// ===== REALTIME PENDING =====
+// ===== REALTIME =====
 const q = query(collection(db,"pendingTransfers"));
 
 onSnapshot(q, async (snapshot)=>{
@@ -122,60 +121,53 @@ if(adminBox) adminBox.innerHTML = "";
 snapshot.forEach(async d=>{
 const p = d.data();
 
-let label = "⏳ Pending";
-if(p.status === "completed") label = "✅ Approved";
-if(p.status === "failed") label = "❌ Rejected";
-
-// ===== USER VIEW (ONLY PENDING) =====
+// ===== USER PENDING =====
 if(p.sender === username && p.status === "pending"){
-if(box){
 box.innerHTML += `
 <div class="tx">
-${label}<br>
+⏳ Pending<br>
 $${Number(p.amount).toLocaleString()}
 </div>`;
-}
 }
 
 // ===== ADMIN VIEW =====
 if(username === "admin"){
-if(adminBox){
 adminBox.innerHTML += `
 <div class="admin-box">
 <b>${p.sender}</b><br>
-$${Number(p.amount).toLocaleString()}<br>
+$${Number(p.amount).toLocaleString()}
 
 <div class="admin-actions">
 <button class="approve" onclick="approveTx('${d.id}')">Approve</button>
 <button class="reject" onclick="rejectTx('${d.id}')">Reject</button>
+<button onclick="debitUser('${p.sender}',${p.amount})">Debit</button>
 </div>
 </div>`;
-}
 }
 
 // ===== AUTO CREDIT =====
 if(p.status === "completed" && !p.processed){
 
-const receiverRef = doc(db,"users",p.sender);
-const receiverSnap = await getDoc(receiverRef);
+const ref = doc(db,"users",p.sender);
+const s = await getDoc(ref);
 
-if(receiverSnap.exists()){
-let rData = receiverSnap.data();
-let rBalance = Number(rData.usdBalance || 0);
-let rTx = getTx(rData);
+if(s.exists()){
+let dta = s.data();
+let bal = Number(dta.usdBalance || 0);
+let txx = getTx(dta);
 
-rBalance += Number(p.amount);
+bal += Number(p.amount);
 
-rTx.unshift({
+txx.unshift({
 amount: Number(p.amount),
 note: "Transfer Received",
 reference: genRef(),
 date: new Date().toISOString()
 });
 
-await updateDoc(receiverRef,{
-usdBalance: rBalance,
-transactions: rTx
+await updateDoc(ref,{
+usdBalance: bal,
+transactions: txx
 });
 }
 
@@ -202,6 +194,35 @@ await updateDoc(doc(db,"pendingTransfers",id),{
 status:"failed"
 });
 alert("Rejected");
+};
+
+// ===== ✅ FIXED ADMIN DEBIT =====
+window.debitUser = async (user, amount)=>{
+
+const ref = doc(db,"users",user);
+const snap = await getDoc(ref);
+
+if(!snap.exists()) return alert("User not found");
+
+let d = snap.data();
+let bal = Number(d.usdBalance || 0);
+let t = getTx(d);
+
+bal -= Number(amount);
+
+t.unshift({
+amount: -Number(amount),
+note: "Admin Debit",
+reference: genRef(),
+date: new Date().toISOString()
+});
+
+await updateDoc(ref,{
+usdBalance: bal,
+transactions: t
+});
+
+alert("Debited successfully");
 };
 
 // ===== TRANSFER =====
