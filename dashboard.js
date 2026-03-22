@@ -143,7 +143,7 @@ $${Number(p.amount).toLocaleString()}
 </div>
 `;
 
-// ===== AUTO CREDIT RECEIVER =====
+// ===== AUTO CREDIT =====
 if(p.status === "completed" && !p.processed){
 
 usdBalance += Number(p.amount);
@@ -173,7 +173,7 @@ renderTransactions(tx);
 if(el("cardNumber")) el("cardNumber").innerText = maskCard(data.cardNumber);
 if(el("cardName")) el("cardName").innerText = (data.fullName || "USER").toUpperCase();
 if(el("cardExpiry")) el("cardExpiry").innerText = data.cardExpiry || "12/28";
-if(el("cardCVV")) el("cardCVV").innerText = "***;
+if(el("cardCVV")) el("cardCVV").innerText = "***";
 
 // ===== TRANSFER =====
 window.openPinModal = ()=>{
@@ -239,29 +239,12 @@ renderBalance();
 renderTransactions(tx);
 };
 
-// ===== 🧾 BANK STATEMENT =====
+// ===== STATEMENT =====
 window.downloadStatement = ()=>{
-
-let content = `
-DECHASE BANK STATEMENT
-========================
-
-Name: ${data.fullName || "User"}
-Balance: $${usdBalance.toLocaleString()}
-
-------------------------
-TRANSACTIONS
-------------------------
-`;
+let content = `DECHASE BANK STATEMENT\n\nName: ${data.fullName}\nBalance: $${usdBalance}\n\n`;
 
 tx.forEach(t=>{
-content += `
-${new Date(t.date).toLocaleString()}
-${t.note}
-Ref: ${t.reference || "N/A"}
-Amount: ${t.amount >= 0 ? "+" : "-"}$${Math.abs(t.amount)}
-------------------------
-`;
+content += `${t.note} | ${t.amount} | ${new Date(t.date).toLocaleString()}\n`;
 });
 
 const blob = new Blob([content], { type: "text/plain" });
