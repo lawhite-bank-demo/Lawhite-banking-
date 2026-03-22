@@ -142,6 +142,8 @@ box.innerHTML = "";
 snapshot.forEach(async d=>{
 const p = d.data();
 
+if(p.status === "completed") return;
+
 let label = "⏳ Pending";
 if(p.status === "completed") label = "✅ Approved";
 if(p.status === "failed") label = "❌ Rejected";
