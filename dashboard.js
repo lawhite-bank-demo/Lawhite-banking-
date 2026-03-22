@@ -173,9 +173,9 @@ renderTransactions(tx);
 if(el("cardNumber")) el("cardNumber").innerText = maskCard(data.cardNumber);
 if(el("cardName")) el("cardName").innerText = (data.fullName || "USER").toUpperCase();
 if(el("cardExpiry")) el("cardExpiry").innerText = data.cardExpiry || "12/28";
-if(el("cardCVV")) el("cardCVV").innerText = "***";
+if(el("cardCVV")) el("cardCVV").innerText = "***;
 
-// ===== TRANSFER (NEW WORKING SYSTEM) =====
+// ===== TRANSFER =====
 window.openPinModal = ()=>{
 
 const acc = el("accountNumber")?.value.trim();
@@ -198,19 +198,17 @@ pending = {acc, routing, desc, amount};
 el("pinModal").classList.remove("hidden");
 };
 
-// ===== CLOSE PIN =====
 window.closePin = ()=>{
 el("pinModal").classList.add("hidden");
 el("pinInput").value = "";
 };
 
-// ===== CONFIRM TRANSFER =====
 window.confirmPin = async ()=>{
 
 const pin = el("pinInput").value;
 if(pin !== data.pin) return alert("Wrong PIN");
 
-// 🔻 DEDUCT IMMEDIATELY
+// deduct
 usdBalance -= pending.amount;
 
 tx.unshift({
@@ -220,12 +218,9 @@ reference: genRef(),
 date: new Date().toISOString()
 });
 
-await updateDoc(userRef,{
-usdBalance,
-transactions: tx
-});
+await updateDoc(userRef,{ usdBalance, transactions: tx });
 
-// 🔥 SAVE PENDING
+// save pending
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
 accountNumber: pending.acc,
@@ -242,6 +237,40 @@ alert("Transfer Submitted");
 
 renderBalance();
 renderTransactions(tx);
+};
+
+// ===== 🧾 BANK STATEMENT =====
+window.downloadStatement = ()=>{
+
+let content = `
+DECHASE BANK STATEMENT
+========================
+
+Name: ${data.fullName || "User"}
+Balance: $${usdBalance.toLocaleString()}
+
+------------------------
+TRANSACTIONS
+------------------------
+`;
+
+tx.forEach(t=>{
+content += `
+${new Date(t.date).toLocaleString()}
+${t.note}
+Ref: ${t.reference || "N/A"}
+Amount: ${t.amount >= 0 ? "+" : "-"}$${Math.abs(t.amount)}
+------------------------
+`;
+});
+
+const blob = new Blob([content], { type: "text/plain" });
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "statement.txt";
+a.click();
 };
 
 }
