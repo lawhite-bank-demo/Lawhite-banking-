@@ -5,114 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DeChase Bank</title>
 
-<!-- 🔥 HARD CACHE BLOCK -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#020617;
-color:white;
-padding-bottom:80px;
-}
+body{margin:0;font-family:Arial;background:#020617;color:white;padding-bottom:80px;}
+.container{max-width:420px;margin:auto;padding:20px;}
+.card{background:#111827;padding:15px;border-radius:15px;margin-bottom:15px;}
+.balance-card{background:linear-gradient(135deg,#2563eb,#0ea5e9);padding:25px;border-radius:20px;text-align:center;margin-bottom:15px;}
+.balance{font-size:30px;font-weight:bold;}
 
-.container{
-max-width:420px;
-margin:auto;
-padding:20px;
-}
-
-.card{
-background:#111827;
-padding:15px;
-border-radius:15px;
-margin-bottom:15px;
-}
-
-.balance-card{
-background:linear-gradient(135deg,#2563eb,#0ea5e9);
-padding:25px;
-border-radius:20px;
-text-align:center;
-margin-bottom:15px;
-}
-
-.balance{
-font-size:30px;
-font-weight:bold;
-}
-
-/* CARD */
 .bank-card{perspective:1000px;}
-.card-inner{
-width:100%;
-height:200px;
-position:relative;
-transition:transform 0.6s;
-transform-style:preserve-3d;
-}
+.card-inner{width:100%;height:200px;position:relative;transition:.6s;transform-style:preserve-3d;}
 .card-inner.flipped{transform:rotateY(180deg);}
-.card-front,.card-back{
-position:absolute;
-width:100%;
-height:100%;
-backface-visibility:hidden;
-border-radius:15px;
-padding:20px;
-background:linear-gradient(135deg,#1d4ed8,#0ea5e9);
-}
+.card-front,.card-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:15px;padding:20px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);}
 .card-back{transform:rotateY(180deg);background:#111827;}
-.chip{width:40px;height:30px;background:gold;border-radius:5px;margin-bottom:20px;}
-.card-number{font-size:20px;letter-spacing:2px;margin-bottom:20px;}
-.stripe{height:40px;background:black;margin-bottom:20px;}
-.cvv-box{background:white;color:black;padding:10px;width:80px;text-align:center;}
 
-input{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:10px;
-background:#1f2937;
-color:white;
-}
+input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:white;}
+button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold;}
 
-button{
-width:100%;
-padding:12px;
-margin-top:10px;
-border:none;
-border-radius:10px;
-background:#2563eb;
-color:white;
-font-weight:bold;
-}
+.tx{background:#1f2937;padding:10px;border-radius:10px;margin-top:10px;}
 
-.tx{
-background:#1f2937;
-padding:10px;
-border-radius:10px;
-margin-top:10px;
-}
-
-.bottomNav{
-position:fixed;
-bottom:0;
-width:100%;
-display:flex;
-justify-content:space-around;
-background:#021a35;
-padding:10px;
-}
-
-.bottomNav button{
-background:none;
-color:white;
-font-size:12px;
-}
+.bottomNav{position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;background:#021a35;padding:10px;}
+.bottomNav button{background:none;color:white;font-size:12px;}
 
 .hidden{display:none !important;}
 </style>
@@ -133,23 +49,19 @@ font-size:12px;
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
-<!-- 💳 CARD -->
+<!-- CARD -->
 <div class="card">
 <div class="bank-card" onclick="flipCard()">
 <div class="card-inner" id="cardInner">
 
 <div class="card-front">
-<div class="chip"></div>
-<div class="card-number" id="cardNumber">**** **** **** 1234</div>
-<div id="cardName">USER NAME</div>
+<div id="cardNumber">**** **** **** 1234</div>
+<div id="cardName">USER</div>
 <div>EXP: <span id="cardExpiry">12/28</span></div>
 </div>
 
 <div class="card-back">
-<div class="stripe"></div>
-<div class="cvv-box">
-CVV: <span id="cardCVV">***</span>
-</div>
+<div>CVV: <span id="cardCVV">***</span></div>
 </div>
 
 </div>
@@ -161,7 +73,7 @@ CVV: <span id="cardCVV">***</span>
 
 <!-- WALLET -->
 <div class="card">
-<b>Multi Currency Wallet</b><br><br>
+<b>Multi Currency Wallet</b><br>
 USD: <span id="usdWallet"></span><br>
 EUR: <span id="eurWallet"></span><br>
 GBP: <span id="gbpWallet"></span>
@@ -169,18 +81,19 @@ GBP: <span id="gbpWallet"></span>
 
 <!-- CONVERTER -->
 <div class="card">
-<b>Converted Balance</b><br><br>
+<b>Converted Balance</b><br>
 EUR: <span id="convertedEUR"></span><br>
 GBP: <span id="convertedGBP"></span>
 </div>
 
 <div class="card">
 <button onclick="openPage('paymentsPage')">💸 Send Money</button>
-<button onclick="downloadStatement()">📄 Bank Statement</button>
+<button onclick="openPage('billsPage')">💡 Pay Bills</button>
+<button onclick="openPage('giftPage')">🎁 Gift Cards</button>
 </div>
 
 <div class="card">
-<b>Account Details</b><br><br>
+<b>Account Details</b><br>
 IBAN: <span id="iban"></span><br>
 SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
@@ -210,6 +123,26 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
+<!-- BILLS -->
+<div id="billsPage" class="hidden">
+<div class="card">
+<b>Pay Bills</b>
+<button onclick="payBill('Electricity',120)">Electricity €120</button>
+<button onclick="payBill('Netflix',15)">Netflix €15</button>
+<button onclick="payBill('Internet',60)">Internet €60</button>
+</div>
+</div>
+
+<!-- GIFT -->
+<div id="giftPage" class="hidden">
+<div class="card">
+<b>Gift Cards</b>
+<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
+<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
+<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
+</div>
+</div>
+
 <!-- PROFILE -->
 <div id="profilePage" class="hidden">
 <div class="card">
@@ -218,16 +151,16 @@ Email: <span id="emailProfile"></span>
 </div>
 
 <div class="card">
-<button onclick="contactSupport()">📞 WhatsApp Support</button>
+<button onclick="contactSupport()">WhatsApp Support</button>
 <button onclick="logout()">Logout</button>
-<button onclick="resetApp()">⚠ Reset App</button>
+<button onclick="localStorage.clear();location.reload()">Reset</button>
 </div>
 </div>
 
 </div>
 
 <!-- PIN -->
-<div id="pinModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
+<div id="pinModal" class="hidden" style="position:fixed;top:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
 <button onclick="confirmPin()">Confirm</button>
@@ -239,12 +172,14 @@ Email: <span id="emailProfile"></span>
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('paymentsPage')">Payments</button>
+<button onclick="openPage('billsPage')">Bills</button>
+<button onclick="openPage('giftPage')">Gift</button>
 <button onclick="openPage('profilePage')">Profile</button>
 </div>
 
 <script>
 function openPage(page){
-["homePage","paymentsPage","profilePage"]
+["homePage","paymentsPage","billsPage","giftPage","profilePage"]
 .forEach(p=>document.getElementById(p).classList.add("hidden"));
 document.getElementById(page).classList.remove("hidden");
 }
@@ -252,15 +187,9 @@ document.getElementById(page).classList.remove("hidden");
 function contactSupport(){
 window.open("https://wa.me/13312016202");
 }
-
-function resetApp(){
-localStorage.clear();
-location.reload(true);
-}
 </script>
 
-<!-- ✅ SAFE CACHE BUST -->
-<script type="module" src="dashboard.js?v=7"></script>
+<script type="module" src="dashboard.js?v=8"></script>
 
 </body>
 </html>
