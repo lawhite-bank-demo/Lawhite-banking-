@@ -2,7 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore, doc, getDoc, updateDoc,
-collection, getDocs, addDoc, query, where
+collection, addDoc, query, where,
+onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -86,7 +87,7 @@ const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 if(!snap.exists()) return location.replace("index.html");
 
-const data = snap.data();
+let data = snap.data(); // ⚠️ make mutable
 
 // ===== USER =====
 document.getElementById("welcome").innerText =
@@ -98,7 +99,7 @@ data.fullName || "-";
 document.getElementById("emailProfile").innerText =
 data.email || "-";
 
-// ===== ACCOUNT (FIXED) =====
+// ===== ACCOUNT =====
 document.getElementById("routingDisplay").innerText =
 data.routingNumber || "-";
 
@@ -145,9 +146,10 @@ document.getElementById("convertedGBP").innerText =
 "£" + (usdBalance * 0.78).toLocaleString();
 
 // ===== TRANSACTIONS =====
-renderTransactions(getTx(data));
+let tx = getTx(data);
+renderTransactions(tx);
 
-// ===== PENDING =====
+// ===== 🔥 REALTIME PENDING =====
 const pendingBox = document.getElementById("pendingTransactions");
 
 const q = query(
@@ -155,23 +157,60 @@ collection(db,"pendingTransfers"),
 where("sender","==",username)
 );
 
-const snapPending = await getDocs(q);
+onSnapshot(q, async (snapshot)=>{
 
 pendingBox.innerHTML = "";
 
-if(snapPending.empty){
+if(snapshot.empty){
 pendingBox.innerHTML = "<div class='tx'>No pending transfers</div>";
-}else{
-snapPending.forEach(d=>{
+return;
+}
+
+for(const d of snapshot.docs){
+
 const p = d.data();
+
+let label = "⏳ Pending";
+if(p.status === "completed") label = "✅ Approved";
+if(p.status === "failed") label = "❌ Rejected";
 
 pendingBox.innerHTML += `
 <div class="tx">
-⏳ Pending<br>
+${label}<br>
 $${Number(p.amount).toLocaleString()}
-</div>`;
+</div>
+`;
+
+// ===== 💰 AUTO CREDIT =====
+if(p.status === "completed" && !p.processed){
+
+usdBalance += Number(p.amount);
+
+tx.unshift({
+amount: Number(p.amount),
+note: "Transfer Received",
+reference: genRef(),
+date: new Date().toISOString()
 });
+
+// update firebase
+await updateDoc(userRef,{
+usdBalance,
+transactions: tx
+});
+
+// mark processed
+await updateDoc(doc(db,"pendingTransfers",d.id),{
+processed:true
+});
+
+// refresh UI instantly
+renderBalance();
+renderTransactions(tx);
 }
+}
+
+});
 
 // ===== CARD =====
 document.getElementById("cardNumber").innerText =
