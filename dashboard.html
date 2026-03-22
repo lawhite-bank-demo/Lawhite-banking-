@@ -41,6 +41,13 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 .bottomNav button{background:none;color:white;font-size:12px;}
 
 .hidden{display:none !important;}
+
+/* ADMIN PANEL */
+.admin-box{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin-top:10px;}
+.admin-actions{display:flex;gap:10px;margin-top:10px;}
+.admin-actions button{flex:1;}
+.approve{background:#16a34a;}
+.reject{background:#dc2626;}
 </style>
 </head>
 
@@ -118,6 +125,12 @@ Address: <span id="bankAddress"></span>
 <div class="card">
 <b>Pending Transfers</b>
 <div id="pendingTransactions"></div>
+</div>
+
+<!-- 🔥 ADMIN PANEL -->
+<div class="card hidden" id="adminPanel">
+<b>🛠 Admin Control Panel</b>
+<div id="adminTransfers"></div>
 </div>
 
 <div class="card">
@@ -209,7 +222,7 @@ window.open("https://wa.me/13312016202");
 }
 </script>
 
-<script type="module" src="dashboard.js?v=12"></script>
+<script type="module" src="dashboard.js?v=13"></script>
 
 </body>
 </html>
