@@ -14,7 +14,7 @@ body{margin:0;font-family:Arial;background:#020617;color:white;padding-bottom:80
 .balance-card{background:linear-gradient(135deg,#2563eb,#0ea5e9);padding:25px;border-radius:20px;text-align:center;margin-bottom:15px;}
 .balance{font-size:28px;font-weight:bold;}
 
-/* 💳 FIXED CARD */
+/* 💳 CARD */
 .bank-card{perspective:1000px;margin-top:10px;}
 .card-inner{
 width:100%;
@@ -23,7 +23,6 @@ position:relative;
 transition:.6s;
 transform-style:preserve-3d;
 }
-
 .card-inner.flipped{transform:rotateY(180deg);}
 
 .card-front,.card-back{
@@ -35,7 +34,6 @@ padding:18px;
 backface-visibility:hidden;
 }
 
-/* FRONT */
 .card-front{
 background:linear-gradient(135deg,#1e40af,#0284c7);
 display:flex;
@@ -44,13 +42,11 @@ justify-content:space-between;
 box-shadow:0 6px 18px rgba(0,0,0,0.4);
 }
 
-/* BACK */
 .card-back{
 transform:rotateY(180deg);
 background:#0f172a;
 }
 
-/* CHIP */
 .chip{
 width:38px;
 height:26px;
@@ -58,11 +54,7 @@ background:gold;
 border-radius:6px;
 }
 
-/* TEXT */
-.card-number{
-font-size:17px;
-letter-spacing:2px;
-}
+.card-number{font-size:17px;letter-spacing:2px;}
 
 .card-row{
 display:flex;
@@ -79,7 +71,6 @@ font-weight:bold;
 opacity:.8;
 }
 
-/* BACK */
 .stripe{
 height:35px;
 background:black;
@@ -96,13 +87,20 @@ border-radius:5px;
 font-size:13px;
 }
 
-/* FORM */
 input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:white;}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold;}
 
 .tx{background:#1f2937;padding:10px;border-radius:10px;margin-top:10px;}
 
-.bottomNav{position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;background:#021a35;padding:10px;}
+.bottomNav{
+position:fixed;
+bottom:0;
+width:100%;
+display:flex;
+justify-content:space-around;
+background:#021a35;
+padding:10px;
+}
 .bottomNav button{background:none;color:white;font-size:12px;}
 
 .hidden{display:none !important;}
@@ -115,16 +113,16 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 
 <h3 id="welcome"></h3>
 
-<!-- HOME -->
 <div id="homePage">
 
+<!-- BALANCE -->
 <div class="balance-card">
 <div>Total Balance</div>
 <div id="balance" class="balance"></div>
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
-<!-- 💳 CARD -->
+<!-- CARD -->
 <div class="card">
 <div class="bank-card" onclick="flipCard()">
 <div class="card-inner" id="cardInner">
@@ -172,6 +170,7 @@ EUR: <span id="convertedEUR"></span><br>
 GBP: <span id="convertedGBP"></span>
 </div>
 
+<!-- ACTIONS -->
 <div class="card">
 <button onclick="openPage('paymentsPage')">💸 Send Money</button>
 <button onclick="openPage('billsPage')">💡 Pay Bills</button>
@@ -186,11 +185,13 @@ SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
 
+<!-- PENDING -->
 <div class="card">
 <b>Pending Transfers</b>
 <div id="pendingTransactions"></div>
 </div>
 
+<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
@@ -225,14 +226,9 @@ function openPage(page){
 .forEach(p=>document.getElementById(p).classList.add("hidden"));
 document.getElementById(page).classList.remove("hidden");
 }
-
-function contactSupport(){
-window.open("https://wa.me/13312016202");
-}
 </script>
 
-<!-- 🔥 CACHE FIX -->
-<script type="module" src="dashboard.js?v=10"></script>
+<script type="module" src="dashboard.js?v=11"></script>
 
 </body>
 </html>
