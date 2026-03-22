@@ -37,6 +37,11 @@ function genRef(){
 return "TRX-" + Math.floor(Math.random()*1000000000);
 }
 
+// ===== SAFE UI SET =====
+function setText(id,value){
+if(el(id)) el(id).innerText = value;
+}
+
 // ===== RENDER TRANSACTIONS =====
 function renderTransactions(list){
 const box = el("transactions");
@@ -85,17 +90,16 @@ let usdBalance = Number(data.usdBalance || 0);
 let tx = getTx(data);
 
 // ===== UI =====
-if(el("welcome")) el("welcome").innerText = "Hello, " + (data.fullName || "User");
-if(el("routingDisplay")) el("routingDisplay").innerText = data.routingNumber || "-";
-if(el("swift")) el("swift").innerText = data.swift || "-";
-if(el("bankAddress")) el("bankAddress").innerText = data.bankAddress || "-";
+setText("welcome","Hello, " + (data.fullName || "User"));
+setText("routingDisplay",data.routingNumber || "-");
+setText("swift",data.swift || "-");
+setText("bankAddress",data.bankAddress || "-");
 
 // ===== BALANCE =====
 let hidden = false;
 
 function renderBalance(){
-if(!el("balance")) return;
-el("balance").innerText = hidden ? "••••••" : "$" + usdBalance.toLocaleString();
+setText("balance", hidden ? "••••••" : "$" + usdBalance.toLocaleString());
 }
 
 if(el("toggleBalance")){
@@ -108,13 +112,13 @@ renderBalance();
 renderBalance();
 
 // ===== WALLET =====
-if(el("usdWallet")) el("usdWallet").innerText = "$" + usdBalance.toLocaleString();
-if(el("eurWallet")) el("eurWallet").innerText = "€" + Number(data.balance || 0).toLocaleString();
-if(el("gbpWallet")) el("gbpWallet").innerText = "£" + Number(data.gbpBalance || 0).toLocaleString();
+setText("usdWallet","$" + usdBalance.toLocaleString());
+setText("eurWallet","€" + Number(data.balance || 0).toLocaleString());
+setText("gbpWallet","£" + Number(data.gbpBalance || 0).toLocaleString());
 
 // ===== CONVERTER =====
-if(el("convertedEUR")) el("convertedEUR").innerText = "€" + (usdBalance * 0.92).toLocaleString();
-if(el("convertedGBP")) el("convertedGBP").innerText = "£" + (usdBalance * 0.78).toLocaleString();
+setText("convertedEUR","€" + (usdBalance * 0.92).toLocaleString());
+setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
@@ -170,10 +174,10 @@ renderTransactions(tx);
 });
 
 // ===== CARD =====
-if(el("cardNumber")) el("cardNumber").innerText = maskCard(data.cardNumber);
-if(el("cardName")) el("cardName").innerText = (data.fullName || "USER").toUpperCase();
-if(el("cardExpiry")) el("cardExpiry").innerText = data.cardExpiry || "12/28";
-if(el("cardCVV")) el("cardCVV").innerText = "***";
+setText("cardNumber",maskCard(data.cardNumber));
+setText("cardName",(data.fullName || "USER").toUpperCase());
+setText("cardExpiry",data.cardExpiry || "12/28");
+setText("cardCVV","***");
 
 // ===== TRANSFER =====
 window.openPinModal = ()=>{
@@ -195,17 +199,17 @@ return;
 
 pending = {acc, routing, desc, amount};
 
-el("pinModal").classList.remove("hidden");
+if(el("pinModal")) el("pinModal").classList.remove("hidden");
 };
 
 window.closePin = ()=>{
-el("pinModal").classList.add("hidden");
-el("pinInput").value = "";
+if(el("pinModal")) el("pinModal").classList.add("hidden");
+if(el("pinInput")) el("pinInput").value = "";
 };
 
 window.confirmPin = async ()=>{
 
-const pin = el("pinInput").value;
+const pin = el("pinInput")?.value;
 if(pin !== data.pin) return alert("Wrong PIN");
 
 // deduct
@@ -232,8 +236,49 @@ status: "pending",
 processed:false
 });
 
-el("pinModal").classList.add("hidden");
+if(el("pinModal")) el("pinModal").classList.add("hidden");
+
 alert("Transfer Submitted");
+
+renderBalance();
+renderTransactions(tx);
+};
+
+// ===== 💡 BILL PAYMENT =====
+window.payBill = async (name,amount)=>{
+
+if(amount > usdBalance) return alert("Insufficient funds");
+
+usdBalance -= amount;
+
+tx.unshift({
+amount: -amount,
+note: name + " Bill",
+reference: genRef(),
+date: new Date().toISOString()
+});
+
+await updateDoc(userRef,{ usdBalance, transactions: tx });
+
+renderBalance();
+renderTransactions(tx);
+};
+
+// ===== 🎁 GIFT CARD =====
+window.buyGiftCard = async (name,amount)=>{
+
+if(amount > usdBalance) return alert("Insufficient funds");
+
+usdBalance -= amount;
+
+tx.unshift({
+amount: -amount,
+note: name + " Gift Card",
+reference: genRef(),
+date: new Date().toISOString()
+});
+
+await updateDoc(userRef,{ usdBalance, transactions: tx });
 
 renderBalance();
 renderTransactions(tx);
