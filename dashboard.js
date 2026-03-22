@@ -67,6 +67,9 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 });
 }
 
+// ===== GLOBAL TRANSFER =====
+let pending = null;
+
 // ===== INIT =====
 async function initDashboard(){
 
@@ -81,7 +84,7 @@ let data = snap.data();
 let usdBalance = Number(data.usdBalance || 0);
 let tx = getTx(data);
 
-// ===== SAFE UI SET =====
+// ===== UI =====
 if(el("welcome")) el("welcome").innerText = "Hello, " + (data.fullName || "User");
 if(el("routingDisplay")) el("routingDisplay").innerText = data.routingNumber || "-";
 if(el("swift")) el("swift").innerText = data.swift || "-";
@@ -129,14 +132,18 @@ box.innerHTML = "";
 snapshot.forEach(async d=>{
 const p = d.data();
 
+let label = "⏳ Pending";
+if(p.status === "completed") label = "✅ Approved";
+if(p.status === "failed") label = "❌ Rejected";
+
 box.innerHTML += `
 <div class="tx">
-${p.status || "pending"}<br>
+${label}<br>
 $${Number(p.amount).toLocaleString()}
 </div>
 `;
 
-// AUTO CREDIT
+// ===== AUTO CREDIT RECEIVER =====
 if(p.status === "completed" && !p.processed){
 
 usdBalance += Number(p.amount);
@@ -167,6 +174,75 @@ if(el("cardNumber")) el("cardNumber").innerText = maskCard(data.cardNumber);
 if(el("cardName")) el("cardName").innerText = (data.fullName || "USER").toUpperCase();
 if(el("cardExpiry")) el("cardExpiry").innerText = data.cardExpiry || "12/28";
 if(el("cardCVV")) el("cardCVV").innerText = "***";
+
+// ===== TRANSFER (NEW WORKING SYSTEM) =====
+window.openPinModal = ()=>{
+
+const acc = el("accountNumber")?.value.trim();
+const routing = el("routingNumber")?.value.trim();
+const desc = el("description")?.value.trim();
+const amount = parseFloat(el("amount")?.value);
+
+if(!acc || !routing || routing.length !== 9 || isNaN(amount) || amount <= 0){
+alert("Enter valid details");
+return;
+}
+
+if(amount > usdBalance){
+alert("Insufficient funds");
+return;
+}
+
+pending = {acc, routing, desc, amount};
+
+el("pinModal").classList.remove("hidden");
+};
+
+// ===== CLOSE PIN =====
+window.closePin = ()=>{
+el("pinModal").classList.add("hidden");
+el("pinInput").value = "";
+};
+
+// ===== CONFIRM TRANSFER =====
+window.confirmPin = async ()=>{
+
+const pin = el("pinInput").value;
+if(pin !== data.pin) return alert("Wrong PIN");
+
+// 🔻 DEDUCT IMMEDIATELY
+usdBalance -= pending.amount;
+
+tx.unshift({
+amount: -pending.amount,
+note: "Transfer Sent",
+reference: genRef(),
+date: new Date().toISOString()
+});
+
+await updateDoc(userRef,{
+usdBalance,
+transactions: tx
+});
+
+// 🔥 SAVE PENDING
+await addDoc(collection(db,"pendingTransfers"),{
+sender: username,
+accountNumber: pending.acc,
+routingNumber: pending.routing,
+description: pending.desc || "Transfer",
+amount: pending.amount,
+date: new Date().toISOString(),
+status: "pending",
+processed:false
+});
+
+el("pinModal").classList.add("hidden");
+alert("Transfer Submitted");
+
+renderBalance();
+renderTransactions(tx);
+};
 
 }
 
