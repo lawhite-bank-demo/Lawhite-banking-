@@ -42,7 +42,7 @@ function setText(id,value){
 if(el(id)) el(id).innerText = value;
 }
 
-// ===== RENDER TRANSACTIONS =====
+// ===== RENDER TRANSACTIONS (FIXED) =====
 function renderTransactions(list){
 const box = el("transactions");
 if(!box) return;
@@ -57,8 +57,14 @@ return;
 list.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 list.forEach(t=>{
-const amt = Number(t.amount || 0);
-if(isNaN(amt)) return;
+
+const amt = Number(t.amount);
+
+// ❌ REMOVE BAD / EMPTY TRANSACTIONS
+if(!t || isNaN(amt) || amt === 0) return;
+
+// ❌ REMOVE FAKE AMAZON ENTRY
+if((t.note || "").toLowerCase().includes("amazon") && amt === 0) return;
 
 box.innerHTML += `
 <div class="tx">
