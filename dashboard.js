@@ -23,14 +23,19 @@ return data.transactions
 : [];
 }
 
-// ===== MASK CARD =====
 function maskCard(num){
 if(!num) return "**** **** **** ****";
 return "**** **** **** " + num.replace(/\s/g,"").slice(-4);
 }
 
-// ===== RENDER TRANSACTIONS =====
+// ===== GENERATE REFERENCE =====
+function genRef(){
+return "TRX-" + Math.floor(Math.random()*1000000000);
+}
+
+// ===== RENDER TRANSACTIONS (UPGRADED) =====
 function renderTransactions(list){
+
 const box = document.getElementById("transactions");
 box.innerHTML = "";
 
@@ -42,24 +47,40 @@ return;
 list.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 list.forEach(t=>{
-const amt = Number(t.amount || 0);
-if(isNaN(amt)) return;
 
-const color = amt >= 0 ? "#22c55e" : "#ef4444";
+const amt = Number(t.amount || 0);
+if(isNaN(amt) || amt === 0) return;
+
+const isCredit = amt > 0;
+const color = isCredit ? "#22c55e" : "#ef4444";
+const sign = isCredit ? "+" : "-";
+
+const note = t.note || "Transaction";
+const date = new Date(t.date).toLocaleString();
+
+// reference
+const ref = t.reference || genRef();
 
 box.innerHTML += `
 <div class="tx">
-<strong>${t.note || "Transaction"}</strong><br>
-<span style="color:${color};font-weight:600;">
-${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
-</span>
-<div class="small">${new Date(t.date).toLocaleString()}</div>
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<div>
+<strong>${note}</strong><br>
+<div style="font-size:11px;color:#9ca3af;">Ref: ${ref}</div>
+<div style="font-size:11px;color:#6b7280;">${date}</div>
+</div>
+
+<div style="color:${color};font-weight:bold;font-size:16px;">
+${sign}$${Math.abs(amt).toLocaleString()}
+</div>
+</div>
 </div>
 `;
+
 });
 }
 
-// ===== GLOBAL CARD ACTIONS =====
+// ===== CARD ACTIONS =====
 window.flipCard = ()=>{
 document.getElementById("cardInner").classList.toggle("flipped");
 };
@@ -75,9 +96,7 @@ const el = document.getElementById("cardCVV");
 
 el.innerText = data.cardCVV || "***";
 
-setTimeout(()=>{
-el.innerText = "***";
-},5000);
+setTimeout(()=> el.innerText="***",5000);
 };
 
 window.toggleCard = async ()=>{
@@ -92,7 +111,6 @@ const newStatus = !data.cardFrozen;
 await updateDoc(userRef,{cardFrozen:newStatus});
 
 alert(newStatus ? "Card Frozen ❄️" : "Card Active ✅");
-
 initDashboard();
 };
 
@@ -150,14 +168,8 @@ document.getElementById("eurWallet").innerText = "€" + eurBalance.toLocaleStri
 document.getElementById("gbpWallet").innerText = "£" + gbpBalance.toLocaleString();
 
 // ===== CONVERTER =====
-const rateEUR = 0.92;
-const rateGBP = 0.78;
-
-document.getElementById("convertedEUR").innerText =
-"€" + (usdBalance * rateEUR).toLocaleString();
-
-document.getElementById("convertedGBP").innerText =
-"£" + (usdBalance * rateGBP).toLocaleString();
+document.getElementById("convertedEUR").innerText = "€" + (usdBalance * 0.92).toLocaleString();
+document.getElementById("convertedGBP").innerText = "£" + (usdBalance * 0.78).toLocaleString();
 
 // ===== TRANSACTIONS =====
 let tx = getTx(data);
@@ -176,10 +188,9 @@ pendingBox.innerHTML = "<div class='tx'>No pending transfers</div>";
 snapPending.forEach(d=>{
 const p = d.data();
 
-let status = p.status || "pending";
 let label = "⏳ Pending";
-if(status === "completed") label = "✅ Approved";
-if(status === "failed") label = "❌ Rejected";
+if(p.status === "completed") label = "✅ Approved";
+if(p.status === "failed") label = "❌ Rejected";
 
 pendingBox.innerHTML += `
 <div class="tx">
@@ -189,7 +200,7 @@ $${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 });
 }
 
-// ===== 💳 CARD UI =====
+// ===== CARD UI =====
 document.getElementById("cardNumber").innerText = maskCard(data.cardNumber);
 document.getElementById("cardName").innerText = data.fullName || "USER";
 document.getElementById("cardExpiry").innerText = data.cardExpiry || "--/--";
@@ -200,7 +211,7 @@ if(btn){
 btn.innerText = data.cardFrozen ? "Unfreeze Card" : "Freeze Card";
 }
 
-// ===== PIN MODAL =====
+// ===== PIN =====
 let pending = null;
 
 function showPin(){
@@ -230,7 +241,7 @@ const desc = document.getElementById("description").value.trim();
 const amount = parseFloat(document.getElementById("amount").value);
 
 if(!acc || !routing || routing.length !== 9 || isNaN(amount) || amount <= 0){
-alert("Enter valid account, routing (9 digits), and amount");
+alert("Enter valid details");
 return;
 }
 
@@ -256,8 +267,7 @@ status: "pending"
 });
 
 hidePin();
-alert("Transfer Submitted for Approval");
-
+alert("Transfer Submitted");
 initDashboard();
 };
 
@@ -270,6 +280,7 @@ usdBalance -= amount;
 tx.unshift({
 amount:-amount,
 note:name + " Bill",
+reference: genRef(),
 date:new Date().toISOString()
 });
 
@@ -286,6 +297,7 @@ usdBalance -= amount;
 tx.unshift({
 amount:-amount,
 note:name + " Gift Card",
+reference: genRef(),
 date:new Date().toISOString()
 });
 
