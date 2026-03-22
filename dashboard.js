@@ -28,12 +28,11 @@ if(!num) return "**** **** **** ****";
 return "**** **** **** " + num.replace(/\s/g,"").slice(-4);
 }
 
-// ===== GENERATE REFERENCE =====
 function genRef(){
 return "TRX-" + Math.floor(Math.random()*1000000000);
 }
 
-// ===== RENDER TRANSACTIONS (UPGRADED) =====
+// ===== RENDER TRANSACTIONS =====
 function renderTransactions(list){
 
 const box = document.getElementById("transactions");
@@ -57,8 +56,6 @@ const sign = isCredit ? "+" : "-";
 
 const note = t.note || "Transaction";
 const date = new Date(t.date).toLocaleString();
-
-// reference
 const ref = t.reference || genRef();
 
 box.innerHTML += `
@@ -137,8 +134,8 @@ document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "Us
 document.getElementById("nameProfile").innerText = data.fullName || "-";
 document.getElementById("emailProfile").innerText = data.email || "-";
 
-// ===== ACCOUNT =====
-document.getElementById("iban").innerText = data.iban || "-";
+// ===== ACCOUNT (UPDATED) =====
+document.getElementById("routingNumber").innerText = data.routingNumber || "-";
 document.getElementById("swift").innerText = data.swift || "-";
 document.getElementById("bankAddress").innerText = data.bankAddress || "-";
 
