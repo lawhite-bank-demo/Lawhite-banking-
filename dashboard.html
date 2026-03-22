@@ -16,12 +16,90 @@ body{margin:0;font-family:Arial;background:#020617;color:white;padding-bottom:80
 .balance-card{background:linear-gradient(135deg,#2563eb,#0ea5e9);padding:25px;border-radius:20px;text-align:center;margin-bottom:15px;}
 .balance{font-size:30px;font-weight:bold;}
 
-.bank-card{perspective:1000px;}
-.card-inner{width:100%;height:200px;position:relative;transition:.6s;transform-style:preserve-3d;}
+/* 💳 PREMIUM CARD */
+.bank-card{perspective:1000px;margin-top:10px;}
+.card-inner{
+width:100%;
+height:200px;
+position:relative;
+transition:.7s;
+transform-style:preserve-3d;
+}
 .card-inner.flipped{transform:rotateY(180deg);}
-.card-front,.card-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:15px;padding:20px;background:linear-gradient(135deg,#1d4ed8,#0ea5e9);}
-.card-back{transform:rotateY(180deg);background:#111827;}
 
+.card-front,.card-back{
+position:absolute;
+width:100%;
+height:100%;
+backface-visibility:hidden;
+border-radius:18px;
+padding:20px;
+}
+
+/* FRONT */
+.card-front{
+background:linear-gradient(135deg,#1e3a8a,#0ea5e9,#38bdf8);
+display:flex;
+flex-direction:column;
+justify-content:space-between;
+box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+/* BACK */
+.card-back{
+transform:rotateY(180deg);
+background:#111827;
+}
+
+/* CHIP */
+.chip{
+width:45px;
+height:30px;
+background:gold;
+border-radius:6px;
+}
+
+/* CARD NUMBER */
+.card-number{
+font-size:20px;
+letter-spacing:2px;
+margin-top:20px;
+}
+
+/* ROW */
+.card-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+/* NAME + EXP */
+.card-name{font-size:14px;}
+.card-exp{font-size:12px;}
+
+/* VISA */
+.visa{
+font-weight:bold;
+font-size:18px;
+}
+
+/* BACK */
+.stripe{
+height:40px;
+background:black;
+margin-bottom:20px;
+}
+
+.cvv-box{
+background:white;
+color:black;
+padding:10px;
+width:80px;
+text-align:center;
+border-radius:6px;
+}
+
+/* INPUT */
 input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:white;}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold;}
 
@@ -49,19 +127,39 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
-<!-- CARD -->
+<!-- 💳 CARD -->
 <div class="card">
+
 <div class="bank-card" onclick="flipCard()">
 <div class="card-inner" id="cardInner">
 
+<!-- FRONT -->
 <div class="card-front">
-<div id="cardNumber">**** **** **** 1234</div>
-<div id="cardName">USER</div>
-<div>EXP: <span id="cardExpiry">12/28</span></div>
+
+<div class="card-row">
+<div class="chip"></div>
+<div class="visa">VISA</div>
 </div>
 
+<div class="card-number" id="cardNumber">**** **** **** 1234</div>
+
+<div class="card-row">
+<div class="card-name" id="cardName">USER NAME</div>
+<div class="card-exp">EXP: <span id="cardExpiry">12/28</span></div>
+</div>
+
+</div>
+
+<!-- BACK -->
 <div class="card-back">
-<div>CVV: <span id="cardCVV">***</span></div>
+<div class="stripe"></div>
+
+<div style="display:flex;justify-content:flex-end;">
+<div class="cvv-box">
+CVV: <span id="cardCVV">***</span>
+</div>
+</div>
+
 </div>
 
 </div>
@@ -69,6 +167,7 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 
 <button onclick="revealCVV()">👁 Show CVV</button>
 <button id="cardBtn" onclick="toggleCard()">Freeze Card</button>
+
 </div>
 
 <!-- WALLET -->
@@ -92,9 +191,10 @@ GBP: <span id="convertedGBP"></span>
 <button onclick="openPage('giftPage')">🎁 Gift Cards</button>
 </div>
 
+<!-- ACCOUNT -->
 <div class="card">
 <b>Account Details</b><br>
-IBAN: <span id="iban"></span><br>
+Routing: <span id="routingNumber"></span><br>
 SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
@@ -189,7 +289,7 @@ window.open("https://wa.me/13312016202");
 }
 </script>
 
-<script type="module" src="dashboard.js?v=8"></script>
+<script type="module" src="dashboard.js?v=9"></script>
 
 </body>
 </html>
