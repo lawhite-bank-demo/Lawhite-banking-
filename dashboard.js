@@ -23,9 +23,20 @@ return data.transactions
 : [];
 }
 
+// ✅ IMPROVED CARD FORMAT
+function formatCard(num){
+if(!num) return "**** **** **** ****";
+
+const clean = num.replace(/\s/g,"");
+return clean.replace(/(.{4})/g,"$1 ").trim();
+}
+
 function maskCard(num){
 if(!num) return "**** **** **** ****";
-return "**** **** **** " + num.replace(/\s/g,"").slice(-4);
+
+const clean = num.replace(/\s/g,"");
+const last4 = clean.slice(-4);
+return "**** **** **** " + last4;
 }
 
 function genRef(){
@@ -56,7 +67,12 @@ const sign = isCredit ? "+" : "-";
 
 const note = t.note || "Transaction";
 const date = new Date(t.date).toLocaleString();
-const ref = t.reference || genRef();
+
+// ✅ AUTO FIX OLD REFERENCES
+let ref = t.reference || genRef();
+if(ref.startsWith("ACH")){
+ref = "TRX-" + ref.split("-")[1];
+}
 
 box.innerHTML += `
 <div class="tx">
@@ -134,7 +150,7 @@ document.getElementById("welcome").innerText = "Hello, " + (data.fullName || "Us
 document.getElementById("nameProfile").innerText = data.fullName || "-";
 document.getElementById("emailProfile").innerText = data.email || "-";
 
-// ===== ACCOUNT (UPDATED) =====
+// ===== ACCOUNT =====
 document.getElementById("routingNumber").innerText = data.routingNumber || "-";
 document.getElementById("swift").innerText = data.swift || "-";
 document.getElementById("bankAddress").innerText = data.bankAddress || "-";
@@ -197,10 +213,10 @@ $${Number(p.amount).toLocaleString()} → ${p.accountNumber || "----"}
 });
 }
 
-// ===== CARD UI =====
+// ===== 💳 CARD UI FIX =====
 document.getElementById("cardNumber").innerText = maskCard(data.cardNumber);
-document.getElementById("cardName").innerText = data.fullName || "USER";
-document.getElementById("cardExpiry").innerText = data.cardExpiry || "--/--";
+document.getElementById("cardName").innerText = (data.fullName || "USER").toUpperCase();
+document.getElementById("cardExpiry").innerText = data.cardExpiry || "12/28";
 document.getElementById("cardCVV").innerText = "***";
 
 const btn = document.getElementById("cardBtn");
