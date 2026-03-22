@@ -14,12 +14,9 @@ projectId: "dechase-bank"
 
 const db = getFirestore(app);
 
-// ===== SAFE GET ELEMENT =====
-function el(id){
-return document.getElementById(id);
-}
-
 // ===== HELPERS =====
+function el(id){ return document.getElementById(id); }
+
 function getTx(data){
 return data.transactions
 ? (Array.isArray(data.transactions)
@@ -28,43 +25,26 @@ return data.transactions
 : [];
 }
 
-function maskCard(num){
-if(!num) return "**** **** **** ****";
-return "**** **** **** " + num.replace(/\s/g,"").slice(-4);
-}
-
 function genRef(){
 return "TRX-" + Math.floor(Math.random()*1000000000);
 }
 
-// ===== SAFE UI SET =====
-function setText(id,value){
-if(el(id)) el(id).innerText = value;
+function setText(id,val){
+if(el(id)) el(id).innerText = val;
 }
 
-// ===== RENDER TRANSACTIONS (FIXED) =====
+// ===== RENDER TX =====
 function renderTransactions(list){
 const box = el("transactions");
 if(!box) return;
 
 box.innerHTML = "";
 
-if(!list || list.length === 0){
-box.innerHTML = "<div class='tx'>No transactions</div>";
-return;
-}
-
 list.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 list.forEach(t=>{
-
-const amt = Number(t.amount);
-
-// ❌ REMOVE BAD / EMPTY TRANSACTIONS
-if(!t || isNaN(amt) || amt === 0) return;
-
-// ❌ REMOVE FAKE AMAZON ENTRY
-if((t.note || "").toLowerCase().includes("amazon") && amt === 0) return;
+const amt = Number(t.amount || 0);
+if(isNaN(amt)) return;
 
 box.innerHTML += `
 <div class="tx">
@@ -77,9 +57,6 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 </div>`;
 });
 }
-
-// ===== GLOBAL TRANSFER =====
-let pending = null;
 
 // ===== INIT =====
 async function initDashboard(){
@@ -101,19 +78,16 @@ setText("routingDisplay",data.routingNumber || "-");
 setText("swift",data.swift || "-");
 setText("bankAddress",data.bankAddress || "-");
 
-// ===== BALANCE =====
 let hidden = false;
 
 function renderBalance(){
 setText("balance", hidden ? "••••••" : "$" + usdBalance.toLocaleString());
 }
 
-if(el("toggleBalance")){
 el("toggleBalance").onclick = ()=>{
 hidden = !hidden;
 renderBalance();
 };
-}
 
 renderBalance();
 
@@ -129,74 +103,118 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
+// ===== ADMIN PANEL SHOW =====
+if(username === "admin"){
+if(el("adminPanel")) el("adminPanel").classList.remove("hidden");
+}
+
 // ===== REALTIME PENDING =====
-const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
+const q = query(collection(db,"pendingTransfers"));
 
 onSnapshot(q, async (snapshot)=>{
 
 const box = el("pendingTransactions");
-if(!box) return;
+const adminBox = el("adminTransfers");
 
-box.innerHTML = "";
+if(box) box.innerHTML = "";
+if(adminBox) adminBox.innerHTML = "";
 
 snapshot.forEach(async d=>{
 const p = d.data();
-
-if(p.status === "completed") return;
 
 let label = "⏳ Pending";
 if(p.status === "completed") label = "✅ Approved";
 if(p.status === "failed") label = "❌ Rejected";
 
+// ===== USER VIEW (ONLY PENDING) =====
+if(p.sender === username && p.status === "pending"){
+if(box){
 box.innerHTML += `
 <div class="tx">
 ${label}<br>
 $${Number(p.amount).toLocaleString()}
+</div>`;
+}
+}
+
+// ===== ADMIN VIEW =====
+if(username === "admin"){
+if(adminBox){
+adminBox.innerHTML += `
+<div class="admin-box">
+<b>${p.sender}</b><br>
+$${Number(p.amount).toLocaleString()}<br>
+
+<div class="admin-actions">
+<button class="approve" onclick="approveTx('${d.id}')">Approve</button>
+<button class="reject" onclick="rejectTx('${d.id}')">Reject</button>
 </div>
-`;
+</div>`;
+}
+}
 
 // ===== AUTO CREDIT =====
 if(p.status === "completed" && !p.processed){
 
-usdBalance += Number(p.amount);
+const receiverRef = doc(db,"users",p.sender);
+const receiverSnap = await getDoc(receiverRef);
 
-tx.unshift({
+if(receiverSnap.exists()){
+let rData = receiverSnap.data();
+let rBalance = Number(rData.usdBalance || 0);
+let rTx = getTx(rData);
+
+rBalance += Number(p.amount);
+
+rTx.unshift({
 amount: Number(p.amount),
 note: "Transfer Received",
 reference: genRef(),
 date: new Date().toISOString()
 });
 
-await updateDoc(userRef,{ usdBalance, transactions: tx });
+await updateDoc(receiverRef,{
+usdBalance: rBalance,
+transactions: rTx
+});
+}
 
 await updateDoc(doc(db,"pendingTransfers",d.id),{
 processed:true
 });
-
-renderBalance();
-renderTransactions(tx);
 }
 
 });
 
 });
 
-// ===== CARD =====
-setText("cardNumber",maskCard(data.cardNumber));
-setText("cardName",(data.fullName || "USER").toUpperCase());
-setText("cardExpiry",data.cardExpiry || "12/28");
-setText("cardCVV","***");
+// ===== ADMIN ACTIONS =====
+window.approveTx = async (id)=>{
+await updateDoc(doc(db,"pendingTransfers",id),{
+status:"completed",
+processed:false
+});
+alert("Approved");
+};
+
+window.rejectTx = async (id)=>{
+await updateDoc(doc(db,"pendingTransfers",id),{
+status:"failed"
+});
+alert("Rejected");
+};
 
 // ===== TRANSFER =====
+let pending = null;
+
 window.openPinModal = ()=>{
+const acc = el("accountNumber").value.trim();
+const routing = el("routingNumber").value.trim();
+const desc = el("description").value.trim();
+const amount = parseFloat(el("amount").value);
 
-const acc = el("accountNumber")?.value.trim();
-const routing = el("routingNumber")?.value.trim();
-const desc = el("description")?.value.trim();
-const amount = parseFloat(el("amount")?.value);
-
-if(!acc || !routing || routing.length !== 9 || isNaN(amount) || amount <= 0){
-alert("Enter valid details");
+if(!acc || routing.length !== 9 || isNaN(amount)){
+alert("Invalid input");
 return;
 }
 
@@ -205,65 +223,60 @@ alert("Insufficient funds");
 return;
 }
 
-pending = {acc, routing, desc, amount};
-
-if(el("pinModal")) el("pinModal").classList.remove("hidden");
+pending = {acc,routing,desc,amount};
+el("pinModal").classList.remove("hidden");
 };
 
 window.closePin = ()=>{
-if(el("pinModal")) el("pinModal").classList.add("hidden");
-if(el("pinInput")) el("pinInput").value = "";
+el("pinModal").classList.add("hidden");
 };
 
 window.confirmPin = async ()=>{
 
-const pin = el("pinInput")?.value;
+const pin = el("pinInput").value;
 if(pin !== data.pin) return alert("Wrong PIN");
 
-// deduct
 usdBalance -= pending.amount;
 
 tx.unshift({
-amount: -pending.amount,
-note: "Transfer Sent",
-reference: genRef(),
-date: new Date().toISOString()
+amount:-pending.amount,
+note:"Transfer Sent",
+reference:genRef(),
+date:new Date().toISOString()
 });
 
 await updateDoc(userRef,{ usdBalance, transactions: tx });
 
-// save pending
 await addDoc(collection(db,"pendingTransfers"),{
 sender: username,
+amount: pending.amount,
 accountNumber: pending.acc,
 routingNumber: pending.routing,
-description: pending.desc || "Transfer",
-amount: pending.amount,
+description: pending.desc,
 date: new Date().toISOString(),
-status: "pending",
+status:"pending",
 processed:false
 });
 
-if(el("pinModal")) el("pinModal").classList.add("hidden");
-
-alert("Transfer Submitted");
+el("pinModal").classList.add("hidden");
 
 renderBalance();
 renderTransactions(tx);
+
+alert("Transfer Pending Approval");
 };
 
-// ===== 💡 BILL PAYMENT =====
+// ===== BILL =====
 window.payBill = async (name,amount)=>{
-
-if(amount > usdBalance) return alert("Insufficient funds");
+if(amount > usdBalance) return alert("Insufficient");
 
 usdBalance -= amount;
 
 tx.unshift({
-amount: -amount,
-note: name + " Bill",
-reference: genRef(),
-date: new Date().toISOString()
+amount:-amount,
+note:name+" Bill",
+reference:genRef(),
+date:new Date().toISOString()
 });
 
 await updateDoc(userRef,{ usdBalance, transactions: tx });
@@ -272,41 +285,23 @@ renderBalance();
 renderTransactions(tx);
 };
 
-// ===== 🎁 GIFT CARD =====
+// ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
-
-if(amount > usdBalance) return alert("Insufficient funds");
+if(amount > usdBalance) return alert("Insufficient");
 
 usdBalance -= amount;
 
 tx.unshift({
-amount: -amount,
-note: name + " Gift Card",
-reference: genRef(),
-date: new Date().toISOString()
+amount:-amount,
+note:name+" Gift Card",
+reference:genRef(),
+date:new Date().toISOString()
 });
 
 await updateDoc(userRef,{ usdBalance, transactions: tx });
 
 renderBalance();
 renderTransactions(tx);
-};
-
-// ===== STATEMENT =====
-window.downloadStatement = ()=>{
-let content = `DECHASE BANK STATEMENT\n\nName: ${data.fullName}\nBalance: $${usdBalance}\n\n`;
-
-tx.forEach(t=>{
-content += `${t.note} | ${t.amount} | ${new Date(t.date).toLocaleString()}\n`;
-});
-
-const blob = new Blob([content], { type: "text/plain" });
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href = url;
-a.download = "statement.txt";
-a.click();
 };
 
 }
