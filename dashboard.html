@@ -6,100 +6,97 @@
 <title>DeChase Bank</title>
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 
 <style>
 body{margin:0;font-family:Arial;background:#020617;color:white;padding-bottom:80px;}
 .container{max-width:420px;margin:auto;padding:20px;}
 .card{background:#111827;padding:15px;border-radius:15px;margin-bottom:15px;}
 .balance-card{background:linear-gradient(135deg,#2563eb,#0ea5e9);padding:25px;border-radius:20px;text-align:center;margin-bottom:15px;}
-.balance{font-size:30px;font-weight:bold;}
+.balance{font-size:28px;font-weight:bold;}
 
-/* 💳 PREMIUM CARD */
+/* 💳 FIXED CARD */
 .bank-card{perspective:1000px;margin-top:10px;}
 .card-inner{
 width:100%;
-height:200px;
+height:180px;
 position:relative;
-transition:.7s;
+transition:.6s;
 transform-style:preserve-3d;
 }
+
 .card-inner.flipped{transform:rotateY(180deg);}
 
 .card-front,.card-back{
 position:absolute;
 width:100%;
 height:100%;
+border-radius:16px;
+padding:18px;
 backface-visibility:hidden;
-border-radius:18px;
-padding:20px;
 }
 
 /* FRONT */
 .card-front{
-background:linear-gradient(135deg,#1e3a8a,#0ea5e9,#38bdf8);
+background:linear-gradient(135deg,#1e40af,#0284c7);
 display:flex;
 flex-direction:column;
 justify-content:space-between;
-box-shadow:0 10px 25px rgba(0,0,0,0.4);
+box-shadow:0 6px 18px rgba(0,0,0,0.4);
 }
 
 /* BACK */
 .card-back{
 transform:rotateY(180deg);
-background:#111827;
+background:#0f172a;
 }
 
 /* CHIP */
 .chip{
-width:45px;
-height:30px;
+width:38px;
+height:26px;
 background:gold;
 border-radius:6px;
 }
 
-/* CARD NUMBER */
+/* TEXT */
 .card-number{
-font-size:20px;
+font-size:17px;
 letter-spacing:2px;
-margin-top:20px;
 }
 
-/* ROW */
 .card-row{
 display:flex;
 justify-content:space-between;
 align-items:center;
 }
 
-/* NAME + EXP */
-.card-name{font-size:14px;}
-.card-exp{font-size:12px;}
+.card-name{font-size:12px;}
+.card-exp{font-size:11px;}
 
-/* VISA */
 .visa{
+font-size:14px;
 font-weight:bold;
-font-size:18px;
+opacity:.8;
 }
 
 /* BACK */
 .stripe{
-height:40px;
+height:35px;
 background:black;
-margin-bottom:20px;
+margin-bottom:15px;
 }
 
 .cvv-box{
 background:white;
 color:black;
-padding:10px;
-width:80px;
+padding:8px;
+width:70px;
 text-align:center;
-border-radius:6px;
+border-radius:5px;
+font-size:13px;
 }
 
-/* INPUT */
+/* FORM */
 input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:white;}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold;}
 
@@ -129,37 +126,28 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 
 <!-- 💳 CARD -->
 <div class="card">
-
 <div class="bank-card" onclick="flipCard()">
 <div class="card-inner" id="cardInner">
 
-<!-- FRONT -->
 <div class="card-front">
-
 <div class="card-row">
 <div class="chip"></div>
 <div class="visa">VISA</div>
 </div>
 
-<div class="card-number" id="cardNumber">**** **** **** 1234</div>
+<div class="card-number" id="cardNumber"></div>
 
 <div class="card-row">
-<div class="card-name" id="cardName">USER NAME</div>
-<div class="card-exp">EXP: <span id="cardExpiry">12/28</span></div>
+<div class="card-name" id="cardName"></div>
+<div class="card-exp">EXP: <span id="cardExpiry"></span></div>
+</div>
 </div>
 
-</div>
-
-<!-- BACK -->
 <div class="card-back">
 <div class="stripe"></div>
-
 <div style="display:flex;justify-content:flex-end;">
-<div class="cvv-box">
-CVV: <span id="cardCVV">***</span>
+<div class="cvv-box">CVV: <span id="cardCVV"></span></div>
 </div>
-</div>
-
 </div>
 
 </div>
@@ -167,7 +155,6 @@ CVV: <span id="cardCVV">***</span>
 
 <button onclick="revealCVV()">👁 Show CVV</button>
 <button id="cardBtn" onclick="toggleCard()">Freeze Card</button>
-
 </div>
 
 <!-- WALLET -->
@@ -194,7 +181,7 @@ GBP: <span id="convertedGBP"></span>
 <!-- ACCOUNT -->
 <div class="card">
 <b>Account Details</b><br>
-Routing: <span id="routingNumber"></span><br>
+Routing: <span id="routingDisplay"></span><br>
 SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
@@ -223,51 +210,6 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- BILLS -->
-<div id="billsPage" class="hidden">
-<div class="card">
-<b>Pay Bills</b>
-<button onclick="payBill('Electricity',120)">Electricity €120</button>
-<button onclick="payBill('Netflix',15)">Netflix €15</button>
-<button onclick="payBill('Internet',60)">Internet €60</button>
-</div>
-</div>
-
-<!-- GIFT -->
-<div id="giftPage" class="hidden">
-<div class="card">
-<b>Gift Cards</b>
-<button onclick="buyGiftCard('Amazon',100)">Amazon €100</button>
-<button onclick="buyGiftCard('Apple',50)">Apple €50</button>
-<button onclick="buyGiftCard('Steam',25)">Steam €25</button>
-</div>
-</div>
-
-<!-- PROFILE -->
-<div id="profilePage" class="hidden">
-<div class="card">
-Name: <span id="nameProfile"></span><br>
-Email: <span id="emailProfile"></span>
-</div>
-
-<div class="card">
-<button onclick="contactSupport()">WhatsApp Support</button>
-<button onclick="logout()">Logout</button>
-<button onclick="localStorage.clear();location.reload()">Reset</button>
-</div>
-</div>
-
-</div>
-
-<!-- PIN -->
-<div id="pinModal" class="hidden" style="position:fixed;top:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
-<div class="card">
-<input id="pinInput" placeholder="Enter PIN">
-<button onclick="confirmPin()">Confirm</button>
-<button onclick="closePin()">Cancel</button>
-</div>
-</div>
-
 <!-- NAV -->
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
@@ -289,7 +231,8 @@ window.open("https://wa.me/13312016202");
 }
 </script>
 
-<script type="module" src="dashboard.js?v=9"></script>
+<!-- 🔥 CACHE FIX -->
+<script type="module" src="dashboard.js?v=10"></script>
 
 </body>
 </html>
