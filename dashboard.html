@@ -14,93 +14,30 @@ body{margin:0;font-family:Arial;background:#020617;color:white;padding-bottom:80
 .balance-card{background:linear-gradient(135deg,#2563eb,#0ea5e9);padding:25px;border-radius:20px;text-align:center;margin-bottom:15px;}
 .balance{font-size:28px;font-weight:bold;}
 
-/* 💳 CARD */
 .bank-card{perspective:1000px;margin-top:10px;}
-.card-inner{
-width:100%;
-height:180px;
-position:relative;
-transition:.6s;
-transform-style:preserve-3d;
-}
+.card-inner{width:100%;height:180px;position:relative;transition:.6s;transform-style:preserve-3d;}
 .card-inner.flipped{transform:rotateY(180deg);}
+.card-front,.card-back{position:absolute;width:100%;height:100%;border-radius:16px;padding:18px;backface-visibility:hidden;}
 
-.card-front,.card-back{
-position:absolute;
-width:100%;
-height:100%;
-border-radius:16px;
-padding:18px;
-backface-visibility:hidden;
-}
+.card-front{background:linear-gradient(135deg,#1e40af,#0284c7);display:flex;flex-direction:column;justify-content:space-between;}
+.card-back{transform:rotateY(180deg);background:#0f172a;}
 
-.card-front{
-background:linear-gradient(135deg,#1e40af,#0284c7);
-display:flex;
-flex-direction:column;
-justify-content:space-between;
-box-shadow:0 6px 18px rgba(0,0,0,0.4);
-}
-
-.card-back{
-transform:rotateY(180deg);
-background:#0f172a;
-}
-
-.chip{
-width:38px;
-height:26px;
-background:gold;
-border-radius:6px;
-}
-
+.chip{width:38px;height:26px;background:gold;border-radius:6px;}
 .card-number{font-size:17px;letter-spacing:2px;}
-
-.card-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-
+.card-row{display:flex;justify-content:space-between;}
 .card-name{font-size:12px;}
 .card-exp{font-size:11px;}
+.visa{font-size:14px;font-weight:bold;}
 
-.visa{
-font-size:14px;
-font-weight:bold;
-opacity:.8;
-}
-
-.stripe{
-height:35px;
-background:black;
-margin-bottom:15px;
-}
-
-.cvv-box{
-background:white;
-color:black;
-padding:8px;
-width:70px;
-text-align:center;
-border-radius:5px;
-font-size:13px;
-}
+.stripe{height:35px;background:black;margin-bottom:15px;}
+.cvv-box{background:white;color:black;padding:8px;width:70px;text-align:center;border-radius:5px;}
 
 input{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#1f2937;color:white;}
 button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;background:#2563eb;color:white;font-weight:bold;}
 
 .tx{background:#1f2937;padding:10px;border-radius:10px;margin-top:10px;}
 
-.bottomNav{
-position:fixed;
-bottom:0;
-width:100%;
-display:flex;
-justify-content:space-around;
-background:#021a35;
-padding:10px;
-}
+.bottomNav{position:fixed;bottom:0;width:100%;display:flex;justify-content:space-around;background:#021a35;padding:10px;}
 .bottomNav button{background:none;color:white;font-size:12px;}
 
 .hidden{display:none !important;}
@@ -113,16 +50,15 @@ padding:10px;
 
 <h3 id="welcome"></h3>
 
+<!-- HOME -->
 <div id="homePage">
 
-<!-- BALANCE -->
 <div class="balance-card">
 <div>Total Balance</div>
 <div id="balance" class="balance"></div>
 <div id="toggleBalance">👁 Hide</div>
 </div>
 
-<!-- CARD -->
 <div class="card">
 <div class="bank-card" onclick="flipCard()">
 <div class="card-inner" id="cardInner">
@@ -132,9 +68,7 @@ padding:10px;
 <div class="chip"></div>
 <div class="visa">VISA</div>
 </div>
-
 <div class="card-number" id="cardNumber"></div>
-
 <div class="card-row">
 <div class="card-name" id="cardName"></div>
 <div class="card-exp">EXP: <span id="cardExpiry"></span></div>
@@ -155,7 +89,6 @@ padding:10px;
 <button id="cardBtn" onclick="toggleCard()">Freeze Card</button>
 </div>
 
-<!-- WALLET -->
 <div class="card">
 <b>Multi Currency Wallet</b><br>
 USD: <span id="usdWallet"></span><br>
@@ -163,21 +96,18 @@ EUR: <span id="eurWallet"></span><br>
 GBP: <span id="gbpWallet"></span>
 </div>
 
-<!-- CONVERTER -->
 <div class="card">
 <b>Converted Balance</b><br>
 EUR: <span id="convertedEUR"></span><br>
 GBP: <span id="convertedGBP"></span>
 </div>
 
-<!-- ACTIONS -->
 <div class="card">
 <button onclick="openPage('paymentsPage')">💸 Send Money</button>
 <button onclick="openPage('billsPage')">💡 Pay Bills</button>
 <button onclick="openPage('giftPage')">🎁 Gift Cards</button>
 </div>
 
-<!-- ACCOUNT -->
 <div class="card">
 <b>Account Details</b><br>
 Routing: <span id="routingDisplay"></span><br>
@@ -185,13 +115,11 @@ SWIFT: <span id="swift"></span><br>
 Address: <span id="bankAddress"></span>
 </div>
 
-<!-- PENDING -->
 <div class="card">
 <b>Pending Transfers</b>
 <div id="pendingTransactions"></div>
 </div>
 
-<!-- TRANSACTIONS -->
 <div class="card">
 <b>Transactions</b>
 <div id="transactions"></div>
@@ -211,6 +139,50 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
+<!-- BILLS -->
+<div id="billsPage" class="hidden">
+<div class="card">
+<b>Pay Bills</b>
+<button onclick="payBill('Electricity',120)">Electricity $120</button>
+<button onclick="payBill('Netflix',15)">Netflix $15</button>
+<button onclick="payBill('Internet',60)">Internet $60</button>
+</div>
+</div>
+
+<!-- GIFT -->
+<div id="giftPage" class="hidden">
+<div class="card">
+<b>Gift Cards</b>
+<button onclick="buyGiftCard('Amazon',100)">Amazon $100</button>
+<button onclick="buyGiftCard('Apple',50)">Apple $50</button>
+<button onclick="buyGiftCard('Steam',25)">Steam $25</button>
+</div>
+</div>
+
+<!-- PROFILE -->
+<div id="profilePage" class="hidden">
+<div class="card">
+Name: <span id="nameProfile"></span><br>
+Email: <span id="emailProfile"></span>
+</div>
+
+<div class="card">
+<button onclick="contactSupport()">📞 Contact Support</button>
+<button onclick="logout()">🚪 Logout</button>
+</div>
+</div>
+
+</div>
+
+<!-- PIN MODAL -->
+<div id="pinModal" class="hidden" style="position:fixed;top:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
+<div class="card">
+<input id="pinInput" placeholder="Enter PIN">
+<button onclick="confirmPin()">Confirm</button>
+<button onclick="closePin()">Cancel</button>
+</div>
+</div>
+
 <!-- NAV -->
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
@@ -226,9 +198,18 @@ function openPage(page){
 .forEach(p=>document.getElementById(p).classList.add("hidden"));
 document.getElementById(page).classList.remove("hidden");
 }
+
+function logout(){
+localStorage.clear();
+location.replace("index.html");
+}
+
+function contactSupport(){
+window.open("https://wa.me/13312016202");
+}
 </script>
 
-<script type="module" src="dashboard.js?v=11"></script>
+<script type="module" src="dashboard.js?v=12"></script>
 
 </body>
 </html>
