@@ -6,14 +6,18 @@ collection, addDoc, query, where,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
+const app = initializeApp({
 apiKey: "AIzaSyBDp6wmJMY8WPyKPNE-bvVSiz4AIUbn71U",
 authDomain: "dechase-bank.firebaseapp.com",
 projectId: "dechase-bank"
-};
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// ===== SAFE GET ELEMENT =====
+function el(id){
+return document.getElementById(id);
+}
 
 // ===== HELPERS =====
 function getTx(data){
@@ -35,8 +39,7 @@ return "TRX-" + Math.floor(Math.random()*1000000000);
 
 // ===== RENDER TRANSACTIONS =====
 function renderTransactions(list){
-
-const box = document.getElementById("transactions");
+const box = el("transactions");
 if(!box) return;
 
 box.innerHTML = "";
@@ -49,31 +52,18 @@ return;
 list.sort((a,b)=> new Date(b.date) - new Date(a.date));
 
 list.forEach(t=>{
-
 const amt = Number(t.amount || 0);
 if(isNaN(amt)) return;
 
-const color = amt >= 0 ? "#22c55e" : "#ef4444";
-const sign = amt >= 0 ? "+" : "-";
-
-let ref = t.reference || genRef();
-
 box.innerHTML += `
 <div class="tx">
-<div style="display:flex;justify-content:space-between;">
-<div>
 <strong>${t.note || "Transaction"}</strong><br>
-<small style="color:#9ca3af;">Ref: ${ref}</small><br>
-<small style="color:#6b7280;">${new Date(t.date).toLocaleString()}</small>
-</div>
-
-<div style="color:${color};font-weight:bold;">
-${sign}$${Math.abs(amt).toLocaleString()}
-</div>
-</div>
-</div>
-`;
-
+<small>Ref: ${t.reference || genRef()}</small><br>
+<small>${new Date(t.date).toLocaleString()}</small><br>
+<b style="color:${amt>=0?"#22c55e":"#ef4444"}">
+${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
+</b>
+</div>`;
 });
 }
 
@@ -87,101 +77,66 @@ const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 if(!snap.exists()) return location.replace("index.html");
 
-let data = snap.data(); // ⚠️ make mutable
+let data = snap.data();
+let usdBalance = Number(data.usdBalance || 0);
+let tx = getTx(data);
 
-// ===== USER =====
-document.getElementById("welcome").innerText =
-"Hello, " + (data.fullName || "User");
-
-document.getElementById("nameProfile").innerText =
-data.fullName || "-";
-
-document.getElementById("emailProfile").innerText =
-data.email || "-";
-
-// ===== ACCOUNT =====
-document.getElementById("routingDisplay").innerText =
-data.routingNumber || "-";
-
-document.getElementById("swift").innerText =
-data.swift || "-";
-
-document.getElementById("bankAddress").innerText =
-data.bankAddress || "-";
+// ===== SAFE UI SET =====
+if(el("welcome")) el("welcome").innerText = "Hello, " + (data.fullName || "User");
+if(el("routingDisplay")) el("routingDisplay").innerText = data.routingNumber || "-";
+if(el("swift")) el("swift").innerText = data.swift || "-";
+if(el("bankAddress")) el("bankAddress").innerText = data.bankAddress || "-";
 
 // ===== BALANCE =====
-let usdBalance = Number(data.usdBalance || 0);
-
-const balEl = document.getElementById("balance");
 let hidden = false;
 
 function renderBalance(){
-balEl.innerText = hidden
-? "••••••"
-: "$" + usdBalance.toLocaleString();
+if(!el("balance")) return;
+el("balance").innerText = hidden ? "••••••" : "$" + usdBalance.toLocaleString();
 }
 
-document.getElementById("toggleBalance").onclick = ()=>{
+if(el("toggleBalance")){
+el("toggleBalance").onclick = ()=>{
 hidden = !hidden;
 renderBalance();
 };
+}
 
 renderBalance();
 
 // ===== WALLET =====
-document.getElementById("usdWallet").innerText =
-"$" + usdBalance.toLocaleString();
-
-document.getElementById("eurWallet").innerText =
-"€" + Number(data.balance || 0).toLocaleString();
-
-document.getElementById("gbpWallet").innerText =
-"£" + Number(data.gbpBalance || 0).toLocaleString();
+if(el("usdWallet")) el("usdWallet").innerText = "$" + usdBalance.toLocaleString();
+if(el("eurWallet")) el("eurWallet").innerText = "€" + Number(data.balance || 0).toLocaleString();
+if(el("gbpWallet")) el("gbpWallet").innerText = "£" + Number(data.gbpBalance || 0).toLocaleString();
 
 // ===== CONVERTER =====
-document.getElementById("convertedEUR").innerText =
-"€" + (usdBalance * 0.92).toLocaleString();
-
-document.getElementById("convertedGBP").innerText =
-"£" + (usdBalance * 0.78).toLocaleString();
+if(el("convertedEUR")) el("convertedEUR").innerText = "€" + (usdBalance * 0.92).toLocaleString();
+if(el("convertedGBP")) el("convertedGBP").innerText = "£" + (usdBalance * 0.78).toLocaleString();
 
 // ===== TRANSACTIONS =====
-let tx = getTx(data);
 renderTransactions(tx);
 
-// ===== 🔥 REALTIME PENDING =====
-const pendingBox = document.getElementById("pendingTransactions");
-
-const q = query(
-collection(db,"pendingTransfers"),
-where("sender","==",username)
-);
+// ===== REALTIME PENDING =====
+const q = query(collection(db,"pendingTransfers"), where("sender","==",username));
 
 onSnapshot(q, async (snapshot)=>{
 
-pendingBox.innerHTML = "";
+const box = el("pendingTransactions");
+if(!box) return;
 
-if(snapshot.empty){
-pendingBox.innerHTML = "<div class='tx'>No pending transfers</div>";
-return;
-}
+box.innerHTML = "";
 
-for(const d of snapshot.docs){
-
+snapshot.forEach(async d=>{
 const p = d.data();
 
-let label = "⏳ Pending";
-if(p.status === "completed") label = "✅ Approved";
-if(p.status === "failed") label = "❌ Rejected";
-
-pendingBox.innerHTML += `
+box.innerHTML += `
 <div class="tx">
-${label}<br>
+${p.status || "pending"}<br>
 $${Number(p.amount).toLocaleString()}
 </div>
 `;
 
-// ===== 💰 AUTO CREDIT =====
+// AUTO CREDIT
 if(p.status === "completed" && !p.processed){
 
 usdBalance += Number(p.amount);
@@ -193,38 +148,26 @@ reference: genRef(),
 date: new Date().toISOString()
 });
 
-// update firebase
-await updateDoc(userRef,{
-usdBalance,
-transactions: tx
-});
+await updateDoc(userRef,{ usdBalance, transactions: tx });
 
-// mark processed
 await updateDoc(doc(db,"pendingTransfers",d.id),{
 processed:true
 });
 
-// refresh UI instantly
 renderBalance();
 renderTransactions(tx);
-}
 }
 
 });
 
+});
+
 // ===== CARD =====
-document.getElementById("cardNumber").innerText =
-maskCard(data.cardNumber);
-
-document.getElementById("cardName").innerText =
-(data.fullName || "USER").toUpperCase();
-
-document.getElementById("cardExpiry").innerText =
-data.cardExpiry || "12/28";
-
-document.getElementById("cardCVV").innerText = "***";
+if(el("cardNumber")) el("cardNumber").innerText = maskCard(data.cardNumber);
+if(el("cardName")) el("cardName").innerText = (data.fullName || "USER").toUpperCase();
+if(el("cardExpiry")) el("cardExpiry").innerText = data.cardExpiry || "12/28";
+if(el("cardCVV")) el("cardCVV").innerText = "***";
 
 }
 
-// ===== START =====
 initDashboard();
