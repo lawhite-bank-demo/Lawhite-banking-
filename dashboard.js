@@ -66,6 +66,8 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
+const savedPassword = localStorage.getItem("password"); // 🔥 IMPORTANT
+
 if(!username) return location.replace("index.html");
 
 const userRef = doc(db,"users",username);
@@ -73,6 +75,15 @@ const snap = await getDoc(userRef);
 if(!snap.exists()) return location.replace("index.html");
 
 let data = snap.data();
+
+// ===== 🔥 PASSWORD CHECK (INITIAL) =====
+if(savedPassword && data.password !== savedPassword){
+alert("Session expired. Login again.");
+localStorage.clear();
+location.replace("index.html");
+return;
+}
+
 let usdBalance = Number(data.usdBalance || 0);
 let tx = getTx(data);
 
@@ -82,7 +93,7 @@ setText("routingDisplay",data.routingNumber || "-");
 setText("swift",data.swift || "-");
 setText("bankAddress",data.bankAddress || "-");
 
-// ===== CARD (FIXED) =====
+// ===== CARD =====
 setText("cardNumber", maskCard(data.cardNumber));
 setText("cardName", (data.fullName || "USER").toUpperCase());
 setText("cardExpiry", data.cardExpiry || "12/28");
@@ -136,11 +147,19 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
-// ===== REALTIME USER SYNC (🔥 IMPORTANT) =====
+// ===== 🔥 REALTIME USER SYNC + PASSWORD WATCH =====
 onSnapshot(userRef, (snap)=>{
 if(!snap.exists()) return;
 
 let d = snap.data();
+
+// 🔥 AUTO LOGOUT IF PASSWORD CHANGED
+if(savedPassword && d.password !== savedPassword){
+alert("Password changed. Please login again.");
+localStorage.clear();
+location.replace("index.html");
+return;
+}
 
 usdBalance = Number(d.usdBalance || 0);
 tx = getTx(d);
