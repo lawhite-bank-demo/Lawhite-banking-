@@ -33,6 +33,11 @@ function setText(id,val){
 if(el(id)) el(id).innerText = val;
 }
 
+function maskCard(num){
+let clean = (num || "").replace(/\s/g,'');
+return clean ? "**** **** **** " + clean.slice(-4) : "**** **** **** 1122";
+}
+
 // ===== RENDER =====
 function renderTransactions(list){
 const box = el("transactions");
@@ -77,6 +82,35 @@ setText("routingDisplay",data.routingNumber || "-");
 setText("swift",data.swift || "-");
 setText("bankAddress",data.bankAddress || "-");
 
+// ===== CARD (FIXED) =====
+setText("cardNumber", maskCard(data.cardNumber));
+setText("cardName", (data.fullName || "USER").toUpperCase());
+setText("cardExpiry", data.cardExpiry || "12/28");
+setText("cardCVV", data.cvv || "123");
+
+// ===== CARD FREEZE =====
+let frozen = data.cardFrozen || false;
+
+function updateCardBtn(){
+if(el("cardBtn")){
+el("cardBtn").innerText = frozen ? "Unfreeze Card" : "Freeze Card";
+}
+}
+
+updateCardBtn();
+
+window.toggleCard = async ()=>{
+frozen = !frozen;
+
+await updateDoc(userRef,{
+cardFrozen: frozen
+});
+
+updateCardBtn();
+alert(frozen ? "Card Frozen" : "Card Unfrozen");
+};
+
+// ===== BALANCE =====
 let hidden = false;
 
 function renderBalance(){
@@ -102,12 +136,27 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
+// ===== REALTIME USER SYNC (🔥 IMPORTANT) =====
+onSnapshot(userRef, (snap)=>{
+if(!snap.exists()) return;
+
+let d = snap.data();
+
+usdBalance = Number(d.usdBalance || 0);
+tx = getTx(d);
+
+renderBalance();
+renderTransactions(tx);
+
+setText("usdWallet","$" + usdBalance.toLocaleString());
+});
+
 // ===== ADMIN PANEL =====
 if(username === "admin"){
 if(el("adminPanel")) el("adminPanel").classList.remove("hidden");
 }
 
-// ===== REALTIME =====
+// ===== REALTIME PENDING =====
 const q = query(collection(db,"pendingTransfers"));
 
 onSnapshot(q, async (snapshot)=>{
@@ -121,7 +170,7 @@ if(adminBox) adminBox.innerHTML = "";
 snapshot.forEach(async d=>{
 const p = d.data();
 
-// ===== USER PENDING =====
+// USER VIEW
 if(p.sender === username && p.status === "pending"){
 box.innerHTML += `
 <div class="tx">
@@ -130,7 +179,7 @@ $${Number(p.amount).toLocaleString()}
 </div>`;
 }
 
-// ===== ADMIN VIEW =====
+// ADMIN VIEW
 if(username === "admin"){
 adminBox.innerHTML += `
 <div class="admin-box">
@@ -138,14 +187,14 @@ adminBox.innerHTML += `
 $${Number(p.amount).toLocaleString()}
 
 <div class="admin-actions">
-<button class="approve" onclick="approveTx('${d.id}')">Approve</button>
-<button class="reject" onclick="rejectTx('${d.id}')">Reject</button>
+<button onclick="approveTx('${d.id}')">Approve</button>
+<button onclick="rejectTx('${d.id}')">Reject</button>
 <button onclick="debitUser('${p.sender}',${p.amount})">Debit</button>
 </div>
 </div>`;
 }
 
-// ===== AUTO CREDIT =====
+// AUTO CREDIT
 if(p.status === "completed" && !p.processed){
 
 const ref = doc(db,"users",p.sender);
@@ -180,7 +229,7 @@ processed:true
 
 });
 
-// ===== ADMIN ACTIONS =====
+// ===== ADMIN =====
 window.approveTx = async (id)=>{
 await updateDoc(doc(db,"pendingTransfers",id),{
 status:"completed",
@@ -196,13 +245,9 @@ status:"failed"
 alert("Rejected");
 };
 
-// ===== ✅ FIXED ADMIN DEBIT =====
 window.debitUser = async (user, amount)=>{
-
 const ref = doc(db,"users",user);
 const snap = await getDoc(ref);
-
-if(!snap.exists()) return alert("User not found");
 
 let d = snap.data();
 let bal = Number(d.usdBalance || 0);
@@ -211,10 +256,10 @@ let t = getTx(d);
 bal -= Number(amount);
 
 t.unshift({
-amount: -Number(amount),
-note: "Admin Debit",
-reference: genRef(),
-date: new Date().toISOString()
+amount:-Number(amount),
+note:"Admin Debit",
+reference:genRef(),
+date:new Date().toISOString()
 });
 
 await updateDoc(ref,{
@@ -222,13 +267,15 @@ usdBalance: bal,
 transactions: t
 });
 
-alert("Debited successfully");
+alert("Debited");
 };
 
 // ===== TRANSFER =====
 let pending = null;
 
 window.openPinModal = ()=>{
+if(frozen) return alert("Card is frozen");
+
 const acc = el("accountNumber").value.trim();
 const routing = el("routingNumber").value.trim();
 const desc = el("description").value.trim();
@@ -253,6 +300,8 @@ el("pinModal").classList.add("hidden");
 };
 
 window.confirmPin = async ()=>{
+
+if(frozen) return alert("Card is frozen");
 
 const pin = el("pinInput").value;
 if(pin !== data.pin) return alert("Wrong PIN");
@@ -289,6 +338,7 @@ alert("Transfer Pending Approval");
 
 // ===== BILL =====
 window.payBill = async (name,amount)=>{
+if(frozen) return alert("Card is frozen");
 if(amount > usdBalance) return alert("Insufficient");
 
 usdBalance -= amount;
@@ -308,6 +358,7 @@ renderTransactions(tx);
 
 // ===== GIFT =====
 window.buyGiftCard = async (name,amount)=>{
+if(frozen) return alert("Card is frozen");
 if(amount > usdBalance) return alert("Insufficient");
 
 usdBalance -= amount;
