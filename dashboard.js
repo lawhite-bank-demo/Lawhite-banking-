@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
 getFirestore, doc, getDoc, updateDoc,
-collection, addDoc, query,
+collection, getDocs, addDoc, query,
 onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -38,6 +38,39 @@ let clean = (num || "").replace(/\s/g,'');
 return clean ? "**** **** **** " + clean.slice(-4) : "**** **** **** 1122";
 }
 
+// ===== 🔥 AUTO FIX ALL USERS =====
+async function fixAllUsers(){
+
+const usersSnap = await getDocs(collection(db,"users"));
+
+usersSnap.forEach(async (u)=>{
+let d = u.data();
+
+// fix balances
+let usd = d.usdBalance ?? d.balance ?? 0;
+let eur = d.balance ?? usd * 0.92;
+let gbp = d.gbpBalance ?? usd * 0.78;
+
+// fix missing bank info
+let routing = d.routingNumber || "021069021";
+let swift = d.swift || "BOFAUS3NXXX";
+let address = d.bankAddress || "DeChase Bank, United States";
+
+// update safely
+await updateDoc(doc(db,"users",u.id),{
+usdBalance: usd,
+balance: eur,
+gbpBalance: gbp,
+routingNumber: routing,
+swift: swift,
+bankAddress: address
+});
+
+});
+
+console.log("✅ All users fixed");
+}
+
 // ===== RENDER =====
 function renderTransactions(list){
 const box = el("transactions");
@@ -70,6 +103,11 @@ const savedPassword = localStorage.getItem("password");
 
 if(!username) return location.replace("index.html");
 
+// 🔥 RUN AUTO FIX (ONLY ADMIN)
+if(username === "admin"){
+await fixAllUsers();
+}
+
 const userRef = doc(db,"users",username);
 const snap = await getDoc(userRef);
 if(!snap.exists()) return location.replace("index.html");
@@ -84,10 +122,11 @@ location.replace("index.html");
 return;
 }
 
-let usdBalance = Number(data.usdBalance || 0);
+// ===== SAFE BALANCE =====
+let usdBalance = Number(data.usdBalance ?? data.balance ?? 0);
 let tx = getTx(data);
 
-// ===== SAFE DEFAULTS (🔥 FIXED ISSUE) =====
+// ===== SAFE BANK INFO =====
 const routing = data.routingNumber || "021069021";
 const swift = data.swift || "BOFAUS3NXXX";
 const address = data.bankAddress || "DeChase Bank, United States";
@@ -138,12 +177,13 @@ renderBalance();
 
 renderBalance();
 
-// ===== WALLET (🔥 FIXED EUR ISSUE) =====
+// ===== WALLET =====
 let eurBal = Number(data.balance ?? usdBalance * 0.92);
+let gbpBal = Number(data.gbpBalance ?? usdBalance * 0.78);
 
 setText("usdWallet","$" + usdBalance.toLocaleString());
 setText("eurWallet","€" + eurBal.toLocaleString());
-setText("gbpWallet","£" + Number(data.gbpBalance || usdBalance * 0.78).toLocaleString());
+setText("gbpWallet","£" + gbpBal.toLocaleString());
 
 // ===== CONVERTER =====
 setText("convertedEUR","€" + (usdBalance * 0.92).toLocaleString());
@@ -152,7 +192,7 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
-// ===== REALTIME USER =====
+// ===== REALTIME USER SYNC =====
 onSnapshot(userRef, (snap)=>{
 if(!snap.exists()) return;
 
@@ -166,7 +206,7 @@ location.replace("index.html");
 return;
 }
 
-usdBalance = Number(d.usdBalance || 0);
+usdBalance = Number(d.usdBalance ?? d.balance ?? 0);
 tx = getTx(d);
 
 renderBalance();
@@ -176,45 +216,22 @@ setText("usdWallet","$" + usdBalance.toLocaleString());
 setText("eurWallet","€" + (d.balance ?? usdBalance * 0.92).toLocaleString());
 });
 
-// ===== ADMIN PANEL =====
-if(username === "admin"){
-if(el("adminPanel")) el("adminPanel").classList.remove("hidden");
-}
-
-// ===== REALTIME PENDING =====
+// ===== PENDING =====
 const q = query(collection(db,"pendingTransfers"));
 
 onSnapshot(q, async (snapshot)=>{
 
 const box = el("pendingTransactions");
-const adminBox = el("adminTransfers");
-
 if(box) box.innerHTML = "";
-if(adminBox) adminBox.innerHTML = "";
 
 snapshot.forEach(async d=>{
 const p = d.data();
 
-// USER VIEW
 if(p.sender === username && p.status === "pending"){
 box.innerHTML += `
 <div class="tx">
 ⏳ Pending<br>
 $${Number(p.amount).toLocaleString()}
-</div>`;
-}
-
-// ADMIN VIEW
-if(username === "admin"){
-adminBox.innerHTML += `
-<div class="admin-box">
-<b>${p.sender}</b><br>
-$${Number(p.amount).toLocaleString()}
-<div class="admin-actions">
-<button onclick="approveTx('${d.id}')">Approve</button>
-<button onclick="rejectTx('${d.id}')">Reject</button>
-<button onclick="debitUser('${p.sender}',${p.amount})">Debit</button>
-</div>
 </div>`;
 }
 
@@ -226,7 +243,7 @@ const s = await getDoc(ref);
 
 if(s.exists()){
 let dta = s.data();
-let bal = Number(dta.usdBalance || 0);
+let bal = Number(dta.usdBalance ?? 0);
 let txx = getTx(dta);
 
 bal += Number(p.amount);
@@ -247,44 +264,6 @@ await updateDoc(doc(db,"pendingTransfers",d.id),{ processed:true });
 });
 
 });
-
-// ===== ADMIN =====
-window.approveTx = async (id)=>{
-await updateDoc(doc(db,"pendingTransfers",id),{
-status:"completed",
-processed:false
-});
-alert("Approved");
-};
-
-window.rejectTx = async (id)=>{
-await updateDoc(doc(db,"pendingTransfers",id),{
-status:"failed"
-});
-alert("Rejected");
-};
-
-window.debitUser = async (user, amount)=>{
-const ref = doc(db,"users",user);
-const snap = await getDoc(ref);
-
-let d = snap.data();
-let bal = Number(d.usdBalance || 0);
-let t = getTx(d);
-
-bal -= Number(amount);
-
-t.unshift({
-amount:-Number(amount),
-note:"Admin Debit",
-reference:genRef(),
-date:new Date().toISOString()
-});
-
-await updateDoc(ref,{ usdBalance: bal, transactions: t });
-
-alert("Debited");
-};
 
 // ===== TRANSFER =====
 let pending = null;
@@ -350,46 +329,6 @@ renderBalance();
 renderTransactions(tx);
 
 alert("Transfer Pending Approval");
-};
-
-// ===== BILL =====
-window.payBill = async (name,amount)=>{
-if(frozen) return alert("Card is frozen");
-if(amount > usdBalance) return alert("Insufficient");
-
-usdBalance -= amount;
-
-tx.unshift({
-amount:-amount,
-note:name+" Bill",
-reference:genRef(),
-date:new Date().toISOString()
-});
-
-await updateDoc(userRef,{ usdBalance, transactions: tx });
-
-renderBalance();
-renderTransactions(tx);
-};
-
-// ===== GIFT =====
-window.buyGiftCard = async (name,amount)=>{
-if(frozen) return alert("Card is frozen");
-if(amount > usdBalance) return alert("Insufficient");
-
-usdBalance -= amount;
-
-tx.unshift({
-amount:-amount,
-note:name+" Gift Card",
-reference:genRef(),
-date:new Date().toISOString()
-});
-
-await updateDoc(userRef,{ usdBalance, transactions: tx });
-
-renderBalance();
-renderTransactions(tx);
 };
 
 }
