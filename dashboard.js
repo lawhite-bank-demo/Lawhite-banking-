@@ -66,7 +66,7 @@ ${amt>=0?"+":"-"}$${Math.abs(amt).toLocaleString()}
 async function initDashboard(){
 
 const username = localStorage.getItem("user");
-const savedPassword = localStorage.getItem("password"); // 🔥 IMPORTANT
+const savedPassword = localStorage.getItem("password");
 
 if(!username) return location.replace("index.html");
 
@@ -76,7 +76,7 @@ if(!snap.exists()) return location.replace("index.html");
 
 let data = snap.data();
 
-// ===== 🔥 PASSWORD CHECK (INITIAL) =====
+// ===== PASSWORD CHECK =====
 if(savedPassword && data.password !== savedPassword){
 alert("Session expired. Login again.");
 localStorage.clear();
@@ -87,11 +87,16 @@ return;
 let usdBalance = Number(data.usdBalance || 0);
 let tx = getTx(data);
 
+// ===== SAFE DEFAULTS (🔥 FIXED ISSUE) =====
+const routing = data.routingNumber || "021069021";
+const swift = data.swift || "BOFAUS3NXXX";
+const address = data.bankAddress || "DeChase Bank, United States";
+
 // ===== UI =====
 setText("welcome","Hello, " + (data.fullName || "User"));
-setText("routingDisplay",data.routingNumber || "-");
-setText("swift",data.swift || "-");
-setText("bankAddress",data.bankAddress || "-");
+setText("routingDisplay", routing);
+setText("swift", swift);
+setText("bankAddress", address);
 
 // ===== CARD =====
 setText("cardNumber", maskCard(data.cardNumber));
@@ -112,11 +117,7 @@ updateCardBtn();
 
 window.toggleCard = async ()=>{
 frozen = !frozen;
-
-await updateDoc(userRef,{
-cardFrozen: frozen
-});
-
+await updateDoc(userRef,{ cardFrozen: frozen });
 updateCardBtn();
 alert(frozen ? "Card Frozen" : "Card Unfrozen");
 };
@@ -128,17 +129,21 @@ function renderBalance(){
 setText("balance", hidden ? "••••••" : "$" + usdBalance.toLocaleString());
 }
 
+if(el("toggleBalance")){
 el("toggleBalance").onclick = ()=>{
 hidden = !hidden;
 renderBalance();
 };
+}
 
 renderBalance();
 
-// ===== WALLET =====
+// ===== WALLET (🔥 FIXED EUR ISSUE) =====
+let eurBal = Number(data.balance ?? usdBalance * 0.92);
+
 setText("usdWallet","$" + usdBalance.toLocaleString());
-setText("eurWallet","€" + Number(data.balance || 0).toLocaleString());
-setText("gbpWallet","£" + Number(data.gbpBalance || 0).toLocaleString());
+setText("eurWallet","€" + eurBal.toLocaleString());
+setText("gbpWallet","£" + Number(data.gbpBalance || usdBalance * 0.78).toLocaleString());
 
 // ===== CONVERTER =====
 setText("convertedEUR","€" + (usdBalance * 0.92).toLocaleString());
@@ -147,15 +152,15 @@ setText("convertedGBP","£" + (usdBalance * 0.78).toLocaleString());
 // ===== TRANSACTIONS =====
 renderTransactions(tx);
 
-// ===== 🔥 REALTIME USER SYNC + PASSWORD WATCH =====
+// ===== REALTIME USER =====
 onSnapshot(userRef, (snap)=>{
 if(!snap.exists()) return;
 
 let d = snap.data();
 
-// 🔥 AUTO LOGOUT IF PASSWORD CHANGED
+// logout if password changed
 if(savedPassword && d.password !== savedPassword){
-alert("Password changed. Please login again.");
+alert("Password changed. Login again.");
 localStorage.clear();
 location.replace("index.html");
 return;
@@ -168,6 +173,7 @@ renderBalance();
 renderTransactions(tx);
 
 setText("usdWallet","$" + usdBalance.toLocaleString());
+setText("eurWallet","€" + (d.balance ?? usdBalance * 0.92).toLocaleString());
 });
 
 // ===== ADMIN PANEL =====
@@ -204,7 +210,6 @@ adminBox.innerHTML += `
 <div class="admin-box">
 <b>${p.sender}</b><br>
 $${Number(p.amount).toLocaleString()}
-
 <div class="admin-actions">
 <button onclick="approveTx('${d.id}')">Approve</button>
 <button onclick="rejectTx('${d.id}')">Reject</button>
@@ -233,15 +238,10 @@ reference: genRef(),
 date: new Date().toISOString()
 });
 
-await updateDoc(ref,{
-usdBalance: bal,
-transactions: txx
-});
+await updateDoc(ref,{ usdBalance: bal, transactions: txx });
 }
 
-await updateDoc(doc(db,"pendingTransfers",d.id),{
-processed:true
-});
+await updateDoc(doc(db,"pendingTransfers",d.id),{ processed:true });
 }
 
 });
@@ -281,10 +281,7 @@ reference:genRef(),
 date:new Date().toISOString()
 });
 
-await updateDoc(ref,{
-usdBalance: bal,
-transactions: t
-});
+await updateDoc(ref,{ usdBalance: bal, transactions: t });
 
 alert("Debited");
 };
