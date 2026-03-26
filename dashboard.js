@@ -38,7 +38,7 @@ let clean = (num || "").replace(/\s/g,'');
 return clean ? "**** **** **** " + clean.slice(-4) : "**** **** **** 1122";
 }
 
-// ===== 🔥 AUTO FIX ALL USERS =====
+// ===== 🔥 AUTO FIX ALL USERS (FINAL FIXED) =====
 async function fixAllUsers(){
 
 const usersSnap = await getDocs(collection(db,"users"));
@@ -46,17 +46,20 @@ const usersSnap = await getDocs(collection(db,"users"));
 usersSnap.forEach(async (u)=>{
 let d = u.data();
 
-// fix balances
-let usd = d.usdBalance ?? d.balance ?? 0;
+// ✅ FIX ZERO BALANCE BUG
+let usd = (d.usdBalance && d.usdBalance > 0)
+  ? d.usdBalance
+  : (d.balance ?? 0);
+
+// sync other currencies
 let eur = d.balance ?? usd * 0.92;
 let gbp = d.gbpBalance ?? usd * 0.78;
 
-// fix missing bank info
+// fix bank info
 let routing = d.routingNumber || "021069021";
 let swift = d.swift || "BOFAUS3NXXX";
 let address = d.bankAddress || "DeChase Bank, United States";
 
-// update safely
 await updateDoc(doc(db,"users",u.id),{
 usdBalance: usd,
 balance: eur,
@@ -68,7 +71,7 @@ bankAddress: address
 
 });
 
-console.log("✅ All users fixed");
+console.log("✅ All users fixed correctly");
 }
 
 // ===== RENDER =====
@@ -103,7 +106,7 @@ const savedPassword = localStorage.getItem("password");
 
 if(!username) return location.replace("index.html");
 
-// 🔥 RUN AUTO FIX (ONLY ADMIN)
+// 🔥 RUN AUTO FIX
 if(username === "admin"){
 await fixAllUsers();
 }
@@ -122,11 +125,16 @@ location.replace("index.html");
 return;
 }
 
-// ===== SAFE BALANCE =====
-let usdBalance = Number(data.usdBalance ?? data.balance ?? 0);
+// ===== SAFE BALANCE (FIXED) =====
+let usdBalance = Number(
+(data.usdBalance && data.usdBalance > 0)
+? data.usdBalance
+: (data.balance ?? 0)
+);
+
 let tx = getTx(data);
 
-// ===== SAFE BANK INFO =====
+// ===== BANK INFO =====
 const routing = data.routingNumber || "021069021";
 const swift = data.swift || "BOFAUS3NXXX";
 const address = data.bankAddress || "DeChase Bank, United States";
@@ -206,7 +214,13 @@ location.replace("index.html");
 return;
 }
 
-usdBalance = Number(d.usdBalance ?? d.balance ?? 0);
+// 🔥 SAME FIX HERE
+usdBalance = Number(
+(d.usdBalance && d.usdBalance > 0)
+? d.usdBalance
+: (d.balance ?? 0)
+);
+
 tx = getTx(d);
 
 renderBalance();
