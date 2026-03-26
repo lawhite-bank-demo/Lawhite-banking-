@@ -42,7 +42,6 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 
 .hidden{display:none !important;}
 
-/* ADMIN PANEL */
 .admin-box{background:#0f172a;border:1px solid #334155;padding:10px;border-radius:12px;margin-top:10px;}
 .admin-actions{display:flex;gap:10px;margin-top:10px;}
 .admin-actions button{flex:1;}
@@ -57,7 +56,6 @@ button{width:100%;padding:12px;margin-top:10px;border:none;border-radius:10px;ba
 
 <h3 id="welcome"></h3>
 
-<!-- HOME -->
 <div id="homePage">
 
 <div class="balance-card">
@@ -127,7 +125,6 @@ Address: <span id="bankAddress"></span>
 <div id="pendingTransactions"></div>
 </div>
 
-<!-- 🔥 ADMIN PANEL -->
 <div class="card hidden" id="adminPanel">
 <b>🛠 Admin Control Panel</b>
 <div id="adminTransfers"></div>
@@ -140,7 +137,7 @@ Address: <span id="bankAddress"></span>
 
 </div>
 
-<!-- PAYMENTS -->
+<!-- OTHER PAGES (UNCHANGED) -->
 <div id="paymentsPage" class="hidden">
 <div class="card">
 <b>Send Money</b>
@@ -152,7 +149,6 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- BILLS -->
 <div id="billsPage" class="hidden">
 <div class="card">
 <b>Pay Bills</b>
@@ -162,7 +158,6 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- GIFT -->
 <div id="giftPage" class="hidden">
 <div class="card">
 <b>Gift Cards</b>
@@ -172,7 +167,6 @@ Address: <span id="bankAddress"></span>
 </div>
 </div>
 
-<!-- PROFILE -->
 <div id="profilePage" class="hidden">
 <div class="card">
 Name: <span id="nameProfile"></span><br>
@@ -187,7 +181,6 @@ Email: <span id="emailProfile"></span>
 
 </div>
 
-<!-- PIN MODAL -->
 <div id="pinModal" class="hidden" style="position:fixed;top:0;width:100%;height:100%;background:#0008;display:flex;justify-content:center;align-items:center;">
 <div class="card">
 <input id="pinInput" placeholder="Enter PIN">
@@ -196,7 +189,6 @@ Email: <span id="emailProfile"></span>
 </div>
 </div>
 
-<!-- NAV -->
 <div class="bottomNav">
 <button onclick="openPage('homePage')">Home</button>
 <button onclick="openPage('paymentsPage')">Payments</button>
@@ -206,23 +198,43 @@ Email: <span id="emailProfile"></span>
 </div>
 
 <script>
+// NAV
 function openPage(page){
 ["homePage","paymentsPage","billsPage","giftPage","profilePage"]
 .forEach(p=>document.getElementById(p).classList.add("hidden"));
 document.getElementById(page).classList.remove("hidden");
 }
 
+// LOGOUT
 function logout(){
 localStorage.clear();
 location.replace("index.html");
 }
 
+// SUPPORT
 function contactSupport(){
 window.open("https://wa.me/13312016202");
 }
+
+// 🔥 CARD FLIP
+function flipCard(){
+const card = document.getElementById("cardInner");
+if(card) card.classList.toggle("flipped");
+}
+
+// 🔥 CVV TOGGLE
+let cvvVisible = false;
+function revealCVV(){
+const cvv = document.getElementById("cardCVV");
+if(!cvv) return;
+
+cvvVisible = !cvvVisible;
+cvv.innerText = cvvVisible ? cvv.innerText : "***";
+}
 </script>
 
-<script type="module" src="dashboard.js?v=13"></script>
+<!-- 🔥 VERSION UPDATED -->
+<script type="module" src="dashboard.js?v=99"></script>
 
 </body>
 </html>
